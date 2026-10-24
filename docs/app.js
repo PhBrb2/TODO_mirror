@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.12.1";
+  const VERSION = "0.12.2";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -285,7 +285,7 @@
         changed = true;
       }
     }
-    if (changed) render();
+    if (changed) { saveState(); render(); }
   }
 
   function isoWeekKey(ts) {
@@ -337,6 +337,7 @@
     showToast(
       `📦 +${coins} 🪙 +${gems} 💎 +${xp} ✨` + (leveledUp ? ` — Level up!` : "")
     );
+    saveState();
     render();
   }
 
@@ -356,16 +357,20 @@
   function rolloverCheckpoints() {
     const now = Date.now();
     const today = dayKey(now);
+    let changed = false;
     if (state.lastFirstTaskDayKey !== today && state.dailyCompleted > 0) {
       state.dailyCompleted = 0;
       state.lastDailyMilestone = 0;
+      changed = true;
     }
     const week = isoWeekKey(now);
     if (state.weekKey !== week) {
       state.weekKey = week;
       state.weeklyCompleted = 0;
       state.lastWeeklyMilestone = 0;
+      changed = true;
     }
+    if (changed) saveState();
   }
 
   function applyFirstTaskBonus() {
@@ -408,6 +413,7 @@
     };
     if (isBonus) showToast("⭐ New bonus task! Extra rewards");
     state.tasks.push(task);
+    saveState();
     render();
   }
 
@@ -434,6 +440,7 @@
       done: false,
     });
     parent.difficulty = deriveDifficulty(parent);
+    saveState();
     render();
   }
 
@@ -442,6 +449,7 @@
     if (t) subtask.title = t;
     if (difficulty in COIN_REWARD) subtask.difficulty = difficulty;
     parent.difficulty = deriveDifficulty(parent);
+    saveState();
     render();
   }
 
@@ -516,6 +524,7 @@
         uncompleteTask(parent);
       }
     }
+    saveState();
     render();
   }
 
@@ -649,6 +658,7 @@
     } else if (weeklyReward > 0) {
       showToast(`🏆 Weekly goal reached! +${WEEKLY_GOAL_REWARD} 🪙`);
       promptDifficultyRating(task);
+      saveState();
       render();
       return;
     } else if (goalReward > 0) {
@@ -661,6 +671,7 @@
     maybeStartBoost();
     promptDifficultyRating(task);
     maybeSuggestDifficultyReduction(task);
+    saveState();
     render();
   }
 
@@ -704,11 +715,13 @@
     }
 
     task.reward = null;
+    saveState();
     render();
   }
 
   function deleteTask(id) {
     state.tasks = state.tasks.filter((t) => t.id !== id);
+    saveState();
     render();
   }
 
@@ -737,6 +750,7 @@
     if (updates.deadline !== undefined) {
       task.deadline = updates.deadline ? new Date(updates.deadline).getTime() : null;
     }
+    saveState();
     render();
   }
 
@@ -766,6 +780,7 @@
         } else {
           showToast("Noted, thanks!");
         }
+        saveState();
         render();
       });
       panel.appendChild(btn);
@@ -892,6 +907,7 @@
         stDel.addEventListener("click", () => {
           task.subtasks = task.subtasks.filter((s) => s.id !== st.id);
           task.difficulty = deriveDifficulty(task);
+          saveState();
           render();
         });
         row.appendChild(scb);
@@ -1194,14 +1210,9 @@
     state.boostCooldownUntil = 0;
     state.lastDailyMilestone = 0;
     state.lastWeeklyMilestone = 0;
+    saveState();
     render();
   });
-
-  const baseRender = render;
-  render = function () {
-    baseRender();
-    saveState();
-  };
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
