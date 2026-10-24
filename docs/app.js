@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.10.3";
+  const VERSION = "0.12.1";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -50,6 +50,8 @@
     chests: [],
     boostUntil: 0,
     boostCooldownUntil: 0,
+    lastDailyMilestone: 0,
+    lastWeeklyMilestone: 0,
   };
 
   function isRecord(v) {
@@ -84,6 +86,32 @@
       deadline: typeof raw.deadline === "number" ? raw.deadline : null,
       ratedDifficulty: raw.ratedDifficulty ?? null,
       difficultySuggested: raw.difficultySuggested === true,
+      reward: isRecord(raw.reward)
+        ? {
+            coins: num(raw.reward.coins, 0),
+            gems: num(raw.reward.gems, 0),
+            xp: num(raw.reward.xp, 0),
+            chestEarned: raw.reward.chestEarned === true,
+            firstTaskDay: num(raw.reward.firstTaskDay, 0),
+          }
+        : null,
+      subtasks: Array.isArray(raw.subtasks)
+        ? raw.subtasks
+            .filter(isRecord)
+            .map((st) => ({
+              id: num(st.id, 0),
+              title: str(st.title, "Untitled"),
+              difficulty: st.difficulty in COIN_REWARD ? st.difficulty : "easy",
+              done: st.done === true,
+              reward: isRecord(st.reward)
+                ? {
+                    coins: num(st.reward.coins, 0),
+                    gems: num(st.reward.gems, 0),
+                    xp: num(st.reward.xp, 0),
+                  }
+                : null,
+            }))
+        : [],
     };
   }
 
@@ -116,6 +144,8 @@
         : [],
       boostUntil: num(raw.boostUntil, 0),
       boostCooldownUntil: num(raw.boostCooldownUntil, 0),
+      lastDailyMilestone: raw.lastDailyMilestone ?? 0,
+      lastWeeklyMilestone: raw.lastWeeklyMilestone ?? 0,
     };
   }
 
@@ -328,11 +358,13 @@
     const today = dayKey(now);
     if (state.lastFirstTaskDayKey !== today && state.dailyCompleted > 0) {
       state.dailyCompleted = 0;
+      state.lastDailyMilestone = 0;
     }
     const week = isoWeekKey(now);
     if (state.weekKey !== week) {
       state.weekKey = week;
       state.weeklyCompleted = 0;
+      state.lastWeeklyMilestone = 0;
     }
   }
 
@@ -372,10 +404,136 @@
       deadline: deadlineInput ? new Date(deadlineInput).getTime() : null,
       ratedDifficulty: null,
       difficultySuggested: false,
+      subtasks: [],
     };
     if (isBonus) showToast("⭐ New bonus task! Extra rewards");
     state.tasks.push(task);
     render();
+  }
+
+  const DIFFICULTY_ORDER = ["too_easy", "easy", "medium", "hard"];
+
+  function deriveDifficulty(task) {
+    if (task.subtasks.length === 0) return task.difficulty;
+    let best = "too_easy";
+    for (const st of task.subtasks) {
+      if (DIFFICULTY_ORDER.indexOf(st.difficulty) > DIFFICULTY_ORDER.indexOf(best)) {
+        best = st.difficulty;
+      }
+    }
+    return best;
+  }
+
+  function addSubtask(parentId, title, difficulty) {
+    const parent = state.tasks.find((t) => t.id === parentId);
+    if (!parent || !title) return;
+    parent.subtasks.push({
+      id: state.nextId++,
+      title,
+      difficulty,
+      done: false,
+    });
+    parent.difficulty = deriveDifficulty(parent);
+    render();
+  }
+
+  function editSubtask(parent, subtask, title, difficulty) {
+    const t = (title || "").trim();
+    if (t) subtask.title = t;
+    if (difficulty in COIN_REWARD) subtask.difficulty = difficulty;
+    parent.difficulty = deriveDifficulty(parent);
+    render();
+  }
+
+  function openSubtaskEditRow(parent, subtask) {
+    document.querySelectorAll(".edit-row").forEach((el) => el.remove());
+    const row = document.createElement("div");
+    row.className = "edit-row subtask-edit-row";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = subtask.title;
+    input.maxLength = 80;
+
+    const diff = document.createElement("select");
+    for (const [value, label] of [
+      ["too_easy", "Too easy"],
+      ["easy", "Easy"],
+      ["medium", "Medium"],
+      ["hard", "Hard"],
+    ]) {
+      const o = document.createElement("option");
+      o.value = value;
+      o.textContent = label;
+      if (subtask.difficulty === value) o.selected = true;
+      diff.appendChild(o);
+    }
+
+    const save = document.createElement("button");
+    save.type = "button";
+    save.textContent = "Save";
+    save.addEventListener("click", () =>
+      editSubtask(parent, subtask, input.value, diff.value));
+
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => row.remove());
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        editSubtask(parent, subtask, input.value, diff.value);
+      }
+    });
+
+    row.appendChild(input);
+    row.appendChild(diff);
+    row.appendChild(save);
+    row.appendChild(cancel);
+    const subRow = document.querySelector(`[data-id="${parent.id}"] .subtask-row-${subtask.id}`);
+    if (subRow && subRow.nextSibling) {
+      subRow.parentNode.insertBefore(row, subRow.nextSibling);
+    } else {
+      document
+        .querySelector(`[data-id="${parent.id}"] .subtask-list`)
+        .appendChild(row);
+    }
+    input.focus();
+  }
+
+  function toggleSubtask(parent, subtask) {
+    subtask.done = !subtask.done;
+    if (subtask.done) {
+      awardSubtask(subtask);
+      if (parent.subtasks.every((st) => st.done) && !parent.done) {
+        completeTask(parent);
+      }
+    } else {
+      clawBackReward(subtask.reward);
+      subtask.reward = null;
+      if (parent.done) {
+        uncompleteTask(parent);
+      }
+    }
+    render();
+  }
+
+  function awardSubtask(subtask) {
+    const base = COIN_REWARD[subtask.difficulty];
+    const mult = randomMultiplier();
+    let coins = Math.round(base * mult);
+    if (isBoostActive()) coins = Math.round(coins * BOOST_MULT);
+    const xpGain = XP_REWARD[subtask.difficulty] || 0;
+    state.coins += coins;
+    const xpBefore = levelFromXp(state.xp);
+    state.xp += xpGain;
+    subtask.reward = { coins, gems: 0, xp: xpGain };
+    if (levelFromXp(state.xp) > xpBefore) {
+      showToast(`🎉 Level up! You are now level ${levelFromXp(state.xp)}`);
+    } else if (coins > 0) {
+      showToast(`+${coins} 🪙 +${xpGain} ✨`);
+    }
   }
 
   function reachedGoalCount(count) {
@@ -427,6 +585,7 @@
     state.xp += xpGain;
     const leveledUp = levelFromXp(state.xp) > xpBefore;
 
+    let chestEarned = false;
     if (firstBonus) {
       state.chests.push({
         id: state.nextId++,
@@ -435,18 +594,41 @@
         openedAt: 0,
         contents: null,
       });
+      chestEarned = true;
     }
 
     state.coins += coins;
     state.gems += gems;
 
-    const goalsBefore = reachedGoalCount(state.dailyCompleted);
     state.dailyCompleted += 1;
-    const goalsAfter = reachedGoalCount(state.dailyCompleted);
-
-    const weekBefore = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
     state.weeklyCompleted += 1;
-    const weekAfter = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
+
+    let goalReward = 0;
+    let weeklyReward = 0;
+    const dailyMilestone = reachedGoalCount(state.dailyCompleted);
+    if (state.lastDailyMilestone === undefined || dailyMilestone > state.lastDailyMilestone) {
+      if (dailyMilestone > (state.lastDailyMilestone ?? 0)) {
+        goalReward = GOAL_REWARD;
+        state.coins += goalReward;
+      }
+      state.lastDailyMilestone = dailyMilestone;
+    }
+    const weeklyMilestone = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
+    if (state.lastWeeklyMilestone === undefined || weeklyMilestone > state.lastWeeklyMilestone) {
+      if (weeklyMilestone > (state.lastWeeklyMilestone ?? 0)) {
+        weeklyReward = WEEKLY_GOAL_REWARD;
+        state.coins += weeklyReward;
+      }
+      state.lastWeeklyMilestone = weeklyMilestone;
+    }
+
+    task.reward = {
+      coins,
+      gems,
+      xp: xpGain,
+      chestEarned,
+      firstTaskDay: firstBonus ? firstBonus.streak : 0,
+    };
 
     let msg = "+";
     const parts = [];
@@ -464,14 +646,12 @@
 
     if (leveledUp) {
       showToast(`🎉 Level up! You are now level ${levelFromXp(state.xp)}`);
-    } else if (weekAfter > weekBefore) {
-      state.coins += WEEKLY_GOAL_REWARD;
+    } else if (weeklyReward > 0) {
       showToast(`🏆 Weekly goal reached! +${WEEKLY_GOAL_REWARD} 🪙`);
       promptDifficultyRating(task);
       render();
       return;
-    } else if (goalsAfter > goalsBefore) {
-      state.coins += GOAL_REWARD;
+    } else if (goalReward > 0) {
       showToast(`🎉 Daily goal reached! +${GOAL_REWARD} 🪙`);
     } else {
       showToast(msg);
@@ -484,6 +664,17 @@
     render();
   }
 
+  function clawBackReward(reward) {
+    if (!reward) return;
+    state.coins = Math.max(0, state.coins - reward.coins);
+    state.gems = Math.max(0, state.gems - reward.gems);
+    state.xp = Math.max(0, state.xp - reward.xp);
+    if (reward.chestEarned) {
+      const idx = state.chests.findIndex((c) => !c.opened);
+      if (idx >= 0) state.chests.splice(idx, 1);
+    }
+  }
+
   function uncompleteTask(task) {
     task.done = false;
     const key = task.completedAt ? repeatKey(task.repeat, task.completedAt) : null;
@@ -493,16 +684,26 @@
     }
     task.completedAt = null;
 
-    const base = COIN_REWARD[task.difficulty];
-    const goalsBefore = reachedGoalCount(state.dailyCompleted);
     state.dailyCompleted = Math.max(0, state.dailyCompleted - 1);
-    const goalsAfter = reachedGoalCount(state.dailyCompleted);
-
-    state.coins = Math.max(0, state.coins - base);
-    if (task.bonus) state.coins = Math.max(0, state.coins - BONUS_TASK_COINS);
-    if (goalsAfter < goalsBefore) {
-      state.coins = Math.max(0, state.coins - GOAL_REWARD);
+    state.weeklyCompleted = Math.max(0, state.weeklyCompleted - 1);
+    if (task.reward && task.reward.firstTaskDay > 0) {
+      state.firstTaskStreak = Math.max(0, task.reward.firstTaskDay - 1);
+      state.lastFirstTaskDayKey = null;
     }
+    clawBackReward(task.reward);
+
+    const dailyMilestone = reachedGoalCount(state.dailyCompleted);
+    if (dailyMilestone < state.lastDailyMilestone) {
+      state.coins = Math.max(0, state.coins - GOAL_REWARD);
+      state.lastDailyMilestone = undefined;
+    }
+    const weeklyMilestone = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
+    if (weeklyMilestone < state.lastWeeklyMilestone) {
+      state.coins = Math.max(0, state.coins - WEEKLY_GOAL_REWARD);
+      state.lastWeeklyMilestone = undefined;
+    }
+
+    task.reward = null;
     render();
   }
 
@@ -518,7 +719,11 @@
       const t = updates.title.trim();
       if (t) task.title = t;
     }
-    if (updates.difficulty !== undefined && updates.difficulty in COIN_REWARD) {
+    if (
+      updates.difficulty !== undefined &&
+      updates.difficulty in COIN_REWARD &&
+      task.subtasks.length === 0
+    ) {
       task.difficulty = updates.difficulty;
     }
     if (updates.repeat !== undefined &&
@@ -661,6 +866,83 @@
     body.appendChild(title);
     body.appendChild(meta);
 
+    if (task.subtasks.length > 0 || !task.done) {
+      const sublist = document.createElement("div");
+      sublist.className = "subtask-list";
+      for (const st of task.subtasks) {
+        const row = document.createElement("div");
+        row.className = "subtask subtask-row-" + st.id + (st.done ? " done" : "");
+        const scb = document.createElement("input");
+        scb.type = "checkbox";
+        scb.checked = st.done;
+        scb.addEventListener("change", () => toggleSubtask(task, st));
+        const stTitle = document.createElement("span");
+        stTitle.className = "subtask-title";
+        stTitle.textContent = st.title;
+        const stEdit = document.createElement("button");
+        stEdit.className = "task-edit subtask-edit";
+        stEdit.textContent = "✎";
+        stEdit.addEventListener("click", () => openSubtaskEditRow(task, st));
+        const stBadge = document.createElement("span");
+        stBadge.className = "badge " + st.difficulty;
+        stBadge.textContent = st.difficulty.replace("_", " ");
+        const stDel = document.createElement("button");
+        stDel.className = "task-delete subtask-delete";
+        stDel.textContent = "✕";
+        stDel.addEventListener("click", () => {
+          task.subtasks = task.subtasks.filter((s) => s.id !== st.id);
+          task.difficulty = deriveDifficulty(task);
+          render();
+        });
+        row.appendChild(scb);
+        row.appendChild(stTitle);
+        row.appendChild(stBadge);
+        row.appendChild(stEdit);
+        row.appendChild(stDel);
+        sublist.appendChild(row);
+      }
+      if (!task.done) {
+        const addRow = document.createElement("div");
+        addRow.className = "subtask-add";
+        const addInput = document.createElement("input");
+        addInput.type = "text";
+        addInput.placeholder = "Add subtask...";
+        addInput.maxLength = 80;
+        const addDiff = document.createElement("select");
+        for (const [value, label] of [
+          ["too_easy", "Too easy"],
+          ["easy", "Easy"],
+          ["medium", "Medium"],
+          ["hard", "Hard"],
+        ]) {
+          const o = document.createElement("option");
+          o.value = value;
+          o.textContent = label;
+          addDiff.appendChild(o);
+        }
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.textContent = "+";
+        addBtn.addEventListener("click", () => {
+          const v = addInput.value.trim();
+          if (!v) return;
+          addSubtask(task.id, v, addDiff.value);
+        });
+        addInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const v = addInput.value.trim();
+            if (v) addSubtask(task.id, v, addDiff.value);
+          }
+        });
+        addRow.appendChild(addInput);
+        addRow.appendChild(addDiff);
+        addRow.appendChild(addBtn);
+        sublist.appendChild(addRow);
+      }
+      body.appendChild(sublist);
+    }
+
     const del = document.createElement("button");
     del.className = "task-delete";
     del.textContent = "✕";
@@ -700,6 +982,10 @@
     input.maxLength = 80;
 
     const diff = document.createElement("select");
+    diff.disabled = task.subtasks.length > 0;
+    diff.title = task.subtasks.length > 0
+      ? "Difficulty is derived from the most difficult sub-task"
+      : "";
     for (const [value, label] of [
       ["too_easy", "Too easy"],
       ["easy", "Easy"],
@@ -731,6 +1017,10 @@
     const dl = document.createElement("input");
     dl.type = "datetime-local";
     dl.value = deadlineInputValue(task);
+    const dlWrap = document.createElement("label");
+    dlWrap.className = "deadline-label edit-deadline";
+    dlWrap.textContent = "📅 Deadline ";
+    dlWrap.appendChild(dl);
 
     const save = document.createElement("button");
     save.type = "button";
@@ -752,7 +1042,7 @@
     row.appendChild(input);
     row.appendChild(diff);
     row.appendChild(rep);
-    row.appendChild(dl);
+    row.appendChild(dlWrap);
     row.appendChild(save);
     row.appendChild(cancel);
     listEl.insertBefore(row, listEl.querySelector(`[data-id="${task.id}"]`).nextSibling);
@@ -857,9 +1147,34 @@
   checkRecurringTasks();
   setInterval(checkRecurringTasks, 15000);
   setInterval(rolloverCheckpoints, 60000);
-  setInterval(() => {
-    if (isBoostActive() || state.chests.some(chestReady)) render();
-  }, 1000);
+
+  function updateLiveClocks() {
+    const now = Date.now();
+    if (isBoostActive()) {
+      boostBannerEl.classList.remove("hidden");
+      const remaining = Math.max(0, state.boostUntil - now);
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      boostTimerEl.textContent = `${m}m ${s}s`;
+    } else {
+      boostBannerEl.classList.add("hidden");
+    }
+
+    const unopened = state.chests.filter((c) => !c.opened);
+    let idx = 0;
+    for (const node of chestAreaEl.querySelectorAll(".chest")) {
+      const chest = unopened[idx];
+      if (!chest) break;
+      const remaining = CHEST_OPEN_MS - (now - chest.earnedAt);
+      if (!chestReady(chest) && remaining > 0) {
+        const h = Math.floor(remaining / 3600000);
+        const m = Math.ceil((remaining % 3600000) / 60000);
+        node.textContent = `🔒 open in ${h}h ${m}m`;
+      }
+      idx++;
+    }
+  }
+  setInterval(updateLiveClocks, 1000);
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset ALL data? This can not be undone.")) return;
@@ -877,6 +1192,8 @@
     state.chests = [];
     state.boostUntil = 0;
     state.boostCooldownUntil = 0;
+    state.lastDailyMilestone = 0;
+    state.lastWeeklyMilestone = 0;
     render();
   });
 

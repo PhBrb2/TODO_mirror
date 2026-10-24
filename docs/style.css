@@ -127,15 +127,29 @@ header h1 {
 .badge.deadline { background: #e0f2f1; color: #00897b; margin-left: 4px; }
 .badge.deadline.overdue { background: #ffe3e3; color: #c0392b; }
 
-#deadline-input {
+.deadline-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd8f0;
   border-radius: 10px;
   background: #fff;
   font-size: 0.85rem;
-  color: var(--text);
+  color: var(--muted);
 }
+
+#deadline-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--text);
+  min-width: 0;
+}
+
+#deadline-input:focus { outline: none; }
 
 .gems b { color: #00b894; }
 .level b { color: #e17055; }
@@ -195,6 +209,78 @@ header h1 {
 
 .task-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
+.subtask-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.subtask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 0 0;
+  font-size: 0.85rem;
+}
+
+.subtask.done .subtask-title { text-decoration: line-through; opacity: 0.55; }
+
+.subtask input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--done);
+  flex-shrink: 0;
+}
+
+.subtask-title { flex: 1; overflow-wrap: break-word; }
+
+.subtask .badge { font-size: 0.6rem; padding: 1px 6px; }
+
+.subtask-delete { font-size: 0.75rem; padding: 2px 4px; }
+
+.subtask-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.subtask-add input[type="text"] {
+  flex: 1 1 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #ddd8f0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background: #fff;
+}
+
+.subtask-add select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #ddd8f0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.75rem;
+  padding: 4px;
+}
+
+.subtask-add button {
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: #fff;
+  font-weight: 700;
+  min-width: 44px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.subtask-edit-row {
+  margin: 4px 0 0 24px;
+}
+
 .task-edit {
   border: none;
   background: none;
@@ -223,13 +309,22 @@ header h1 {
   font-size: 0.9rem;
 }
 
-.edit-row select,
-.edit-row input[type="datetime-local"] {
+.edit-row select {
   flex: 1;
   padding: 6px;
   border: 1px solid #ddd8f0;
   border-radius: 8px;
   background: #fff;
+  font-size: 0.75rem;
+}
+
+.edit-row .deadline-label {
+  flex: 1 1 100%;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+}
+
+.edit-row .deadline-label input {
   font-size: 0.75rem;
 }
 
