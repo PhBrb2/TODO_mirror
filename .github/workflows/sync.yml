@@ -1,0 +1,44 @@
+
+name: Sync upstream main
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mirror
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sync upstream files
+        env:
+          UPSTREAM_URL: https://github.com/PhBrb/TODO.git
+        run: |
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch upstream main
+
+          git rm -r --ignore-unmatch .
+          git ls-tree -r --name-only upstream/main \
+            | while IFS= read -r file; do
+                mkdir -p "$(dirname "$file")"
+                git show "upstream/main:$file" > "$file"
+              done
+
+          git add -A
+          git add -f .github/workflows/sync.yml
+          git diff --cached --quiet && exit 0
+
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "Sync files from upstream main"
+
+          git push origin main
