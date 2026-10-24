@@ -3,7 +3,7 @@ name: Sync upstream main
 
 on:
   schedule:
-    - cron: "35 * * * *"
+    - cron: "24 * * * *"
   workflow_dispatch:
 
 permissions:
