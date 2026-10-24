@@ -23,9 +23,15 @@ jobs:
         env:
           UPSTREAM_URL: https://github.com/PhBrb/TODO.git
         run: |
+          set -e
+
+          # Back up this workflow before replacing the files
+          cp .github/workflows/sync.yml /tmp/sync.yml
+
           git remote add upstream "$UPSTREAM_URL"
           git fetch upstream main
 
+          # Replace tracked files with upstream files
           git rm -r --ignore-unmatch .
           git ls-tree -r --name-only upstream/main \
             | while IFS= read -r file; do
@@ -33,8 +39,11 @@ jobs:
                 git show "upstream/main:$file" > "$file"
               done
 
+          # Restore the workflow that powers this sync
+          mkdir -p .github/workflows
+          cp /tmp/sync.yml .github/workflows/sync.yml
+
           git add -A
-          git add -f .github/workflows/sync.yml
           git diff --cached --quiet && exit 0
 
           git -c user.name="github-actions[bot]" \
