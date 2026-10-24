@@ -48,6 +48,10 @@ Curated from 2_EngagemetFeatures.md
     - Only asked for repeating tasks
   - F22: Very satisfying animation and sound on completion, confetti, banner, fanfare, reward trickeling into coin/gem inventory. It should be fun but not startling.
 - ~~F23: If streak becomes long without the user reporting it as difficult, suggest reducing its difficulty after completion (after a 5-streak, eg. 5 days for daily, 5 weeks for weekly, without a "harder" rating)~~
+- F84: Backlog: user can create tasks with very low priority. They are not shown in the normal task list. When the normal task list is close to empty, suggest adding a task from the backlog.
+- F85: For repeating tasks with a bonus reward, the bonus is rerolled every time the task becomes available again.
+- F86: Option for a custom day start time: the new day starts at a user-chosen time (eg 4am) instead of midnight.
+- F87: Repeating tasks support different deadline types, eg a fixed time of day ("at 6pm") or X days after the task became active.
 - ~~Sort tasks, always show some easy medium and hard tasks, so the user can easly select one fitting their current energy level. Prioritize tasks that are due soon.~~ Manual override with sticky pin.
 
 

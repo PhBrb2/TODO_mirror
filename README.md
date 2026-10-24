@@ -1,3 +1,3 @@
 # TODO
-<img width="1081" height="725" alt="image" src="https://github.com/user-attachments/assets/572a7176-b9b6-492e-ab06-d0d80a787828" />
 
+<img width="1024" height="1536" alt="grafik" src="https://github.com/user-attachments/assets/5c151d02-1558-4dec-b9d5-9bdf692fee6e" />
