@@ -1,10 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.9.4";
+  const VERSION = "0.10.3";
 
   const STORAGE_KEY = "todo-mwe-state";
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
 
   const COIN_REWARD = { too_easy: 0, easy: 10, medium: 25, hard: 50 };
   const DAILY_GOALS = [5, 10, 15, 25];
@@ -25,6 +25,16 @@
   const FIRST_TASK_GEM_CHANCE = { day1_2: 0, day3_6: 0.5, day7: 0.5 };
   const RATE_PROMPT_TIMEOUT = 10000;
   const DIFFICULTY_SUGGESTION_STREAK = 5;
+  const XP_REWARD = { too_easy: 1, easy: 5, medium: 12, hard: 25 };
+  const XP_BASE_LEVEL = 100;
+  const CHEST_OPEN_MS = 12 * 60 * 60 * 1000;
+  const CHEST_COINS = [20, 30, 40];
+  const CHEST_GEMS = [1, 2];
+  const CHEST_XP = [10, 20];
+  const BOOST_MULT = 1.5;
+  const BOOST_DURATION_MS = 60 * 60 * 1000;
+  const BOOST_CHANCE_PER_COMPLETION = 0.1;
+  const BOOST_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
   const state = {
     coins: 0,
@@ -36,6 +46,10 @@
     lastFirstTaskDayKey: null,
     weeklyCompleted: 0,
     weekKey: null,
+    xp: 0,
+    chests: [],
+    boostUntil: 0,
+    boostCooldownUntil: 0,
   };
 
   function isRecord(v) {
@@ -88,6 +102,20 @@
       lastFirstTaskDayKey: str(raw.lastFirstTaskDayKey, null),
       weeklyCompleted: num(raw.weeklyCompleted, 0),
       weekKey: str(raw.weekKey, null),
+      xp: num(raw.xp, 0),
+      chests: Array.isArray(raw.chests)
+        ? raw.chests
+            .filter(isRecord)
+            .map((c) => ({
+              id: num(c.id, 0),
+              earnedAt: num(c.earnedAt, 0),
+              opened: c.opened === true,
+              openedAt: num(c.openedAt, 0),
+              contents: null,
+            }))
+        : [],
+      boostUntil: num(raw.boostUntil, 0),
+      boostCooldownUntil: num(raw.boostCooldownUntil, 0),
     };
   }
 
@@ -125,6 +153,11 @@
   const dailyBar = document.getElementById("daily-bar");
   const weeklyProgressEl = document.getElementById("weekly-progress");
   const weeklyBar = document.getElementById("weekly-bar");
+  const levelDisplayEl = document.getElementById("level-display");
+  const chestAreaEl = document.getElementById("chest-area");
+  const boostBannerEl = document.getElementById("boost-banner");
+  const boostTimerEl = document.getElementById("boost-timer");
+  const resetBtn = document.getElementById("reset-btn");
   const versionEl = document.getElementById("app-version");
   const form = document.getElementById("task-form");
   const taskInput = document.getElementById("task-input");
@@ -241,6 +274,55 @@
     return "day1_2";
   }
 
+  function xpForLevel(level) {
+    return XP_BASE_LEVEL * level * (level + 1) / 2;
+  }
+
+  function levelFromXp(xp) {
+    let level = 1;
+    while (xp >= xpForLevel(level + 1)) level++;
+    return level;
+  }
+
+  function levelStartXp(level) {
+    return level === 1 ? 0 : xpForLevel(level);
+  }
+
+  function chestReady(chest) {
+    return !chest.opened && Date.now() - chest.earnedAt >= CHEST_OPEN_MS;
+  }
+
+  function openChest(chest) {
+    if (!chestReady(chest)) return;
+    chest.opened = true;
+    chest.openedAt = Date.now();
+    const coins = CHEST_COINS[Math.floor(Math.random() * CHEST_COINS.length)];
+    const gems = CHEST_GEMS[Math.floor(Math.random() * CHEST_GEMS.length)];
+    const xp = CHEST_XP[Math.floor(Math.random() * CHEST_XP.length)];
+    const xpBefore = levelFromXp(state.xp);
+    state.coins += coins;
+    state.gems += gems;
+    state.xp += xp;
+    const leveledUp = levelFromXp(state.xp) > xpBefore;
+    showToast(
+      `📦 +${coins} 🪙 +${gems} 💎 +${xp} ✨` + (leveledUp ? ` — Level up!` : "")
+    );
+    render();
+  }
+
+  function isBoostActive() {
+    return Date.now() < state.boostUntil;
+  }
+
+  function maybeStartBoost() {
+    if (isBoostActive()) return;
+    if (Date.now() < state.boostCooldownUntil) return;
+    if (Math.random() >= BOOST_CHANCE_PER_COMPLETION) return;
+    state.boostUntil = Date.now() + BOOST_DURATION_MS;
+    state.boostCooldownUntil = state.boostUntil + BOOST_COOLDOWN_MS;
+    showToast(`⚡ Reward boost active! x${BOOST_MULT} for 1h`);
+  }
+
   function rolloverCheckpoints() {
     const now = Date.now();
     const today = dayKey(now);
@@ -323,6 +405,8 @@
     let coins = Math.round(base * mult * streakMult);
     let gems = 0;
 
+    if (isBoostActive()) coins = Math.round(coins * BOOST_MULT);
+
     if (GEM_CHANCE[task.difficulty] !== undefined && Math.random() < GEM_CHANCE[task.difficulty]) {
       gems += GEM_BONUS_AMOUNT;
     }
@@ -336,6 +420,21 @@
     if (firstBonus) {
       coins += firstBonus.coins;
       gems += firstBonus.gems;
+    }
+
+    const xpGain = XP_REWARD[task.difficulty] || 0;
+    const xpBefore = levelFromXp(state.xp);
+    state.xp += xpGain;
+    const leveledUp = levelFromXp(state.xp) > xpBefore;
+
+    if (firstBonus) {
+      state.chests.push({
+        id: state.nextId++,
+        earnedAt: Date.now(),
+        opened: false,
+        openedAt: 0,
+        contents: null,
+      });
     }
 
     state.coins += coins;
@@ -361,20 +460,25 @@
       msg += ` 🌅 first task x${state.firstTaskStreak}`;
     }
 
-    if (weekAfter > weekBefore) {
+    msg += ` +${xpGain} ✨`;
+
+    if (leveledUp) {
+      showToast(`🎉 Level up! You are now level ${levelFromXp(state.xp)}`);
+    } else if (weekAfter > weekBefore) {
       state.coins += WEEKLY_GOAL_REWARD;
       showToast(`🏆 Weekly goal reached! +${WEEKLY_GOAL_REWARD} 🪙`);
       promptDifficultyRating(task);
       render();
       return;
-    }
-    if (goalsAfter > goalsBefore) {
+    } else if (goalsAfter > goalsBefore) {
       state.coins += GOAL_REWARD;
       showToast(`🎉 Daily goal reached! +${GOAL_REWARD} 🪙`);
     } else {
       showToast(msg);
     }
 
+    if (firstBonus) showToast("📦 Chest earned! Opens in 12h");
+    maybeStartBoost();
     promptDifficultyRating(task);
     maybeSuggestDifficultyReduction(task);
     render();
@@ -692,6 +796,57 @@
     wFill.className = "daily-bar-fill";
     wFill.style.width = Math.min(100, (state.weeklyCompleted / nextWeekly) * 100) + "%";
     weeklyBar.appendChild(wFill);
+
+    const level = levelFromXp(state.xp);
+    levelDisplayEl.textContent = level;
+    document.getElementById("level-display-inline").textContent = level;
+    const curLevelXp = levelStartXp(level);
+    const nextLevelXp = xpForLevel(level + 1);
+    document.getElementById("xp-progress").textContent =
+      `${state.xp - curLevelXp}/${nextLevelXp - curLevelXp} XP`;
+
+    chestAreaEl.innerHTML = "";
+    const unopened = state.chests.filter((c) => !c.opened);
+    if (unopened.length > 0) {
+      const counter = document.createElement("span");
+      counter.className = "chest-counter";
+      counter.textContent = `📦 ${unopened.length}`;
+      chestAreaEl.appendChild(counter);
+    }
+    const grouped = new Map();
+    for (const chest of unopened) {
+      const ready = chestReady(chest);
+      const key = ready ? "ready" : `locked:${CHEST_OPEN_MS - (Date.now() - chest.earnedAt)}`;
+      if (!grouped.has(key)) grouped.set(key, { chest, ready, count: 0 });
+      grouped.get(key).count++;
+    }
+    for (const { chest, ready, count } of grouped.values()) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      if (ready) {
+        btn.className = "chest ready";
+        btn.textContent = `📦 Open me!${count > 1 ? ` (x${count})` : ""}`;
+        btn.addEventListener("click", () => openChest(chest));
+      } else {
+        btn.className = "chest waiting";
+        btn.disabled = true;
+        const remaining = CHEST_OPEN_MS - (Date.now() - chest.earnedAt);
+        const h = Math.floor(remaining / 3600000);
+        const m = Math.ceil((remaining % 3600000) / 60000);
+        btn.textContent = `🔒 open in ${h}h ${m}m${count > 1 ? ` (x${count})` : ""}`;
+      }
+      chestAreaEl.appendChild(btn);
+    }
+
+    if (isBoostActive()) {
+      boostBannerEl.classList.remove("hidden");
+      const remaining = Math.max(0, state.boostUntil - Date.now());
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      boostTimerEl.textContent = `${m}m ${s}s`;
+    } else {
+      boostBannerEl.classList.add("hidden");
+    }
   }
 
   versionEl.textContent = "v" + VERSION;
@@ -702,6 +857,28 @@
   checkRecurringTasks();
   setInterval(checkRecurringTasks, 15000);
   setInterval(rolloverCheckpoints, 60000);
+  setInterval(() => {
+    if (isBoostActive() || state.chests.some(chestReady)) render();
+  }, 1000);
+
+  resetBtn.addEventListener("click", () => {
+    if (!confirm("Reset ALL data? This can not be undone.")) return;
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    state.coins = 0;
+    state.gems = 0;
+    state.dailyCompleted = 0;
+    state.tasks = [];
+    state.nextId = 1;
+    state.firstTaskStreak = 0;
+    state.lastFirstTaskDayKey = null;
+    state.weeklyCompleted = 0;
+    state.weekKey = null;
+    state.xp = 0;
+    state.chests = [];
+    state.boostUntil = 0;
+    state.boostCooldownUntil = 0;
+    render();
+  });
 
   const baseRender = render;
   render = function () {

@@ -13,18 +13,23 @@
     <div class="stats">
       <span class="coins">🪙 <b id="coin-balance">0</b></span>
       <span class="gems">💎 <b id="gem-balance">0</b></span>
+      <span class="level">✨ Lv <b id="level-display">1</b></span>
       <span class="version" id="app-version"></span>
     </div>
   </header>
+
+  <div id="boost-banner" class="boost-banner hidden">⚡ Reward boost x1.5 — <span id="boost-timer"></span></div>
 
   <div class="daily-progress">
     <p class="daily-progress-label">Today: <b id="daily-progress">0/5</b></p>
     <div class="daily-bar" id="daily-bar"></div>
     <p class="daily-progress-label">This week: <b id="weekly-progress">0/10</b></p>
     <div class="daily-bar" id="weekly-bar"></div>
+    <p class="daily-progress-label">Level <b id="level-display-inline">1</b> — <b id="xp-progress">0/100 XP</b></p>
   </div>
 
   <main>
+    <div id="chest-area"></div>
     <ul id="task-list"></ul>
     <p id="empty-hint" class="empty-hint hidden">Nothing to do yet — add a task! 🎉</p>
 
@@ -51,6 +56,8 @@
   </main>
 
   <div id="toast" class="toast hidden"></div>
+
+  <button id="reset-btn" type="button">Reset all data</button>
 
   <script src="app.js"></script>
 </body>

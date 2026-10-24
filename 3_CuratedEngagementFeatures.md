@@ -4,10 +4,11 @@ Curated from 2_EngagemetFeatures.md
 ---
 
 #### Currency
-- F1: XP
-  - earned from completing task
-  - can not be spend
+- ~~F1: XP~~
+  - ~~earned from completing task~~ (1/5/12/25 XP for too easy/easy/medium/hard)
+  - ~~can not be spend~~
   - unlocks new tiles and items in the shop (which are teased before)
+  - ~~Levels shown in header, level up requires cumulative XP (100 per level * (level+1)/2)~~
 - ~~F2: Coins~~
   - ~~earned from completing task~~
   - spent on new items and interaction with items
@@ -15,10 +16,11 @@ Curated from 2_EngagemetFeatures.md
   - ~~randomly earned from completing tasks~~, can be bought with coins (but expensive)
   - spent on special items, streak freeze, ...
   - 25% chance for 2 gems on medium, 50% chance on hard
-- F4: Chests
-  - earned as daily reward for first completed task
-  - contains random coins, gems, items
-  - opens after 12h
+- ~~F4: Chests~~
+  - ~~earned as daily reward for first completed task~~
+  - ~~contains random coins, gems, items~~ (20-40 coins, 1-2 gems, 10-20 XP; no items yet)
+  - ~~opens after 12h~~
+  - ~~Chests are opened manually by the user; a counter shows ready and locked chests~~
 
 #### Task 
 - ~~F5: Can be created by user~~
@@ -61,7 +63,8 @@ Curated from 2_EngagemetFeatures.md
 - ~~F26: Weekly task completion: give rewards after 50, 100, 150, 250 completed tasks~~
   - 25 coins per reached weekly goal
   - MWE test mode: goals divided by 5 (10, 20, 30, 50)
-- F27: Limited time boost: for 1h increase task completion rewards. Start randomly (consider asking user for times where they can not complete tasks and don't start it there).
+- ~~F27: Limited time boost: for 1h increase task completion rewards. Start randomly (consider asking user for times where they can not complete tasks and don't start it there).~~
+  - ~~10% chance per completed task to start a 1h x1.5 coin boost, 2h cooldown, countdown banner shown~~
 - F28: Could be implemented as clocks integrated into the room (clocks could be bought?)
 - F29: Very satisfying animation on completion
 - Eg. "3/5 lamps collected"
@@ -80,6 +83,7 @@ Curated from 2_EngagemetFeatures.md
 #### Persistent memory
 - ~~F81: All app state is saved locally in the browser and restored on load~~
 - ~~F82: Saved data carries a schema version; older data is migrated, corrupt or newer-schema data falls back to a fresh state~~
+- ~~F88: MWE test mode: button to reset all data (with confirmation prompt)~~
 
 
 #### Skills

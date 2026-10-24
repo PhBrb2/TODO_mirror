@@ -138,6 +138,60 @@ header h1 {
 }
 
 .gems b { color: #00b894; }
+.level b { color: #e17055; }
+
+.boost-banner {
+  background: #fffbe0;
+  border: 1px solid #ffeaa7;
+  color: #b8860b;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+#chest-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chest-counter {
+  font-size: 0.9rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.chest {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.chest.ready { background: #ffe9c7; color: #b8860b; }
+.chest.waiting { background: #f0f0f5; color: var(--muted); cursor: not-allowed; }
+
+#reset-btn {
+  display: block;
+  margin: 32px auto 0;
+  border: 1px solid #ddd8f0;
+  background: none;
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+#reset-btn:active { background: #ffe3e3; color: #c0392b; }
 
 .task-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
