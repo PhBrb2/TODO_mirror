@@ -1,180 +1,6 @@
 (() => {
   "use strict";
 
-  const VERSION = "0.12.2";
-
-  const STORAGE_KEY = "todo-mwe-state";
-  const SCHEMA_VERSION = 3;
-
-  const COIN_REWARD = { too_easy: 0, easy: 10, medium: 25, hard: 50 };
-  const DAILY_GOALS = [5, 10, 15, 25];
-  const GOAL_REWARD = 15;
-  const GEM_CHANCE = { medium: 0.25, hard: 0.5 };
-  const GEM_BONUS_AMOUNT = 2;
-  const MULTIPLIER_MIN = 1;
-  const MULTIPLIER_MAX = 1.3;
-  const STREAK_BONUS_START_DAY = 3;
-  const STREAK_BONUS_PER_DAY = 0.1;
-  const STREAK_BONUS_MAX = 1.9;
-  const BONUS_TASK_RATE = 0.15;
-  const BONUS_TASK_COINS = 10;
-  const BONUS_TASK_GEMS = 1;
-  const WEEKLY_GOALS = [10, 20, 30, 50];
-  const WEEKLY_GOAL_REWARD = 25;
-  const FIRST_TASK_COINS_MULT = { day1_2: 1, day3_6: 2.5, day7: 3 };
-  const FIRST_TASK_GEM_CHANCE = { day1_2: 0, day3_6: 0.5, day7: 0.5 };
-  const RATE_PROMPT_TIMEOUT = 10000;
-  const DIFFICULTY_SUGGESTION_STREAK = 5;
-  const XP_REWARD = { too_easy: 1, easy: 5, medium: 12, hard: 25 };
-  const XP_BASE_LEVEL = 100;
-  const CHEST_OPEN_MS = 12 * 60 * 60 * 1000;
-  const CHEST_COINS = [20, 30, 40];
-  const CHEST_GEMS = [1, 2];
-  const CHEST_XP = [10, 20];
-  const BOOST_MULT = 1.5;
-  const BOOST_DURATION_MS = 60 * 60 * 1000;
-  const BOOST_CHANCE_PER_COMPLETION = 0.1;
-  const BOOST_COOLDOWN_MS = 2 * 60 * 60 * 1000;
-
-  const state = {
-    coins: 0,
-    gems: 0,
-    dailyCompleted: 0,
-    tasks: [],
-    nextId: 1,
-    firstTaskStreak: 0,
-    lastFirstTaskDayKey: null,
-    weeklyCompleted: 0,
-    weekKey: null,
-    xp: 0,
-    chests: [],
-    boostUntil: 0,
-    boostCooldownUntil: 0,
-    lastDailyMilestone: 0,
-    lastWeeklyMilestone: 0,
-  };
-
-  function isRecord(v) {
-    return v !== null && typeof v === "object" && !Array.isArray(v);
-  }
-
-  function num(v, fallback) {
-    return typeof v === "number" && Number.isFinite(v) ? v : fallback;
-  }
-
-  function str(v, fallback) {
-    return typeof v === "string" ? v : fallback;
-  }
-
-  function migrateTask(raw, i) {
-    if (!isRecord(raw)) return null;
-    return {
-      id: num(raw.id, i + 1),
-      title: str(raw.title, "Untitled"),
-      difficulty: raw.difficulty in COIN_REWARD ? raw.difficulty : "easy",
-      repeat: ["none", "daily", "weekly", "monthly", "every_5min"].includes(raw.repeat)
-        ? raw.repeat
-        : "none",
-      done: raw.done === true,
-      createdAt: num(raw.createdAt, Date.now()),
-      completedAt: typeof raw.completedAt === "number" ? raw.completedAt : null,
-      streak: num(raw.streak, 0),
-      streakDayKeys: Array.isArray(raw.streakDayKeys)
-        ? raw.streakDayKeys.filter((k) => typeof k === "string")
-        : [],
-      bonus: raw.bonus === true,
-      deadline: typeof raw.deadline === "number" ? raw.deadline : null,
-      ratedDifficulty: raw.ratedDifficulty ?? null,
-      difficultySuggested: raw.difficultySuggested === true,
-      reward: isRecord(raw.reward)
-        ? {
-            coins: num(raw.reward.coins, 0),
-            gems: num(raw.reward.gems, 0),
-            xp: num(raw.reward.xp, 0),
-            chestEarned: raw.reward.chestEarned === true,
-            firstTaskDay: num(raw.reward.firstTaskDay, 0),
-          }
-        : null,
-      subtasks: Array.isArray(raw.subtasks)
-        ? raw.subtasks
-            .filter(isRecord)
-            .map((st) => ({
-              id: num(st.id, 0),
-              title: str(st.title, "Untitled"),
-              difficulty: st.difficulty in COIN_REWARD ? st.difficulty : "easy",
-              done: st.done === true,
-              reward: isRecord(st.reward)
-                ? {
-                    coins: num(st.reward.coins, 0),
-                    gems: num(st.reward.gems, 0),
-                    xp: num(st.reward.xp, 0),
-                  }
-                : null,
-            }))
-        : [],
-    };
-  }
-
-  function migrateState(raw) {
-    if (!isRecord(raw)) return null;
-    const tasks = Array.isArray(raw.tasks)
-      ? raw.tasks.map(migrateTask).filter(Boolean)
-      : [];
-    return {
-      coins: num(raw.coins, 0),
-      gems: num(raw.gems, 0),
-      dailyCompleted: num(raw.dailyCompleted, 0),
-      tasks,
-      nextId: num(raw.nextId, tasks.length + 1),
-      firstTaskStreak: num(raw.firstTaskStreak, 0),
-      lastFirstTaskDayKey: str(raw.lastFirstTaskDayKey, null),
-      weeklyCompleted: num(raw.weeklyCompleted, 0),
-      weekKey: str(raw.weekKey, null),
-      xp: num(raw.xp, 0),
-      chests: Array.isArray(raw.chests)
-        ? raw.chests
-            .filter(isRecord)
-            .map((c) => ({
-              id: num(c.id, 0),
-              earnedAt: num(c.earnedAt, 0),
-              opened: c.opened === true,
-              openedAt: num(c.openedAt, 0),
-              contents: null,
-            }))
-        : [],
-      boostUntil: num(raw.boostUntil, 0),
-      boostCooldownUntil: num(raw.boostCooldownUntil, 0),
-      lastDailyMilestone: raw.lastDailyMilestone ?? 0,
-      lastWeeklyMilestone: raw.lastWeeklyMilestone ?? 0,
-    };
-  }
-
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!isRecord(data)) return null;
-      if (data.schemaVersion !== undefined && data.schemaVersion > SCHEMA_VERSION) {
-        return null;
-      }
-      return migrateState(data.state);
-    } catch {
-      return null;
-    }
-  }
-
-  function saveState() {
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ schemaVersion: SCHEMA_VERSION, state })
-      );
-    } catch {
-      // storage full or unavailable: keep running in-memory
-    }
-  }
-
   const listEl = document.getElementById("task-list");
   const emptyHint = document.getElementById("empty-hint");
   const coinBalanceEl = document.getElementById("coin-balance");
@@ -195,310 +21,119 @@
   const repeatSelect = document.getElementById("repeat-select");
   const deadlineInput = document.getElementById("deadline-input");
   const toastEl = document.getElementById("toast");
+  const levelInlineEl = document.getElementById("level-display-inline");
+  const xpProgressEl = document.getElementById("xp-progress");
 
   let toastTimer = null;
+  const toastQueue = [];
+
+  function displayNextToast() {
+    const next = toastQueue.shift();
+    if (next === undefined) {
+      toastEl.classList.add("hidden");
+      toastTimer = null;
+      return;
+    }
+    toastEl.textContent = next;
+    toastEl.classList.remove("hidden");
+    toastTimer = setTimeout(displayNextToast, 2000);
+  }
 
   function showToast(message) {
-    toastEl.textContent = message;
-    toastEl.classList.remove("hidden");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.add("hidden"), 2000);
+    toastQueue.push(message);
+    if (toastTimer === null) displayNextToast();
   }
 
-  function randomMultiplier() {
-    return MULTIPLIER_MIN + Math.random() * (MULTIPLIER_MAX - MULTIPLIER_MIN);
-  }
+  Game.ui.render = () => render();
+  Game.ui.showToast = (message) => showToast(message);
+  Game.ui.promptDifficultyRating = (task) => promptDifficultyRating(task);
 
-  function streakBonus(streak) {
-    if (streak < STREAK_BONUS_START_DAY) return 1;
-    const extraDays = streak - STREAK_BONUS_START_DAY + 1;
-    return Math.min(
-      STREAK_BONUS_MAX,
-      1 + extraDays * STREAK_BONUS_PER_DAY
-    );
-  }
+  const DIFFICULTY_OPTIONS = [
+    ["too_easy", "Too easy"],
+    ["easy", "Easy"],
+    ["medium", "Medium"],
+    ["hard", "Hard"],
+  ];
+  const REPEAT_OPTIONS = [
+    ["none", "No repeat"],
+    ["daily", "Daily"],
+    ["weekly", "Weekly"],
+    ["monthly", "Monthly"],
+    ["every_5min", "Every 5 min (test)"],
+  ];
 
-  function dayKey(ts) {
-    const d = new Date(ts);
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-  }
-
-  function fiveMinKey(ts) {
-    return `${dayKey(ts)}-${Math.floor(ts / 300000)}`;
-  }
-
-  function repeatKey(repeat, ts) {
-    if (repeat === "every_5min") return fiveMinKey(ts);
-    return dayKey(ts);
-  }
-
-  function prevRepeatKey(repeat, ts) {
-    if (repeat === "every_5min") return fiveMinKey(ts - 300000);
-    const d = new Date(ts);
-    d.setDate(d.getDate() - 1);
-    return dayKey(d.getTime());
-  }
-
-  function nextOccurrence(repeat, completedAt) {
-    if (repeat === "every_5min") return completedAt + 300000;
-    const d = new Date(completedAt);
-    if (repeat === "daily") {
-      d.setDate(d.getDate() + 1);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
-    }
-    if (repeat === "weekly") {
-      const daysUntilMonday = (8 - d.getDay()) % 7 || 7;
-      d.setDate(d.getDate() + daysUntilMonday);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
-    }
-    if (repeat === "monthly") {
-      return new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-    }
-    return Infinity;
-  }
-
-  function streakHasFailed(task, now) {
-    if (task.streak === 0 || task.streakDayKeys.length === 0) return false;
-    const lastKey = task.streakDayKeys[task.streakDayKeys.length - 1];
-    const currentKey = repeatKey(task.repeat, now);
-    if (lastKey === currentKey) return false;
-    return lastKey !== prevRepeatKey(task.repeat, now);
-  }
-
-  function checkRecurringTasks() {
-    const now = Date.now();
-    let changed = false;
-    for (const task of state.tasks) {
-      if (task.repeat === "none") continue;
-      if (task.done && task.completedAt !== null) {
-        if (nextOccurrence(task.repeat, task.completedAt) <= now) {
-          task.done = false;
-          task.completedAt = null;
-          changed = true;
-        }
-      }
-      if (streakHasFailed(task, now)) {
-        task.streak = 0;
-        task.streakDayKeys = [];
-        changed = true;
-      }
-    }
-    if (changed) { saveState(); render(); }
-  }
-
-  function isoWeekKey(ts) {
-    const d = new Date(ts);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-    const week1 = new Date(d.getFullYear(), 0, 4);
-    return `${d.getFullYear()}-${1 + Math.round(
-      ((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7
-    )}`;
-  }
-
-  function firstTaskTier(streak) {
-    if (streak >= 7) return "day7";
-    if (streak >= 3) return "day3_6";
-    return "day1_2";
-  }
-
-  function xpForLevel(level) {
-    return XP_BASE_LEVEL * level * (level + 1) / 2;
-  }
-
-  function levelFromXp(xp) {
-    let level = 1;
-    while (xp >= xpForLevel(level + 1)) level++;
-    return level;
-  }
-
-  function levelStartXp(level) {
-    return level === 1 ? 0 : xpForLevel(level);
-  }
-
-  function chestReady(chest) {
-    return !chest.opened && Date.now() - chest.earnedAt >= CHEST_OPEN_MS;
-  }
-
-  function openChest(chest) {
-    if (!chestReady(chest)) return;
-    chest.opened = true;
-    chest.openedAt = Date.now();
-    const coins = CHEST_COINS[Math.floor(Math.random() * CHEST_COINS.length)];
-    const gems = CHEST_GEMS[Math.floor(Math.random() * CHEST_GEMS.length)];
-    const xp = CHEST_XP[Math.floor(Math.random() * CHEST_XP.length)];
-    const xpBefore = levelFromXp(state.xp);
-    state.coins += coins;
-    state.gems += gems;
-    state.xp += xp;
-    const leveledUp = levelFromXp(state.xp) > xpBefore;
-    showToast(
-      `📦 +${coins} 🪙 +${gems} 💎 +${xp} ✨` + (leveledUp ? ` — Level up!` : "")
-    );
-    saveState();
-    render();
-  }
-
-  function isBoostActive() {
-    return Date.now() < state.boostUntil;
-  }
-
-  function maybeStartBoost() {
-    if (isBoostActive()) return;
-    if (Date.now() < state.boostCooldownUntil) return;
-    if (Math.random() >= BOOST_CHANCE_PER_COMPLETION) return;
-    state.boostUntil = Date.now() + BOOST_DURATION_MS;
-    state.boostCooldownUntil = state.boostUntil + BOOST_COOLDOWN_MS;
-    showToast(`⚡ Reward boost active! x${BOOST_MULT} for 1h`);
-  }
-
-  function rolloverCheckpoints() {
-    const now = Date.now();
-    const today = dayKey(now);
-    let changed = false;
-    if (state.lastFirstTaskDayKey !== today && state.dailyCompleted > 0) {
-      state.dailyCompleted = 0;
-      state.lastDailyMilestone = 0;
-      changed = true;
-    }
-    const week = isoWeekKey(now);
-    if (state.weekKey !== week) {
-      state.weekKey = week;
-      state.weeklyCompleted = 0;
-      state.lastWeeklyMilestone = 0;
-      changed = true;
-    }
-    if (changed) saveState();
-  }
-
-  function applyFirstTaskBonus() {
-    const now = Date.now();
-    const today = dayKey(now);
-    if (state.lastFirstTaskDayKey === today) return null;
-
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    state.firstTaskStreak =
-      state.lastFirstTaskDayKey === dayKey(yesterday.getTime())
-        ? state.firstTaskStreak + 1
-        : 1;
-    state.lastFirstTaskDayKey = today;
-
-    const tier = firstTaskTier(state.firstTaskStreak);
-    const coins = Math.round(FIRST_TASK_COINS_MULT[tier] * 10);
-    const gems =
-      Math.random() < FIRST_TASK_GEM_CHANCE[tier] ? GEM_BONUS_AMOUNT : 0;
-    return { coins, gems, streak: state.firstTaskStreak };
-  }
-
-  function addTask(title, difficulty, repeat, deadlineInput) {
-    const isBonus = Math.random() < BONUS_TASK_RATE;
-    const task = {
-      id: state.nextId++,
-      title,
-      difficulty,
-      repeat,
-      done: false,
-      createdAt: Date.now(),
-      completedAt: null,
-      streak: 0,
-      streakDayKeys: [],
-      bonus: isBonus,
-      deadline: deadlineInput ? new Date(deadlineInput).getTime() : null,
-      ratedDifficulty: null,
-      difficultySuggested: false,
-      subtasks: [],
-    };
-    if (isBonus) showToast("⭐ New bonus task! Extra rewards");
-    state.tasks.push(task);
-    saveState();
-    render();
-  }
-
-  const DIFFICULTY_ORDER = ["too_easy", "easy", "medium", "hard"];
-
-  function deriveDifficulty(task) {
-    if (task.subtasks.length === 0) return task.difficulty;
-    let best = "too_easy";
-    for (const st of task.subtasks) {
-      if (DIFFICULTY_ORDER.indexOf(st.difficulty) > DIFFICULTY_ORDER.indexOf(best)) {
-        best = st.difficulty;
-      }
-    }
-    return best;
-  }
-
-  function addSubtask(parentId, title, difficulty) {
-    const parent = state.tasks.find((t) => t.id === parentId);
-    if (!parent || !title) return;
-    parent.subtasks.push({
-      id: state.nextId++,
-      title,
-      difficulty,
-      done: false,
-    });
-    parent.difficulty = deriveDifficulty(parent);
-    saveState();
-    render();
-  }
-
-  function editSubtask(parent, subtask, title, difficulty) {
-    const t = (title || "").trim();
-    if (t) subtask.title = t;
-    if (difficulty in COIN_REWARD) subtask.difficulty = difficulty;
-    parent.difficulty = deriveDifficulty(parent);
-    saveState();
-    render();
-  }
-
-  function openSubtaskEditRow(parent, subtask) {
-    document.querySelectorAll(".edit-row").forEach((el) => el.remove());
-    const row = document.createElement("div");
-    row.className = "edit-row subtask-edit-row";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = subtask.title;
-    input.maxLength = 80;
-
-    const diff = document.createElement("select");
-    for (const [value, label] of [
-      ["too_easy", "Too easy"],
-      ["easy", "Easy"],
-      ["medium", "Medium"],
-      ["hard", "Hard"],
-    ]) {
+  function buildSelect(options, selected) {
+    const select = document.createElement("select");
+    for (const [value, label] of options) {
       const o = document.createElement("option");
       o.value = value;
       o.textContent = label;
-      if (subtask.difficulty === value) o.selected = true;
-      diff.appendChild(o);
+      if (selected === value) o.selected = true;
+      select.appendChild(o);
     }
+    return select;
+  }
+
+  function formatHoursMinutes(remaining) {
+    const h = Math.floor(remaining / 3600000);
+    const m = Math.ceil((remaining % 3600000) / 60000);
+    return `${h}h ${m}m`;
+  }
+
+  function formatMinutesSeconds(remaining) {
+    const m = Math.floor(remaining / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    return `${m}m ${s}s`;
+  }
+
+
+
+  function closeExistingEditRows() {
+    document.querySelectorAll(".edit-row").forEach((el) => el.remove());
+  }
+
+  function buildEditRow(className, title, controls, onSave) {
+    closeExistingEditRows();
+    const row = document.createElement("div");
+    row.className = className;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = title;
+    input.maxLength = 80;
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        onSave(input.value);
+      }
+    });
 
     const save = document.createElement("button");
     save.type = "button";
     save.textContent = "Save";
-    save.addEventListener("click", () =>
-      editSubtask(parent, subtask, input.value, diff.value));
+    save.addEventListener("click", () => onSave(input.value));
 
     const cancel = document.createElement("button");
     cancel.type = "button";
     cancel.textContent = "Cancel";
     cancel.addEventListener("click", () => row.remove());
 
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        editSubtask(parent, subtask, input.value, diff.value);
-      }
-    });
-
     row.appendChild(input);
-    row.appendChild(diff);
+    for (const control of controls) row.appendChild(control);
     row.appendChild(save);
     row.appendChild(cancel);
+    input.focus();
+    return row;
+  }
+
+  function openSubtaskEditRow(parent, subtask) {
+    const diff = buildSelect(DIFFICULTY_OPTIONS, subtask.difficulty);
+    const row = buildEditRow(
+      "edit-row subtask-edit-row",
+      subtask.title,
+      [diff],
+      (title) => Game.editSubtask(parent, subtask, title, diff.value)
+    );
     const subRow = document.querySelector(`[data-id="${parent.id}"] .subtask-row-${subtask.id}`);
     if (subRow && subRow.nextSibling) {
       subRow.parentNode.insertBefore(row, subRow.nextSibling);
@@ -508,250 +143,6 @@
         .appendChild(row);
     }
     input.focus();
-  }
-
-  function toggleSubtask(parent, subtask) {
-    subtask.done = !subtask.done;
-    if (subtask.done) {
-      awardSubtask(subtask);
-      if (parent.subtasks.every((st) => st.done) && !parent.done) {
-        completeTask(parent);
-      }
-    } else {
-      clawBackReward(subtask.reward);
-      subtask.reward = null;
-      if (parent.done) {
-        uncompleteTask(parent);
-      }
-    }
-    saveState();
-    render();
-  }
-
-  function awardSubtask(subtask) {
-    const base = COIN_REWARD[subtask.difficulty];
-    const mult = randomMultiplier();
-    let coins = Math.round(base * mult);
-    if (isBoostActive()) coins = Math.round(coins * BOOST_MULT);
-    const xpGain = XP_REWARD[subtask.difficulty] || 0;
-    state.coins += coins;
-    const xpBefore = levelFromXp(state.xp);
-    state.xp += xpGain;
-    subtask.reward = { coins, gems: 0, xp: xpGain };
-    if (levelFromXp(state.xp) > xpBefore) {
-      showToast(`🎉 Level up! You are now level ${levelFromXp(state.xp)}`);
-    } else if (coins > 0) {
-      showToast(`+${coins} 🪙 +${xpGain} ✨`);
-    }
-  }
-
-  function reachedGoalCount(count) {
-    return DAILY_GOALS.filter((g) => g <= count).length;
-  }
-
-  function completeTask(task) {
-    task.done = true;
-    task.completedAt = Date.now();
-
-    if (task.repeat !== "none") {
-      const key = repeatKey(task.repeat, task.completedAt);
-      if (!task.streakDayKeys.includes(key)) {
-        const lastKey = task.streakDayKeys[task.streakDayKeys.length - 1];
-        if (lastKey === prevRepeatKey(task.repeat, task.completedAt)) {
-          task.streak += 1;
-        } else {
-          task.streak = 1;
-        }
-        task.streakDayKeys.push(key);
-      }
-    }
-
-    const base = COIN_REWARD[task.difficulty];
-    const mult = randomMultiplier();
-    const streakMult = task.streak > 0 ? streakBonus(task.streak) : 1;
-    let coins = Math.round(base * mult * streakMult);
-    let gems = 0;
-
-    if (isBoostActive()) coins = Math.round(coins * BOOST_MULT);
-
-    if (GEM_CHANCE[task.difficulty] !== undefined && Math.random() < GEM_CHANCE[task.difficulty]) {
-      gems += GEM_BONUS_AMOUNT;
-    }
-
-    if (task.bonus) {
-      coins += BONUS_TASK_COINS;
-      gems += BONUS_TASK_GEMS;
-    }
-
-    const firstBonus = applyFirstTaskBonus();
-    if (firstBonus) {
-      coins += firstBonus.coins;
-      gems += firstBonus.gems;
-    }
-
-    const xpGain = XP_REWARD[task.difficulty] || 0;
-    const xpBefore = levelFromXp(state.xp);
-    state.xp += xpGain;
-    const leveledUp = levelFromXp(state.xp) > xpBefore;
-
-    let chestEarned = false;
-    if (firstBonus) {
-      state.chests.push({
-        id: state.nextId++,
-        earnedAt: Date.now(),
-        opened: false,
-        openedAt: 0,
-        contents: null,
-      });
-      chestEarned = true;
-    }
-
-    state.coins += coins;
-    state.gems += gems;
-
-    state.dailyCompleted += 1;
-    state.weeklyCompleted += 1;
-
-    let goalReward = 0;
-    let weeklyReward = 0;
-    const dailyMilestone = reachedGoalCount(state.dailyCompleted);
-    if (state.lastDailyMilestone === undefined || dailyMilestone > state.lastDailyMilestone) {
-      if (dailyMilestone > (state.lastDailyMilestone ?? 0)) {
-        goalReward = GOAL_REWARD;
-        state.coins += goalReward;
-      }
-      state.lastDailyMilestone = dailyMilestone;
-    }
-    const weeklyMilestone = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
-    if (state.lastWeeklyMilestone === undefined || weeklyMilestone > state.lastWeeklyMilestone) {
-      if (weeklyMilestone > (state.lastWeeklyMilestone ?? 0)) {
-        weeklyReward = WEEKLY_GOAL_REWARD;
-        state.coins += weeklyReward;
-      }
-      state.lastWeeklyMilestone = weeklyMilestone;
-    }
-
-    task.reward = {
-      coins,
-      gems,
-      xp: xpGain,
-      chestEarned,
-      firstTaskDay: firstBonus ? firstBonus.streak : 0,
-    };
-
-    let msg = "+";
-    const parts = [];
-    if (coins > 0) parts.push(`${coins} 🪙`);
-    if (gems > 0) parts.push(`${gems} 💎`);
-    if (parts.length === 0) parts.push("0 🪙");
-    msg += parts.join(" + ");
-    if (mult > 1.05) msg += ` (x${mult.toFixed(2)})`;
-    if (task.streak > 1) msg += ` 🔥 ${task.streak}`;
-    if (firstBonus && firstBonus.streak >= 3) {
-      msg += ` 🌅 first task x${state.firstTaskStreak}`;
-    }
-
-    msg += ` +${xpGain} ✨`;
-
-    if (leveledUp) {
-      showToast(`🎉 Level up! You are now level ${levelFromXp(state.xp)}`);
-    } else if (weeklyReward > 0) {
-      showToast(`🏆 Weekly goal reached! +${WEEKLY_GOAL_REWARD} 🪙`);
-      promptDifficultyRating(task);
-      saveState();
-      render();
-      return;
-    } else if (goalReward > 0) {
-      showToast(`🎉 Daily goal reached! +${GOAL_REWARD} 🪙`);
-    } else {
-      showToast(msg);
-    }
-
-    if (firstBonus) showToast("📦 Chest earned! Opens in 12h");
-    maybeStartBoost();
-    promptDifficultyRating(task);
-    maybeSuggestDifficultyReduction(task);
-    saveState();
-    render();
-  }
-
-  function clawBackReward(reward) {
-    if (!reward) return;
-    state.coins = Math.max(0, state.coins - reward.coins);
-    state.gems = Math.max(0, state.gems - reward.gems);
-    state.xp = Math.max(0, state.xp - reward.xp);
-    if (reward.chestEarned) {
-      const idx = state.chests.findIndex((c) => !c.opened);
-      if (idx >= 0) state.chests.splice(idx, 1);
-    }
-  }
-
-  function uncompleteTask(task) {
-    task.done = false;
-    const key = task.completedAt ? repeatKey(task.repeat, task.completedAt) : null;
-    if (key && task.streakDayKeys.includes(key)) {
-      task.streakDayKeys.pop();
-      task.streak = Math.max(0, task.streak - 1);
-    }
-    task.completedAt = null;
-
-    state.dailyCompleted = Math.max(0, state.dailyCompleted - 1);
-    state.weeklyCompleted = Math.max(0, state.weeklyCompleted - 1);
-    if (task.reward && task.reward.firstTaskDay > 0) {
-      state.firstTaskStreak = Math.max(0, task.reward.firstTaskDay - 1);
-      state.lastFirstTaskDayKey = null;
-    }
-    clawBackReward(task.reward);
-
-    const dailyMilestone = reachedGoalCount(state.dailyCompleted);
-    if (dailyMilestone < state.lastDailyMilestone) {
-      state.coins = Math.max(0, state.coins - GOAL_REWARD);
-      state.lastDailyMilestone = undefined;
-    }
-    const weeklyMilestone = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
-    if (weeklyMilestone < state.lastWeeklyMilestone) {
-      state.coins = Math.max(0, state.coins - WEEKLY_GOAL_REWARD);
-      state.lastWeeklyMilestone = undefined;
-    }
-
-    task.reward = null;
-    saveState();
-    render();
-  }
-
-  function deleteTask(id) {
-    state.tasks = state.tasks.filter((t) => t.id !== id);
-    saveState();
-    render();
-  }
-
-  function editTask(id, updates) {
-    const task = state.tasks.find((t) => t.id === id);
-    if (!task) return;
-    if (updates.title !== undefined) {
-      const t = updates.title.trim();
-      if (t) task.title = t;
-    }
-    if (
-      updates.difficulty !== undefined &&
-      updates.difficulty in COIN_REWARD &&
-      task.subtasks.length === 0
-    ) {
-      task.difficulty = updates.difficulty;
-    }
-    if (updates.repeat !== undefined &&
-        ["none", "daily", "weekly", "monthly", "every_5min"].includes(updates.repeat)) {
-      task.repeat = updates.repeat;
-      if (updates.repeat === "none") {
-        task.streak = 0;
-        task.streakDayKeys = [];
-      }
-    }
-    if (updates.deadline !== undefined) {
-      task.deadline = updates.deadline ? new Date(updates.deadline).getTime() : null;
-    }
-    saveState();
-    render();
   }
 
   const RATING_OPTIONS = [
@@ -780,26 +171,13 @@
         } else {
           showToast("Noted, thanks!");
         }
-        saveState();
+        Game.saveState();
         render();
       });
       panel.appendChild(btn);
     }
     document.body.appendChild(panel);
-    setTimeout(() => panel.remove(), RATE_PROMPT_TIMEOUT);
-  }
-
-  function maybeSuggestDifficultyReduction(task) {
-    if (task.difficultySuggested) return;
-    if (task.streak < DIFFICULTY_SUGGESTION_STREAK) return;
-    if (task.ratedDifficulty === "harder") return;
-    task.difficultySuggested = true;
-    const order = Object.keys(COIN_REWARD);
-    const idx = order.indexOf(task.difficulty);
-    if (idx <= 0) return;
-    showToast(
-      `💡 "${task.title}" is going strong (🔥 ${task.streak}). Consider lowering its difficulty.`
-    );
+    setTimeout(() => panel.remove(), Game.RATE_PROMPT_TIMEOUT);
   }
 
   function formatDeadline(ts) {
@@ -836,8 +214,8 @@
     cb.type = "checkbox";
     cb.checked = task.done;
     cb.addEventListener("change", () => {
-      if (cb.checked) completeTask(task);
-      else uncompleteTask(task);
+      if (cb.checked) Game.completeTask(task);
+      else Game.uncompleteTask(task);
     });
 
     const body = document.createElement("div");
@@ -890,7 +268,7 @@
         const scb = document.createElement("input");
         scb.type = "checkbox";
         scb.checked = st.done;
-        scb.addEventListener("change", () => toggleSubtask(task, st));
+        scb.addEventListener("change", () => Game.toggleSubtask(task, st));
         const stTitle = document.createElement("span");
         stTitle.className = "subtask-title";
         stTitle.textContent = st.title;
@@ -906,8 +284,8 @@
         stDel.textContent = "✕";
         stDel.addEventListener("click", () => {
           task.subtasks = task.subtasks.filter((s) => s.id !== st.id);
-          task.difficulty = deriveDifficulty(task);
-          saveState();
+          task.difficulty = Game.deriveDifficulty(task);
+          Game.saveState();
           render();
         });
         row.appendChild(scb);
@@ -924,31 +302,20 @@
         addInput.type = "text";
         addInput.placeholder = "Add subtask...";
         addInput.maxLength = 80;
-        const addDiff = document.createElement("select");
-        for (const [value, label] of [
-          ["too_easy", "Too easy"],
-          ["easy", "Easy"],
-          ["medium", "Medium"],
-          ["hard", "Hard"],
-        ]) {
-          const o = document.createElement("option");
-          o.value = value;
-          o.textContent = label;
-          addDiff.appendChild(o);
-        }
+        const addDiff = buildSelect(DIFFICULTY_OPTIONS);
         const addBtn = document.createElement("button");
         addBtn.type = "button";
         addBtn.textContent = "+";
         addBtn.addEventListener("click", () => {
           const v = addInput.value.trim();
           if (!v) return;
-          addSubtask(task.id, v, addDiff.value);
+          Game.addSubtask(task.id, v, addDiff.value);
         });
         addInput.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
             e.preventDefault();
             const v = addInput.value.trim();
-            if (v) addSubtask(task.id, v, addDiff.value);
+            if (v) Game.addSubtask(task.id, v, addDiff.value);
           }
         });
         addRow.appendChild(addInput);
@@ -962,7 +329,7 @@
     const del = document.createElement("button");
     del.className = "task-delete";
     del.textContent = "✕";
-    del.addEventListener("click", () => deleteTask(task.id));
+    del.addEventListener("click", () => Game.deleteTask(task.id));
 
     const edit = document.createElement("button");
     edit.className = "task-edit";
@@ -988,47 +355,13 @@
   }
 
   function openEditRow(task) {
-    document.querySelectorAll(".edit-row").forEach((el) => el.remove());
-    const row = document.createElement("div");
-    row.className = "edit-row";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = task.title;
-    input.maxLength = 80;
-
-    const diff = document.createElement("select");
+    const diff = buildSelect(DIFFICULTY_OPTIONS, task.difficulty);
     diff.disabled = task.subtasks.length > 0;
     diff.title = task.subtasks.length > 0
       ? "Difficulty is derived from the most difficult sub-task"
       : "";
-    for (const [value, label] of [
-      ["too_easy", "Too easy"],
-      ["easy", "Easy"],
-      ["medium", "Medium"],
-      ["hard", "Hard"],
-    ]) {
-      const o = document.createElement("option");
-      o.value = value;
-      o.textContent = label;
-      if (task.difficulty === value) o.selected = true;
-      diff.appendChild(o);
-    }
 
-    const rep = document.createElement("select");
-    for (const [value, label] of [
-      ["none", "No repeat"],
-      ["daily", "Daily"],
-      ["weekly", "Weekly"],
-      ["monthly", "Monthly"],
-      ["every_5min", "Every 5 min (test)"],
-    ]) {
-      const o = document.createElement("option");
-      o.value = value;
-      o.textContent = label;
-      if (task.repeat === value) o.selected = true;
-      rep.appendChild(o);
-    }
+    const rep = buildSelect(REPEAT_OPTIONS, task.repeat);
 
     const dl = document.createElement("input");
     dl.type = "datetime-local";
@@ -1038,51 +371,40 @@
     dlWrap.textContent = "📅 Deadline ";
     dlWrap.appendChild(dl);
 
-    const save = document.createElement("button");
-    save.type = "button";
-    save.textContent = "Save";
-    save.addEventListener("click", () => {
-      editTask(task.id, {
-        title: input.value,
-        difficulty: diff.value,
-        repeat: rep.value,
-        deadline: dl.value,
-      });
-    });
-
-    const cancel = document.createElement("button");
-    cancel.type = "button";
-    cancel.textContent = "Cancel";
-    cancel.addEventListener("click", () => row.remove());
-
-    row.appendChild(input);
-    row.appendChild(diff);
-    row.appendChild(rep);
-    row.appendChild(dlWrap);
-    row.appendChild(save);
-    row.appendChild(cancel);
+    const row = buildEditRow(
+      "edit-row",
+      task.title,
+      [diff, rep, dlWrap],
+      (title) =>
+        Game.editTask(task.id, {
+          title,
+          difficulty: diff.value,
+          repeat: rep.value,
+          deadline: dl.value,
+        })
+    );
     listEl.insertBefore(row, listEl.querySelector(`[data-id="${task.id}"]`).nextSibling);
   }
 
   let render = function () {
-    const sorted = sortTasks(state.tasks);
+    const sorted = sortTasks(Game.state.tasks);
     listEl.innerHTML = "";
     for (const task of sorted) listEl.appendChild(taskNode(task));
 
-    emptyHint.classList.toggle("hidden", state.tasks.length > 0);
-    coinBalanceEl.textContent = state.coins;
-    gemBalanceEl.textContent = state.gems;
+    emptyHint.classList.toggle("hidden", Game.state.tasks.length > 0);
+    coinBalanceEl.textContent = Game.state.coins;
+    gemBalanceEl.textContent = Game.state.gems;
 
-    const lastGoal = DAILY_GOALS[DAILY_GOALS.length - 1];
-    const reached = reachedGoalCount(state.dailyCompleted);
-    const nextGoal = DAILY_GOALS[reached] || lastGoal;
+    const lastGoal = Game.DAILY_GOALS[Game.DAILY_GOALS.length - 1];
+    const reached = Game.reachedGoalCount(Game.state.dailyCompleted);
+    const nextGoal = Game.DAILY_GOALS[reached] || lastGoal;
     const label =
-      reached >= DAILY_GOALS.length
-        ? `${state.dailyCompleted} ✅ all goals done`
-        : `${state.dailyCompleted}/${nextGoal}`;
+      reached >= Game.DAILY_GOALS.length
+        ? `${Game.state.dailyCompleted} ✅ all goals done`
+        : `${Game.state.dailyCompleted}/${nextGoal}`;
     dailyProgressEl.textContent = label;
 
-    const pct = Math.min(100, (state.dailyCompleted / nextGoal) * 100);
+    const pct = Math.min(100, (Game.state.dailyCompleted / nextGoal) * 100);
 
     dailyBar.innerHTML = "";
     const fill = document.createElement("div");
@@ -1090,29 +412,29 @@
     fill.style.width = pct + "%";
     dailyBar.appendChild(fill);
 
-    const lastWeekly = WEEKLY_GOALS[WEEKLY_GOALS.length - 1];
-    const weekReached = WEEKLY_GOALS.filter((g) => g <= state.weeklyCompleted).length;
-    const nextWeekly = WEEKLY_GOALS[weekReached] || lastWeekly;
+    const lastWeekly = Game.WEEKLY_GOALS[Game.WEEKLY_GOALS.length - 1];
+    const weekReached = Game.reachedWeeklyGoalCount(Game.state.weeklyCompleted);
+    const nextWeekly = Game.WEEKLY_GOALS[weekReached] || lastWeekly;
     weeklyProgressEl.textContent =
-      weekReached >= WEEKLY_GOALS.length
-        ? `${state.weeklyCompleted} ✅`
-        : `${state.weeklyCompleted}/${nextWeekly}`;
+      weekReached >= Game.WEEKLY_GOALS.length
+        ? `${Game.state.weeklyCompleted} ✅`
+        : `${Game.state.weeklyCompleted}/${nextWeekly}`;
     weeklyBar.innerHTML = "";
     const wFill = document.createElement("div");
     wFill.className = "daily-bar-fill";
-    wFill.style.width = Math.min(100, (state.weeklyCompleted / nextWeekly) * 100) + "%";
+    wFill.style.width = Math.min(100, (Game.state.weeklyCompleted / nextWeekly) * 100) + "%";
     weeklyBar.appendChild(wFill);
 
-    const level = levelFromXp(state.xp);
+    const level = Game.levelFromXp(Game.state.xp);
     levelDisplayEl.textContent = level;
-    document.getElementById("level-display-inline").textContent = level;
-    const curLevelXp = levelStartXp(level);
-    const nextLevelXp = xpForLevel(level + 1);
-    document.getElementById("xp-progress").textContent =
-      `${state.xp - curLevelXp}/${nextLevelXp - curLevelXp} XP`;
+    levelInlineEl.textContent = level;
+    const curLevelXp = Game.levelStartXp(level);
+    const nextLevelXp = Game.xpForLevel(level + 1);
+    xpProgressEl.textContent =
+      `${Game.state.xp - curLevelXp}/${nextLevelXp - curLevelXp} XP`;
 
     chestAreaEl.innerHTML = "";
-    const unopened = state.chests.filter((c) => !c.opened);
+    const unopened = Game.state.chests.filter((c) => !c.opened);
     if (unopened.length > 0) {
       const counter = document.createElement("span");
       counter.className = "chest-counter";
@@ -1121,8 +443,8 @@
     }
     const grouped = new Map();
     for (const chest of unopened) {
-      const ready = chestReady(chest);
-      const key = ready ? "ready" : `locked:${CHEST_OPEN_MS - (Date.now() - chest.earnedAt)}`;
+      const ready = Game.chestReady(chest);
+      const key = ready ? "ready" : `locked:${Game.CHEST_OPEN_MS - (Date.now() - chest.earnedAt)}`;
       if (!grouped.has(key)) grouped.set(key, { chest, ready, count: 0 });
       grouped.get(key).count++;
     }
@@ -1132,60 +454,52 @@
       if (ready) {
         btn.className = "chest ready";
         btn.textContent = `📦 Open me!${count > 1 ? ` (x${count})` : ""}`;
-        btn.addEventListener("click", () => openChest(chest));
+        btn.addEventListener("click", () => Game.openChest(chest));
       } else {
         btn.className = "chest waiting";
         btn.disabled = true;
-        const remaining = CHEST_OPEN_MS - (Date.now() - chest.earnedAt);
-        const h = Math.floor(remaining / 3600000);
-        const m = Math.ceil((remaining % 3600000) / 60000);
-        btn.textContent = `🔒 open in ${h}h ${m}m${count > 1 ? ` (x${count})` : ""}`;
+        const remaining = Game.CHEST_OPEN_MS - (Date.now() - chest.earnedAt);
+        btn.textContent = `🔒 open in ${formatHoursMinutes(remaining)}${count > 1 ? ` (x${count})` : ""}`;
       }
       chestAreaEl.appendChild(btn);
     }
 
-    if (isBoostActive()) {
+    if (Game.isBoostActive()) {
       boostBannerEl.classList.remove("hidden");
-      const remaining = Math.max(0, state.boostUntil - Date.now());
-      const m = Math.floor(remaining / 60000);
-      const s = Math.floor((remaining % 60000) / 1000);
-      boostTimerEl.textContent = `${m}m ${s}s`;
+      const remaining = Math.max(0, Game.state.boostUntil - Date.now());
+      boostTimerEl.textContent = formatMinutesSeconds(remaining);
     } else {
       boostBannerEl.classList.add("hidden");
     }
   }
 
-  versionEl.textContent = "v" + VERSION;
+  versionEl.textContent = "v" + Game.VERSION;
 
-  const saved = loadState();
-  if (saved) Object.assign(state, saved);
-  rolloverCheckpoints();
-  checkRecurringTasks();
-  setInterval(checkRecurringTasks, 15000);
-  setInterval(rolloverCheckpoints, 60000);
+  const saved = Game.loadState();
+  if (saved) Object.assign(Game.state, saved);
+  Game.rolloverCheckpoints();
+  Game.checkRecurringTasks();
+  setInterval(Game.checkRecurringTasks, 15000);
+  setInterval(Game.rolloverCheckpoints, 60000);
 
   function updateLiveClocks() {
     const now = Date.now();
-    if (isBoostActive()) {
+    if (Game.isBoostActive()) {
       boostBannerEl.classList.remove("hidden");
-      const remaining = Math.max(0, state.boostUntil - now);
-      const m = Math.floor(remaining / 60000);
-      const s = Math.floor((remaining % 60000) / 1000);
-      boostTimerEl.textContent = `${m}m ${s}s`;
+      const remaining = Math.max(0, Game.state.boostUntil - now);
+      boostTimerEl.textContent = formatMinutesSeconds(remaining);
     } else {
       boostBannerEl.classList.add("hidden");
     }
 
-    const unopened = state.chests.filter((c) => !c.opened);
+    const unopened = Game.state.chests.filter((c) => !c.opened);
     let idx = 0;
     for (const node of chestAreaEl.querySelectorAll(".chest")) {
       const chest = unopened[idx];
       if (!chest) break;
-      const remaining = CHEST_OPEN_MS - (now - chest.earnedAt);
-      if (!chestReady(chest) && remaining > 0) {
-        const h = Math.floor(remaining / 3600000);
-        const m = Math.ceil((remaining % 3600000) / 60000);
-        node.textContent = `🔒 open in ${h}h ${m}m`;
+      const remaining = Game.CHEST_OPEN_MS - (now - chest.earnedAt);
+      if (!Game.chestReady(chest) && remaining > 0) {
+        node.textContent = `🔒 open in ${formatHoursMinutes(remaining)}`;
       }
       idx++;
     }
@@ -1194,23 +508,8 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset ALL data? This can not be undone.")) return;
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
-    state.coins = 0;
-    state.gems = 0;
-    state.dailyCompleted = 0;
-    state.tasks = [];
-    state.nextId = 1;
-    state.firstTaskStreak = 0;
-    state.lastFirstTaskDayKey = null;
-    state.weeklyCompleted = 0;
-    state.weekKey = null;
-    state.xp = 0;
-    state.chests = [];
-    state.boostUntil = 0;
-    state.boostCooldownUntil = 0;
-    state.lastDailyMilestone = 0;
-    state.lastWeeklyMilestone = 0;
-    saveState();
+    Game.resetState();
+    Game.saveState();
     render();
   });
 
@@ -1218,7 +517,7 @@
     e.preventDefault();
     const title = taskInput.value.trim();
     if (!title) return;
-    addTask(title, difficultySelect.value, repeatSelect.value, deadlineInput.value);
+    Game.addTask(title, difficultySelect.value, repeatSelect.value, deadlineInput.value);
     taskInput.value = "";
     taskInput.focus();
   });

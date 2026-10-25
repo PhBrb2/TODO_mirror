@@ -9,6 +9,7 @@ Curated from 2_EngagemetFeatures.md
   - ~~can not be spend~~
   - unlocks new tiles and items in the shop (which are teased before)
   - ~~Levels shown in header, level up requires cumulative XP (100 per level * (level+1)/2)~~
+  - Level progress below the daily/weekly goal is removed; the level indicator stays in the top right
 - ~~F2: Coins~~
   - ~~earned from completing task~~
   - spent on new items and interaction with items
@@ -21,6 +22,7 @@ Curated from 2_EngagemetFeatures.md
   - ~~contains random coins, gems, items~~ (20-40 coins, 1-2 gems, 10-20 XP; no items yet)
   - ~~opens after 12h~~
   - ~~Chests are opened manually by the user; a counter shows ready and locked chests~~
+  - If multiple boxes exist, show only one button: the currently openable box, or otherwise the one that can be opened next
 
 #### Task 
 - ~~F5: Can be created by user~~
@@ -53,6 +55,7 @@ Curated from 2_EngagemetFeatures.md
   - ~~F21: User has option to rate difficulty after completion~~
     - Only asked for repeating tasks
   - F22: Very satisfying animation and sound on completion, confetti, banner, fanfare, reward trickeling into coin/gem inventory. It should be fun but not startling.
+    - Confetti effect originates at the completed task; more difficult tasks produce more confetti
 - ~~F23: If streak becomes long without the user reporting it as difficult, suggest reducing its difficulty after completion (after a 5-streak, eg. 5 days for daily, 5 weeks for weekly, without a "harder" rating)~~
 - F84: Backlog: user can create tasks with very low priority. They are not shown in the normal task list. When the normal task list is close to empty, suggest adding a task from the backlog.
 - F85: For repeating tasks with a bonus reward, the bonus is rerolled every time the task becomes available again.
