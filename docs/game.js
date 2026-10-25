@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.16.1";
+  const VERSION = "0.18.3";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -36,6 +36,15 @@
   const BOOST_DURATION_MS = 60 * 60 * 1000;
   const BOOST_CHANCE_PER_COMPLETION = 0.1;
   const BOOST_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+  const SHOP_ITEMS = [
+    { id: "plant",       name: "Plant",        emoji: "🪴", costCoins: 50,  costGems: 0, minLevel: 1 },
+    { id: "lamp",        name: "Lamp",         emoji: "💡", costCoins: 100, costGems: 0, minLevel: 2 },
+    { id: "poster",      name: "Poster",       emoji: "🖼️", costCoins: 150, costGems: 0, minLevel: 3 },
+    { id: "rug",         name: "Rug",          emoji: "🧶", costCoins: 250, costGems: 0, minLevel: 4 },
+    { id: "cat",         name: "Cat",          emoji: "🐱", costCoins: 400, costGems: 0, minLevel: 5 },
+    { id: "crystal",     name: "Crystal",      emoji: "🔮", costCoins: 0,   costGems: 5, minLevel: 3 },
+    { id: "trophy",      name: "Trophy",       emoji: "🏆", costCoins: 0,   costGems: 10, minLevel: 6 },
+  ];
 
   function defaultState() {
     return {
@@ -54,6 +63,8 @@
       boostCooldownUntil: 0,
       lastDailyMilestone: 0,
       lastWeeklyMilestone: 0,
+      ownedItems: [],
+      dayStartHour: 0,
     };
   }
 
@@ -87,6 +98,8 @@
         : [],
       bonus: raw.bonus === true,
       deadline: typeof raw.deadline === "number" ? raw.deadline : null,
+      repeatTime: num(raw.repeatTime, NaN),
+      repeatAfterCompletion: raw.repeatAfterCompletion === true,
       ratedDifficulty: raw.ratedDifficulty ?? null,
       difficultySuggested: raw.difficultySuggested === true,
       completedViaSubtasks: raw.completedViaSubtasks === true,
@@ -151,6 +164,10 @@
       boostCooldownUntil: num(raw.boostCooldownUntil, 0),
       lastDailyMilestone: raw.lastDailyMilestone ?? 0,
       lastWeeklyMilestone: raw.lastWeeklyMilestone ?? 0,
+      ownedItems: Array.isArray(raw.ownedItems)
+        ? raw.ownedItems.filter((id) => SHOP_ITEMS.some((it) => it.id === id))
+        : [],
+      dayStartHour: Math.min(23, Math.max(0, Math.floor(num(raw.dayStartHour, 0)))),
     };
   }
 
@@ -200,6 +217,7 @@
 
   function dayKey(ts) {
     const d = new Date(ts);
+    d.setHours(d.getHours() - (state.dayStartHour ?? 0));
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   }
 
@@ -219,9 +237,43 @@
     return dayKey(d.getTime());
   }
 
-  function nextOccurrence(repeat, completedAt) {
+  function nextTimeOfDay(minutes) {
+    const next = new Date();
+    next.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    if (next.getTime() <= Date.now()) next.setDate(next.getDate() + 1);
+    return next.getTime();
+  }
+
+  function nextOccurrence(repeat, completedAt, repeatTime, repeatAfterCompletion) {
     if (repeat === "every_5min") return completedAt + 300000;
     const d = new Date(completedAt);
+    if (repeatAfterCompletion) {
+      if (repeat === "daily") {
+        d.setDate(d.getDate() + 1);
+        d.setHours(0, 0, 0, 0);
+        if (Number.isFinite(repeatTime)) {
+          d.setHours(Math.floor(repeatTime / 60), repeatTime % 60, 0, 0);
+        }
+        if (d.getTime() <= completedAt) d.setTime(d.getTime() + 86400000);
+        return d.getTime();
+      }
+      if (repeat === "weekly") {
+        d.setDate(d.getDate() + 7);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
+      if (repeat === "monthly") {
+        d.setMonth(d.getMonth() + 1);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
+    }
+    if (repeat === "daily" && Number.isFinite(repeatTime)) {
+      const next = new Date(d);
+      next.setHours(Math.floor(repeatTime / 60), repeatTime % 60, 0, 0);
+      if (next.getTime() <= completedAt) next.setDate(next.getDate() + 1);
+      return next.getTime();
+    }
     if (repeat === "daily") {
       d.setDate(d.getDate() + 1);
       d.setHours(0, 0, 0, 0);
@@ -253,9 +305,18 @@
     for (const task of state.tasks) {
       if (task.repeat === "none") continue;
       if (task.done && task.completedAt !== null) {
-        if (nextOccurrence(task.repeat, task.completedAt) <= now) {
+        if (nextOccurrence(task.repeat, task.completedAt, task.repeatTime, task.repeatAfterCompletion) <= now) {
           task.done = false;
           task.completedAt = null;
+          if (Number.isFinite(task.repeatTime)) {
+            task.deadline = nextTimeOfDay(task.repeatTime);
+          }
+          if (task.bonus) {
+            const wasBonus = task.bonus;
+            task.bonus = Math.random() < BONUS_TASK_RATE;
+            if (wasBonus && !task.bonus) changed = true;
+            if (task.bonus && !wasBonus) showToast(`⭐ "${task.title}" has a bonus reward this time!`);
+          }
           changed = true;
         }
       }
@@ -383,6 +444,8 @@
       streakDayKeys: [],
       bonus: isBonus,
       deadline: deadlineInput ? new Date(deadlineInput).getTime() : null,
+      repeatTime: NaN,
+      repeatAfterCompletion: false,
       ratedDifficulty: null,
       difficultySuggested: false,
       completedViaSubtasks: false,
@@ -392,6 +455,7 @@
     state.tasks.push(task);
     saveState();
     render();
+    return task.id;
   }
 
   const DIFFICULTY_ORDER = ["too_easy", "easy", "medium", "hard"];
@@ -652,15 +716,6 @@
   }
 
   function deleteTask(id) {
-    const task = state.tasks.find((t) => t.id === id);
-    if (!task) return;
-    if (task.done) uncompleteTask(task);
-    for (const st of task.subtasks) {
-      if (st.done) {
-        clawBackReward(st.reward);
-        st.reward = null;
-      }
-    }
     state.tasks = state.tasks.filter((t) => t.id !== id);
     saveState();
     render();
@@ -691,6 +746,23 @@
     if (updates.deadline !== undefined) {
       task.deadline = updates.deadline ? new Date(updates.deadline).getTime() : null;
     }
+    if (updates.repeatAfterCompletion !== undefined) {
+      task.repeatAfterCompletion = updates.repeatAfterCompletion === true;
+    }
+    if (updates.repeatTime !== undefined) {
+      task.repeatTime = Number.isFinite(updates.repeatTime)
+        ? Math.min(1439, Math.max(0, Math.floor(updates.repeatTime)))
+        : NaN;
+      if (Number.isFinite(task.repeatTime) && !task.done) {
+        task.deadline = nextTimeOfDay(task.repeatTime);
+      }
+    }
+    saveState();
+    render();
+  }
+
+  function setDayStartHour(hour) {
+    state.dayStartHour = Math.min(23, Math.max(0, Math.floor(hour)));
     saveState();
     render();
   }
@@ -718,6 +790,31 @@
   function render() { ui.render(); }
   function showToast(message) { ui.showToast(message); }
   function promptDifficultyRating(task) { ui.promptDifficultyRating(task); }
+
+  function shopItemById(id) {
+    return SHOP_ITEMS.find((it) => it.id === id) || null;
+  }
+
+  function itemIsOwned(id) {
+    return state.ownedItems.includes(id);
+  }
+
+  function itemIsUnlockable(item) {
+    return levelFromXp(state.xp) >= item.minLevel;
+  }
+
+  function purchaseItem(id) {
+    const item = shopItemById(id);
+    if (!item) return { ok: false, reason: "unknown" };
+    if (itemIsOwned(id)) return { ok: false, reason: "owned" };
+    if (!itemIsUnlockable(item)) return { ok: false, reason: "level" };
+    if (state.coins < item.costCoins) return { ok: false, reason: "coins" };
+    if (state.gems < item.costGems) return { ok: false, reason: "gems" };
+    state.coins -= item.costCoins;
+    state.gems -= item.costGems;
+    state.ownedItems.push(id);
+    return { ok: true };
+  }
 
   window.Game = {
     ui,
@@ -809,6 +906,12 @@
     deleteTask,
     editTask,
     maybeSuggestDifficultyReduction,
+    SHOP_ITEMS,
+    shopItemById,
+    itemIsOwned,
+    itemIsUnlockable,
+    purchaseItem,
+    setDayStartHour,
   };
 })();
 

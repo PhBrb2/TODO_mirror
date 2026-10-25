@@ -6,13 +6,13 @@ Curated from 2_EngagemetFeatures.md
 #### Currency
 - ~~F1: XP~~
   - ~~earned from completing task~~ (1/5/12/25 XP for too easy/easy/medium/hard)
-  - ~~can not be spend~~
+  - ~~can not be spend~~ ~~(XP unlocks shop items at level thresholds)~~
   - unlocks new tiles and items in the shop (which are teased before)
   - ~~Levels shown in header, level up requires cumulative XP (100 per level * (level+1)/2)~~
   - Level progress below the daily/weekly goal is removed; the level indicator stays in the top right
 - ~~F2: Coins~~
   - ~~earned from completing task~~
-  - spent on new items and interaction with items
+  - ~~spent on new items~~ and interaction with items
 - ~~F3: Gems~~
   - ~~randomly earned from completing tasks~~, can be bought with coins (but expensive)
   - spent on special items, streak freeze, ...
@@ -36,8 +36,6 @@ Curated from 2_EngagemetFeatures.md
   - Parent task gets the difficulty of its most difficult sub-task (not editable while sub-tasks exist)
 - F9: Option to set a time limit for task. If the user finishes the task within the time after marking it as "task started", the user gets more rewards.
 - F10: Task can be chained, to promote real life habit building. If tasks in a streak are solved right after another, give x1.2 bonus per task
-- F11: Option for autoplay tasks, that enable a task after another task has been done. This is a convenience, eg. after "wash clothes" the user could set up the autoplay task "hang clothes".
-- F12: Option to set preferred times for task finish. Give small bonus if task was finished during this time.
 - ~~F13: Option for repeating task: user can select when a task returns~~
   - Daily, weekly, monthly
   - MWE test mode: repeat every 5 minutes
@@ -58,9 +56,13 @@ Curated from 2_EngagemetFeatures.md
     - Confetti effect originates at the completed task; more difficult tasks produce more confetti
 - ~~F23: If streak becomes long without the user reporting it as difficult, suggest reducing its difficulty after completion (after a 5-streak, eg. 5 days for daily, 5 weeks for weekly, without a "harder" rating)~~
 - F84: Backlog: user can create tasks with very low priority. They are not shown in the normal task list. When the normal task list is close to empty, suggest adding a task from the backlog.
-- F85: For repeating tasks with a bonus reward, the bonus is rerolled every time the task becomes available again.
-- F86: Option for a custom day start time: the new day starts at a user-chosen time (eg 4am) instead of midnight.
-- F87: Repeating tasks support different deadline types, eg a fixed time of day ("at 6pm") or X days after the task became active.
+- ~~F85: For repeating tasks with a bonus reward, the bonus is rerolled every time the task becomes available again.~~
+- ~~F86: Option for a custom day start time: the new day starts at a user-chosen time (eg 4am) instead of midnight.~~
+  - ~~Applies to daily reset, first task of the day and streak days; selectable under the daily progress (midnight to 6am)~~
+- ~~F87: Repeating tasks support a deadline type: a fixed time of day ("at 6pm").~~
+- ~~F89: Repeating tasks get an option "time after completion": the task becomes available again one interval after it was completed, instead of the next calendar interval (eg. next Monday).~~
+  - ~~When a task is set to repeating, the deadline selector changes to a time-of-day selector~~
+  - ~~When the task becomes available again, the new deadline is the next occurrence of that time of day~~
 - ~~Sort tasks, always show some easy medium and hard tasks, so the user can easly select one fitting their current energy level. Prioritize tasks that are due soon.~~ Manual override with sticky pin.
 
 
@@ -82,7 +84,8 @@ Curated from 2_EngagemetFeatures.md
 - F31: Week/Month in review showing completed tasks and room evolution
 
 #### Items
-- F32: Can be bought in the store for coins or gems
+- ~~F32: Can be bought in the store for coins or gems~~
+  - 7 placeholder items (50-400 coins or 5-10 gems), purchasable once each, shown in an overlay with Shop/Owned tabs
 - F33: Some items take time to completely appear in the room, creating anticipation
 - F34: Stay permanently (after app restart) expect for seasonal items
 - F35: Moving big things costs coins or needs a task to be completed
