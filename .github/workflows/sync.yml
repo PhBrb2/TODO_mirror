@@ -35,6 +35,11 @@ jobs:
           git rm -r --ignore-unmatch .
           git ls-tree -r --name-only upstream/main \
             | while IFS= read -r file; do
+                # Keep the mirror's own workflows; do not import upstream workflows
+                case "$file" in
+                  .github/workflows/*) continue ;;
+                esac
+          
                 mkdir -p "$(dirname "$file")"
                 git show "upstream/main:$file" > "$file"
               done
