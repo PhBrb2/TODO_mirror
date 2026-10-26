@@ -34,8 +34,10 @@ Curated from 2_EngagemetFeatures.md
   - Unchecking claws back the exact rewarded amounts (coins, gems, XP, goal/weekly bonuses, earned chest); unchecking a sub-task of a completed parent also un-completes and claws back the parent
   - Sub-tasks are editable (title, difficulty)
   - Parent task gets the difficulty of its most difficult sub-task (not editable while sub-tasks exist)
-- F9: Option to set a time limit for task. If the user finishes the task within the time after marking it as "task started", the user gets more rewards.
-- F10: Task can be chained, to promote real life habit building. If tasks in a streak are solved right after another, give x1.2 bonus per task
+- ~~F9: Option to set a time limit for task. If the user finishes the task within the time after marking it as "task started", the user gets more rewards.~~
+- ~~F10: Task can be chained, to promote real life habit building.~~ If tasks in a streak are solved right after another, give x1.2 bonus per task
+  - ~~Tasks and subtasks can be chained via hold-and-drag; a chained item is locked until its predecessor is completed~~
+  - ~~Chained items stay together in link order, connected by a clickable link~~
 - ~~F13: Option for repeating task: user can select when a task returns~~
   - Daily, weekly, monthly
   - MWE test mode: repeat every 5 minutes
