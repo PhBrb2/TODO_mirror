@@ -8,82 +8,97 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>TODO</h1>
-    <div class="stats">
-      <span class="coins">🪙 <b id="coin-balance">0</b></span>
-      <span class="gems">💎 <b id="gem-balance">0</b></span>
-      <span class="level">✨ Lv <b id="level-display">1</b></span>
-      <button id="shop-btn" type="button" aria-label="Open shop">🛒</button>
-      <span class="version" id="app-version"></span>
+  <div id="room-view"></div>
+
+  <section id="ui-sheet" class="ui-sheet" aria-label="Task panel">
+    <div id="sheet-handle" class="sheet-handle">
+      <span class="sheet-handle-bar"></span>
     </div>
-  </header>
+    <div class="sheet-content">
 
-  <div id="boost-banner" class="boost-banner hidden">⚡ Reward boost x1.5 — <span id="boost-timer"></span></div>
+      <header>
+        <h1>TODO</h1>
+        <div class="stats">
+          <span class="coins">🪙 <b id="coin-balance">0</b></span>
+          <span class="gems">💎 <b id="gem-balance">0</b></span>
+          <span class="level">✨ Lv <b id="level-display">1</b></span>
+          <button id="shop-btn" type="button" aria-label="Open shop">🛒</button>
+          <span class="version" id="app-version"></span>
+        </div>
+      </header>
 
-  <div class="daily-progress">
-    <p class="daily-progress-label">Today: <b id="daily-progress">0/5</b></p>
-    <div class="daily-bar" id="daily-bar"></div>
-    <p class="daily-progress-label">This week: <b id="weekly-progress">0/10</b></p>
-    <div class="daily-bar" id="weekly-bar"></div>
-    <p class="daily-progress-label">Level <b id="level-display-inline">1</b> — <b id="xp-progress">0/100 XP</b></p>
-    <p class="daily-progress-label day-start-label">New day starts at
-      <select id="day-start-select" aria-label="Day start hour">
-        <option value="0">00:00 (midnight)</option>
-        <option value="2">02:00</option>
-        <option value="4">04:00</option>
-        <option value="5">05:00</option>
-        <option value="6">06:00</option>
-      </select>
-    </p>
-  </div>
+      <div id="boost-banner" class="boost-banner hidden">⚡ Reward boost x1.5 — <span id="boost-timer"></span></div>
 
-  <main>
-    <div id="chest-area"></div>
-    <ul id="task-list"></ul>
-    <p id="empty-hint" class="empty-hint hidden">Nothing to do yet — add a task! 🎉</p>
-
-    <form id="task-form">
-      <input id="task-input" type="text" placeholder="New task..." autocomplete="off" maxlength="80" required>
-      <div class="form-row">
-        <select id="difficulty-select" aria-label="Difficulty">
-          <option value="too_easy">Too easy</option>
-          <option value="easy" selected>Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-        </select>
-        <select id="repeat-select" aria-label="Repeat">
-          <option value="none" selected>No repeat</option>
-          <option value="daily">Daily</option>
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-          <option value="every_5min">Every 5 min (test)</option>
-        </select>
-        <button type="submit" id="add-btn">Add</button>
+      <div class="daily-progress">
+        <p class="daily-progress-label">Today: <b id="daily-progress">0/5</b></p>
+        <div class="daily-bar" id="daily-bar"></div>
+        <p class="daily-progress-label">This week: <b id="weekly-progress">0/10</b></p>
+        <div class="daily-bar" id="weekly-bar"></div>
+        <p class="daily-progress-label">Level <b id="level-display-inline">1</b> — <b id="xp-progress">0/100 XP</b></p>
+        <p class="daily-progress-label day-start-label">New day starts at
+          <select id="day-start-select" aria-label="Day start hour">
+            <option value="0">00:00 (midnight)</option>
+            <option value="2">02:00</option>
+            <option value="4">04:00</option>
+            <option value="5">05:00</option>
+            <option value="6">06:00</option>
+          </select>
+        </p>
       </div>
-      <label class="deadline-label" id="deadline-wrap">📅 Deadline <input id="deadline-input" type="datetime-local"></label>
-      <label class="deadline-label hidden" id="repeat-time-wrap">🕐 Repeat due at <input id="repeat-time-input" type="time"></label>
-    </form>
-  </main>
+
+      <main>
+        <div id="chest-area"></div>
+        <ul id="task-list"></ul>
+        <p id="empty-hint" class="empty-hint hidden">Nothing to do yet — add a task! 🎉</p>
+
+        <form id="task-form">
+          <input id="task-input" type="text" placeholder="New task..." autocomplete="off" maxlength="80" required>
+          <div class="form-row">
+            <select id="difficulty-select" aria-label="Difficulty">
+              <option value="too_easy">Too easy</option>
+              <option value="easy" selected>Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+            <select id="repeat-select" aria-label="Repeat">
+              <option value="none" selected>No repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="every_5min">Every 5 min (test)</option>
+            </select>
+            <button type="submit" id="add-btn">Add</button>
+          </div>
+          <label class="deadline-label" id="deadline-wrap">📅 Deadline <input id="deadline-input" type="datetime-local"></label>
+          <label class="deadline-label hidden" id="repeat-time-wrap">🕐 Repeat due at <input id="repeat-time-input" type="time"></label>
+        </form>
+      </main>
+
+      <button id="reset-btn" type="button">Reset all data</button>
+
+      <div id="shop-overlay" class="shop-overlay hidden">
+        <div class="shop-panel">
+          <div class="shop-header">
+            <h2>🛒 Shop</h2>
+            <button id="shop-close" type="button" aria-label="Close shop">✕</button>
+          </div>
+          <div class="shop-tabs">
+            <button id="tab-shop" type="button" class="active">Shop</button>
+            <button id="tab-owned" type="button">Owned</button>
+          </div>
+          <div id="shop-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <div id="toast" class="toast hidden"></div>
 
-  <button id="reset-btn" type="button">Reset all data</button>
-
-  <div id="shop-overlay" class="shop-overlay hidden">
-    <div class="shop-panel">
-      <div class="shop-header">
-        <h2>🛒 Shop</h2>
-        <button id="shop-close" type="button" aria-label="Close shop">✕</button>
-      </div>
-      <div class="shop-tabs">
-        <button id="tab-shop" type="button" class="active">Shop</button>
-        <button id="tab-owned" type="button">Owned</button>
-      </div>
-      <div id="shop-content"></div>
-    </div>
-  </div>
-
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js" } }
+  </script>
+  <script type="module" src="room.js"></script>
   <script src="game.js"></script>
   <script src="app.js"></script>
 </body>

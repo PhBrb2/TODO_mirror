@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.21.1";
+  const VERSION = "0.22.2";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -68,6 +68,7 @@
       lastWeeklyMilestone: 0,
       ownedItems: [],
       dayStartHour: 0,
+      uiSheetHeightVh: 0,
     };
   }
 
@@ -175,6 +176,7 @@
         ? raw.ownedItems.filter((id) => SHOP_ITEMS.some((it) => it.id === id))
         : [],
       dayStartHour: Math.min(23, Math.max(0, Math.floor(num(raw.dayStartHour, 0)))),
+      uiSheetHeightVh: Math.min(95, Math.max(0, num(raw.uiSheetHeightVh, 0))),
     };
   }
 
@@ -918,6 +920,11 @@
     render();
   }
 
+  function setUiSheetHeightVh(vh) {
+    state.uiSheetHeightVh = Math.min(95, Math.max(0, vh));
+    saveState();
+  }
+
   function maybeSuggestDifficultyReduction(task) {
     if (task.difficultySuggested) return;
     if (task.streak < DIFFICULTY_SUGGESTION_STREAK) return;
@@ -1076,6 +1083,7 @@
     itemIsUnlockable,
     purchaseItem,
     setDayStartHour,
+    setUiSheetHeightVh,
   };
 })();
 

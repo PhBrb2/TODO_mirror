@@ -938,4 +938,50 @@
     Game.setDayStartHour(Number(dayStartSelect.value));
     showToast(`🌅 Your day now starts at ${dayStartSelect.value.padStart(2, "0")}:00`);
   });
+
+  const uiSheetEl = document.getElementById("ui-sheet");
+  const sheetHandleEl = document.getElementById("sheet-handle");
+  const SHEET_MIN_VH = 25;
+  const SHEET_MAX_VH = 95;
+
+  function applySheetHeightVh(vh) {
+    uiSheetEl.style.height = vh + "vh";
+  }
+
+  function initUiSheet() {
+    applySheetHeightVh(Game.state.uiSheetHeightVh || SHEET_MIN_VH);
+
+    let dragging = false;
+    let startY = 0;
+    let startVh = 0;
+
+    const onMove = (ev) => {
+      if (!dragging) return;
+      ev.preventDefault();
+      const dy = ev.clientY - startY;
+      const vhPerPx = 100 / window.innerHeight;
+      const next = Math.min(SHEET_MAX_VH, Math.max(SHEET_MIN_VH, startVh - dy * vhPerPx));
+      applySheetHeightVh(next);
+    };
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
+      Game.setUiSheetHeightVh(parseFloat(uiSheetEl.style.height));
+    };
+    sheetHandleEl.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      dragging = true;
+      startY = ev.clientY;
+      startVh = parseFloat(uiSheetEl.style.height) || SHEET_MIN_VH;
+      sheetHandleEl.setPointerCapture?.(ev.pointerId);
+      document.addEventListener("pointermove", onMove, { passive: false });
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
+    });
+  }
+
+  initUiSheet();
 })();
