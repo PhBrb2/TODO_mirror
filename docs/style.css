@@ -32,7 +32,7 @@ body {
   z-index: 0;
 }
 
-#room-view canvas { display: block; }
+#room-view canvas { display: block; touch-action: none; }
 
 .ui-sheet {
   position: fixed;
