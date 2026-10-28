@@ -8,6 +8,7 @@ Curated from 2_EngagemetFeatures.md
   - ~~earned from completing task~~ (1/5/12/25 XP for too easy/easy/medium/hard)
   - ~~can not be spend~~ ~~(XP unlocks shop items at level thresholds)~~
   - unlocks new tiles and items in the shop (which are teased before)
+  - ~~items unlock in the shop at level thresholds; tiles (slabs) are added automatically with levels~~ (see Room section)
   - ~~Levels shown in header, level up requires cumulative XP (100 per level * (level+1)/2)~~
   - Level progress below the daily/weekly goal is removed; the level indicator stays in the top right
 - ~~F2: Coins~~
@@ -87,7 +88,7 @@ Curated from 2_EngagemetFeatures.md
 
 #### Items
 - ~~F32: Can be bought in the store for coins or gems~~
-  - 7 placeholder items (50-400 coins or 5-10 gems), purchasable once each, shown in an overlay with Shop/Owned tabs
+  - ~~3 items with real 3D models (plant 50 / table 150 / lamp 100 coins, lamp gated at level 2), purchasable once each, shown in an overlay with Shop/Owned tabs~~
 - F33: Some items take time to completely appear in the room, creating anticipation
 - F34: Stay permanently (after app restart) expect for seasonal items
 - F35: Moving big things costs coins or needs a task to be completed
@@ -173,6 +174,9 @@ Curated from 2_EngagemetFeatures.md
 - No reward, just shown somewhere
 
 #### Room
+- ~~2.5D room view (three.js): warm lighting with soft shadows, sunbeam with drifting dust, subtle bloom; pan (drag / one finger) and zoom (wheel / pinch), scene center kept in the viewport~~
+- ~~Room grows with levels: 4 slabs at level 1, +4 per level, placed in Rosenberg strong-pairing order (positive coordinates, 2x2 core, square-ring expansion) - always one connected island~~
+- ~~Purchased items appear in the room automatically (table on the anchor slab, plant and lamp on the table, lamp carries a warm light)~~
 - F72: Items can be placed in a virtual room to decorate it
 - F73: Has treasure room showing coins, gems, chest
 - F74: Can be redecorated

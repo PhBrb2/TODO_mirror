@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.30.4";
+  const VERSION = "0.31.2";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -29,24 +29,41 @@
   const FIRST_TASK_GEM_CHANCE = { day1_2: 0, day3_6: 0.5, day7: 0.5 };
   const RATE_PROMPT_TIMEOUT = 10000;
   const DIFFICULTY_SUGGESTION_STREAK = 5;
-  const XP_REWARD = { too_easy: 1, easy: 5, medium: 12, hard: 25 };
+  const XP_REWARD = { too_easy: 10, easy: 50, medium: 120, hard: 250 }; // 10x for debugging
   const XP_BASE_LEVEL = 100;
   const CHEST_OPEN_MS = 12 * 60 * 60 * 1000;
   const CHEST_COINS = [20, 30, 40];
   const CHEST_GEMS = [1, 2];
   const CHEST_XP = [10, 20];
+  const SLABS_PER_LEVEL = 4;
+  const INITIAL_SLABS = 4;
+
+  // Rosenberg strong pairing over the positive quadrant: the room starts as
+  // a 2x2 core, then each expansion grows the square kxk -> (k+1)x(k+1)
+  // by walking the new column (x=k, z=0..k) and the new row (z=k, x=k-1..0).
+  // Every new slab touches the existing square, so the room stays connected.
+  function slabOffsets(count) {
+    const cells = [[0, 0], [1, 0], [1, 1], [0, 1]];
+    let k = 1;
+    while (cells.length < count) {
+      k += 1;
+      for (let z = 0; z <= k; z++) cells.push([k, z]);
+      for (let x = k - 1; x >= 0; x--) cells.push([x, k]);
+    }
+    return cells.slice(0, count);
+  }
+
+  function slabCountForLevel(level) {
+    return INITIAL_SLABS + (Math.max(1, level) - 1) * SLABS_PER_LEVEL;
+  }
   const BOOST_MULT = 1.5;
   const BOOST_DURATION_MS = 60 * 60 * 1000;
   const BOOST_CHANCE_PER_COMPLETION = 0.1;
   const BOOST_COOLDOWN_MS = 2 * 60 * 60 * 1000;
   const SHOP_ITEMS = [
     { id: "plant",       name: "Plant",        emoji: "🪴", costCoins: 50,  costGems: 0, minLevel: 1 },
+    { id: "table",       name: "Table",        emoji: "🪑", costCoins: 150, costGems: 0, minLevel: 1 },
     { id: "lamp",        name: "Lamp",         emoji: "💡", costCoins: 100, costGems: 0, minLevel: 2 },
-    { id: "poster",      name: "Poster",       emoji: "🖼️", costCoins: 150, costGems: 0, minLevel: 3 },
-    { id: "rug",         name: "Rug",          emoji: "🧶", costCoins: 250, costGems: 0, minLevel: 4 },
-    { id: "cat",         name: "Cat",          emoji: "🐱", costCoins: 400, costGems: 0, minLevel: 5 },
-    { id: "crystal",     name: "Crystal",      emoji: "🔮", costCoins: 0,   costGems: 5, minLevel: 3 },
-    { id: "trophy",      name: "Trophy",       emoji: "🏆", costCoins: 0,   costGems: 10, minLevel: 6 },
   ];
 
   function defaultState() {
@@ -209,6 +226,7 @@
     } catch {
       // storage full or unavailable: keep running in-memory
     }
+    window.dispatchEvent(new CustomEvent("game-state-changed"));
   }
 
   function randomMultiplier() {
@@ -971,6 +989,7 @@
     state.coins -= item.costCoins;
     state.gems -= item.costGems;
     state.ownedItems.push(id);
+    saveState();
     return { ok: true };
   }
 
@@ -1079,6 +1098,8 @@
     maybeSuggestDifficultyReduction,
     SHOP_ITEMS,
     shopItemById,
+    slabOffsets,
+    slabCountForLevel,
     itemIsOwned,
     itemIsUnlockable,
     purchaseItem,

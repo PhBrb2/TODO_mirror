@@ -24,18 +24,17 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
   const PLANT_MODEL_URL = "./models/plant.glb";
   const LAMP_MODEL_URL = "./models/lamp.glb";
   const DRACO_DECODER_PATH = "./vendor/addons/libs/draco/gltf/";
-  const GRID_SIZE = 3;
   const CELL_SPACING = 2;
   const GRID_SCALE = 1 / 6;
   const SLAB_TOP_Y = 0.115;
   const TABLE_SCALE = 2;
   const TABLE_BASE_Y = -0.279;
   const TABLE_TOP_Y = 0.275;
-  const PLANT_SCALE = 1;
   const PLANT_BASE_Y = -0.952;
-  const LAMP_SCALE = 1;
   const LAMP_BASE_Y = -0.951;
-  const LAMP_POSITION_X = 1.6;
+  const ITEM_ON_TABLE_OFFSET = 1.6;
+  const PLANT_SCALE = 1;
+  const LAMP_SCALE = 1;
   const LAMP_LIGHT_COLOR = 0xffb46b;
   const LAMP_LIGHT_INTENSITY = 1.2;
   const LAMP_LIGHT_DISTANCE = 6;
@@ -74,6 +73,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     canvas.width = 64;
     canvas.height = 64;
     const ctx = canvas.getContext("2d");
+    if (!ctx) return new THREE.CanvasTexture(canvas);
     const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
     gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
     gradient.addColorStop(0.4, "rgba(255, 255, 255, 0.4)");
@@ -151,51 +151,83 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     lamp.add(glow);
   }
 
-  function placeOnTable(grid, model, scale, baseY, x, tableY) {
-    applyShadows(model, true, true);
-    model.scale.setScalar(scale);
-    model.position.y = tableY + TABLE_TOP_Y * TABLE_SCALE - baseY * scale;
-    model.position.x = x;
-    grid.add(model);
+  // Registry of purchasable items: how each model is placed in the room.
+  // supports: which slab-relative surface it sits on, its scale, and an
+  // optional decorate callback (e.g. the lamp's inner light).
+  const ITEM_REGISTRY = {
+    table: {
+      url: "./models/table.glb",
+      scale: TABLE_SCALE,
+      baseY: TABLE_BASE_Y,
+      on: "slab",
+      decorate: null,
+    },
+    plant: {
+      url: "./models/plant.glb",
+      scale: PLANT_SCALE,
+      baseY: PLANT_BASE_Y,
+      on: "table",
+      offsetX: -ITEM_ON_TABLE_OFFSET,
+      decorate: null,
+    },
+    lamp: {
+      url: "./models/lamp.glb",
+      scale: LAMP_SCALE,
+      baseY: LAMP_BASE_Y,
+      on: "table",
+      offsetX: ITEM_ON_TABLE_OFFSET,
+      decorate: makeLampGlow,
+    },
+  };
+
+  function tableSurfaceY() {
+    return SLAB_TOP_Y - TABLE_BASE_Y * TABLE_SCALE + TABLE_TOP_Y * TABLE_SCALE;
   }
 
-  function buildRoomContent(loader) {
+  function buildRoomContent(loader, sceneDesc) {
     const grid = new THREE.Group();
     grid.scale.setScalar(GRID_SCALE);
-    Promise.allSettled([
-      loadModel(loader, SLAB_MODEL_URL),
-      loadModel(loader, TABLE_MODEL_URL),
-      loadModel(loader, PLANT_MODEL_URL),
-      loadModel(loader, LAMP_MODEL_URL),
-    ]).then(([slab, table, plant, lamp]) => {
-      if (slab.status === "fulfilled") {
-        applyShadows(slab.value, true, true);
-        for (let x = 0; x < GRID_SIZE; x++) {
-          for (let z = 0; z < GRID_SIZE; z++) {
-            const cell = slab.value.clone();
-            cell.position.set(
-              (x - (GRID_SIZE - 1) / 2) * CELL_SPACING,
-              0,
-              (z - (GRID_SIZE - 1) / 2) * CELL_SPACING
-            );
-            grid.add(cell);
-          }
+
+    const slabCells = (sceneDesc && sceneDesc.slabs) || [[0, 0]];
+    const owned = (sceneDesc && sceneDesc.items) || [];
+
+    const jobs = [loadModel(loader, SLAB_MODEL_URL)];
+    for (const id of owned) {
+      const def = ITEM_REGISTRY[id];
+      if (def) jobs.push(loadModel(loader, def.url));
+    }
+
+    Promise.allSettled(jobs).then((results) => {
+      const [slabResult, ...itemResults] = results;
+      if (slabResult.status !== "fulfilled") return;
+      const slab = slabResult.value;
+
+      applyShadows(slab, true, true);
+      for (const [dx, dz] of slabCells) {
+        const cell = slab.clone();
+        cell.position.set(dx * CELL_SPACING, 0, dz * CELL_SPACING);
+        grid.add(cell);
+      }
+
+      let tableModel = null;
+      owned.forEach((id, i) => {
+        const def = ITEM_REGISTRY[id];
+        const result = itemResults[i];
+        if (!def || result.status !== "fulfilled") return;
+        const model = result.value;
+        applyShadows(model, true, true);
+        model.scale.setScalar(def.scale);
+        if (def.on === "table") {
+          if (!tableModel) return; // items on the table need the table
+          model.position.y = tableSurfaceY() - def.baseY * def.scale;
+          model.position.x = def.offsetX || 0;
+        } else {
+          model.position.y = SLAB_TOP_Y - def.baseY * def.scale;
         }
-      }
-      const tableY = SLAB_TOP_Y - TABLE_BASE_Y * TABLE_SCALE;
-      if (table.status === "fulfilled") {
-        applyShadows(table.value, true, true);
-        table.value.scale.setScalar(TABLE_SCALE);
-        table.value.position.y = tableY;
-        grid.add(table.value);
-      }
-      if (plant.status === "fulfilled" && table.status === "fulfilled") {
-        placeOnTable(grid, plant.value, PLANT_SCALE, PLANT_BASE_Y, -LAMP_POSITION_X, tableY);
-      }
-      if (lamp.status === "fulfilled" && table.status === "fulfilled") {
-        placeOnTable(grid, lamp.value, LAMP_SCALE, LAMP_BASE_Y, LAMP_POSITION_X, tableY);
-        makeLampGlow(lamp.value);
-      }
+        grid.add(model);
+        if (id === "table") tableModel = model;
+        if (def.decorate) def.decorate(model);
+      });
     });
     return grid;
   }
@@ -273,7 +305,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     };
   }
 
-  function createRoom(container) {
+  function createRoom(container, getSceneDesc) {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(ROOM_BG_COLOR);
 
@@ -299,7 +331,17 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     draco.setDecoderPath(DRACO_DECODER_PATH);
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
-    scene.add(buildRoomContent(loader));
+    let roomContent = null;
+    function refreshContent() {
+      if (roomContent) {
+        scene.remove(roomContent);
+        disposeObject(roomContent);
+      }
+      const desc = typeof getSceneDesc === "function" ? getSceneDesc() : null;
+      roomContent = buildRoomContent(loader, desc);
+      scene.add(roomContent);
+    }
+    refreshContent();
     const sunSpot = new THREE.SpotLight(SUNSPOT_COLOR, SUNSPOT_INTENSITY);
     sunSpot.position.set(...WINDOW_POSITION);
     sunSpot.target.position.set(...SUNSPOT_TARGET);
@@ -349,6 +391,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     requestAnimationFrame(animate);
 
     return {
+      refresh: refreshContent,
       dispose() {
         animating = false;
         controls.dispose();
@@ -364,7 +407,11 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     };
 
     function disposeSceneResources() {
-      scene.traverse((obj) => {
+      disposeObject(scene);
+    }
+
+    function disposeObject(root) {
+      root.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
           const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
@@ -377,7 +424,11 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
   window.Room = { create: createRoom };
 
   const container = document.getElementById("room-view");
-  if (container) {
-    createRoom(container);
+  if (container && window.Game) {
+    const instance = createRoom(container, () => ({
+      slabs: Game.slabOffsets(Game.slabCountForLevel(Game.levelFromXp(Game.state.xp))),
+      items: Game.state.ownedItems,
+    }));
+    window.addEventListener("game-state-changed", () => instance.refresh());
   }
 })();
