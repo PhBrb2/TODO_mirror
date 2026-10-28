@@ -30,6 +30,29 @@
   let toastTimer = null;
   const toastQueue = [];
 
+  const balanceAnim = new Map();
+
+  function animateBalance(el, target) {
+    const from = Number(el.textContent) || 0;
+    if (from === target) return;
+    if (balanceAnim.has(el)) cancelAnimationFrame(balanceAnim.get(el));
+    const start = performance.now();
+    const duration = Math.min(900, 200 + Math.abs(target - from) * 30);
+    function tick(now) {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(from + (target - from) * eased);
+      if (t < 1) balanceAnim.set(el, requestAnimationFrame(tick));
+      else balanceAnim.delete(el);
+    }
+    balanceAnim.set(el, requestAnimationFrame(tick));
+  }
+
+  function renderBalances() {
+    animateBalance(coinBalanceEl, Game.state.coins);
+    animateBalance(gemBalanceEl, Game.state.gems);
+  }
+
   function displayNextToast() {
     const next = toastQueue.shift();
     if (next === undefined) {
@@ -398,8 +421,15 @@
     cb.disabled = locked;
     if (locked) cb.title = "Complete the chained predecessor first";
     cb.addEventListener("change", () => {
-      if (cb.checked) Game.completeTask(task);
-      else Game.uncompleteTask(task);
+      if (cb.checked) {
+        const origin = Confetti.originOf(li);
+        Game.completeTask(task);
+        if (task.done) {
+          Confetti.burstAt(origin, Game.CONFETTI_COUNT[task.difficulty] || 12);
+        }
+      } else {
+        Game.uncompleteTask(task);
+      }
     });
 
     const body = document.createElement("div");
@@ -468,7 +498,13 @@
         scb.checked = st.done;
         scb.disabled = stLocked;
         if (stLocked) scb.title = "Complete the chained predecessor first";
-        scb.addEventListener("change", () => Game.toggleSubtask(task, st));
+        scb.addEventListener("change", () => {
+          const origin = Confetti.originOf(row);
+          Game.toggleSubtask(task, st);
+          if (st.done) {
+            Confetti.burstAt(origin, Math.ceil((Game.CONFETTI_COUNT[st.difficulty] || 12) / 2));
+          }
+        });
         const stTitle = document.createElement("span");
         stTitle.className = "subtask-title";
         stTitle.textContent = st.title;
@@ -651,8 +687,7 @@
     }
 
     emptyHint.classList.toggle("hidden", Game.state.tasks.length > 0);
-    coinBalanceEl.textContent = Game.state.coins;
-    gemBalanceEl.textContent = Game.state.gems;
+    renderBalances();
 
     const lastGoal = Game.DAILY_GOALS[Game.DAILY_GOALS.length - 1];
     const reached = Game.reachedGoalCount(Game.state.dailyCompleted);
@@ -894,8 +929,7 @@
         shopContent.appendChild(shopItemNode(item));
       }
     }
-    coinBalanceEl.textContent = Game.state.coins;
-    gemBalanceEl.textContent = Game.state.gems;
+    renderBalances();
   }
 
   function openShop() {

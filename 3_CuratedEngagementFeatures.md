@@ -55,8 +55,8 @@ Curated from 2_EngagemetFeatures.md
   - ~~F20: Randomly declare in advance that a task will reward additional gems~~/item
   - ~~F21: User has option to rate difficulty after completion~~
     - Only asked for repeating tasks
-  - F22: Very satisfying animation and sound on completion, confetti, banner, fanfare, reward trickeling into coin/gem inventory. It should be fun but not startling.
-    - Confetti effect originates at the completed task; more difficult tasks produce more confetti
+  - ~~F22: Very satisfying animation and sound on completion, confetti, banner, fanfare, reward trickeling into coin/gem inventory. It should be fun but not startling.~~
+    - ~~Confetti effect originates at the completed task; more difficult tasks produce more confetti~~ (sound, banner and fanfare still pending)
 - ~~F23: If streak becomes long without the user reporting it as difficult, suggest reducing its difficulty after completion (after a 5-streak, eg. 5 days for daily, 5 weeks for weekly, without a "harder" rating)~~
 - F84: Backlog: user can create tasks with very low priority. They are not shown in the normal task list. When the normal task list is close to empty, suggest adding a task from the backlog.
 - ~~F85: For repeating tasks with a bonus reward, the bonus is rerolled every time the task becomes available again.~~
@@ -177,9 +177,9 @@ Curated from 2_EngagemetFeatures.md
 - ~~2.5D room view (three.js): warm lighting with soft shadows, sunbeam with drifting dust, subtle bloom; pan (drag / one finger) and zoom (wheel / pinch), scene center kept in the viewport~~
 - ~~Room grows with levels: 4 slabs at level 1, +4 per level, placed in Rosenberg strong-pairing order (positive coordinates, 2x2 core, square-ring expansion) - always one connected island~~
 - ~~Purchased items appear in the room automatically (table on the anchor slab, plant and lamp on the table, lamp carries a warm light)~~
-- F72: Items can be placed in a virtual room to decorate it
+- ~~F72: Items can be placed in a virtual room to decorate it~~
 - F73: Has treasure room showing coins, gems, chest
-- F74: Can be redecorated
+- ~~F74: Can be redecorated~~
 - F75: Companion walks around
 - F76: Needs (very little) care
 

@@ -6,6 +6,8 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { createItemFactory, applyShadows, loadModel, buildItems } from "./room-items.js";
+import { createInteraction } from "./room-interaction.js";
 
 (() => {
   "use strict";
@@ -20,25 +22,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
   const KEY_LIGHT_COLOR = 0xffd9a0;
   const KEY_LIGHT_INTENSITY = 1.6;
   const SLAB_MODEL_URL = "./models/slab.glb";
-  const TABLE_MODEL_URL = "./models/table.glb";
-  const PLANT_MODEL_URL = "./models/plant.glb";
-  const LAMP_MODEL_URL = "./models/lamp.glb";
   const DRACO_DECODER_PATH = "./vendor/addons/libs/draco/gltf/";
-  const CELL_SPACING = 2;
-  const GRID_SCALE = 1 / 6;
-  const SLAB_TOP_Y = 0.115;
-  const TABLE_SCALE = 2;
-  const TABLE_BASE_Y = -0.279;
-  const TABLE_TOP_Y = 0.275;
-  const PLANT_BASE_Y = -0.952;
-  const LAMP_BASE_Y = -0.951;
-  const ITEM_ON_TABLE_OFFSET = 1.6;
-  const PLANT_SCALE = 1;
-  const LAMP_SCALE = 1;
-  const LAMP_LIGHT_COLOR = 0xffb46b;
-  const LAMP_LIGHT_INTENSITY = 1.2;
-  const LAMP_LIGHT_DISTANCE = 6;
-  const LAMP_LIGHT_Y_OFFSET = 0.5;
   const WINDOW_POSITION = [-0.33, 0.32, -0.45];
   const SUNSPOT_TARGET = [0, 0.2, 0.05];
   const SUNSPOT_COLOR = 0xffd9a0;
@@ -80,8 +64,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 64, 64);
-    const texture = new THREE.CanvasTexture(canvas);
-    return texture;
+    return new THREE.CanvasTexture(canvas);
   }
 
   function createDust() {
@@ -126,110 +109,6 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
       positions.array[i * 3 + 2] = base[i * 3 + 2] + Math.cos(t * 0.9) * 0.2;
     }
     positions.needsUpdate = true;
-  }
-  function loadModel(loader, url) {
-    return new Promise((resolve, reject) => {
-      loader.load(url, (gltf) => resolve(gltf.scene), undefined, () => {
-        console.error("Failed to load model:", url);
-        reject(new Error(url));
-      });
-    });
-  }
-
-  function applyShadows(obj, cast, receive) {
-    obj.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = cast;
-        child.receiveShadow = receive;
-      }
-    });
-  }
-
-  function makeLampGlow(lamp) {
-    const glow = new THREE.PointLight(LAMP_LIGHT_COLOR, LAMP_LIGHT_INTENSITY, LAMP_LIGHT_DISTANCE);
-    glow.position.y = LAMP_LIGHT_Y_OFFSET;
-    lamp.add(glow);
-  }
-
-  // Registry of purchasable items: how each model is placed in the room.
-  // supports: which slab-relative surface it sits on, its scale, and an
-  // optional decorate callback (e.g. the lamp's inner light).
-  const ITEM_REGISTRY = {
-    table: {
-      url: "./models/table.glb",
-      scale: TABLE_SCALE,
-      baseY: TABLE_BASE_Y,
-      on: "slab",
-      decorate: null,
-    },
-    plant: {
-      url: "./models/plant.glb",
-      scale: PLANT_SCALE,
-      baseY: PLANT_BASE_Y,
-      on: "table",
-      offsetX: -ITEM_ON_TABLE_OFFSET,
-      decorate: null,
-    },
-    lamp: {
-      url: "./models/lamp.glb",
-      scale: LAMP_SCALE,
-      baseY: LAMP_BASE_Y,
-      on: "table",
-      offsetX: ITEM_ON_TABLE_OFFSET,
-      decorate: makeLampGlow,
-    },
-  };
-
-  function tableSurfaceY() {
-    return SLAB_TOP_Y - TABLE_BASE_Y * TABLE_SCALE + TABLE_TOP_Y * TABLE_SCALE;
-  }
-
-  function buildRoomContent(loader, sceneDesc) {
-    const grid = new THREE.Group();
-    grid.scale.setScalar(GRID_SCALE);
-
-    const slabCells = (sceneDesc && sceneDesc.slabs) || [[0, 0]];
-    const owned = (sceneDesc && sceneDesc.items) || [];
-
-    const jobs = [loadModel(loader, SLAB_MODEL_URL)];
-    for (const id of owned) {
-      const def = ITEM_REGISTRY[id];
-      if (def) jobs.push(loadModel(loader, def.url));
-    }
-
-    Promise.allSettled(jobs).then((results) => {
-      const [slabResult, ...itemResults] = results;
-      if (slabResult.status !== "fulfilled") return;
-      const slab = slabResult.value;
-
-      applyShadows(slab, true, true);
-      for (const [dx, dz] of slabCells) {
-        const cell = slab.clone();
-        cell.position.set(dx * CELL_SPACING, 0, dz * CELL_SPACING);
-        grid.add(cell);
-      }
-
-      let tableModel = null;
-      owned.forEach((id, i) => {
-        const def = ITEM_REGISTRY[id];
-        const result = itemResults[i];
-        if (!def || result.status !== "fulfilled") return;
-        const model = result.value;
-        applyShadows(model, true, true);
-        model.scale.setScalar(def.scale);
-        if (def.on === "table") {
-          if (!tableModel) return; // items on the table need the table
-          model.position.y = tableSurfaceY() - def.baseY * def.scale;
-          model.position.x = def.offsetX || 0;
-        } else {
-          model.position.y = SLAB_TOP_Y - def.baseY * def.scale;
-        }
-        grid.add(model);
-        if (id === "table") tableModel = model;
-        if (def.decorate) def.decorate(model);
-      });
-    });
-    return grid;
   }
 
   function createLighting(scene) {
@@ -299,6 +178,9 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
         controls.update();
         clampPan();
       },
+      setPanEnabled(enabled) {
+        controls.enablePan = enabled;
+      },
       dispose() {
         controls.dispose();
       },
@@ -306,6 +188,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
   }
 
   function createRoom(container, getSceneDesc) {
+    const config = window.RoomConfig;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(ROOM_BG_COLOR);
 
@@ -331,17 +214,86 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     draco.setDecoderPath(DRACO_DECODER_PATH);
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
-    let roomContent = null;
+    const itemFactory = createItemFactory(loader);
+
+    const grid = new THREE.Group();
+    grid.scale.setScalar(config.gridScale);
+    scene.add(grid);
+    const slabGroup = new THREE.Group();
+    const itemRoot = new THREE.Group();
+    grid.add(slabGroup);
+    grid.add(itemRoot);
+
+    let currentCells = [];
+    let itemGroups = [];
+    let slabMeshes = [];
+    let rebuild = null;
+    let pendingRefresh = false;
+
+    function clearRoom() {
+      for (const child of [...slabGroup.children]) {
+        slabGroup.remove(child);
+        disposeObject(child);
+      }
+      for (const child of [...itemRoot.children]) itemRoot.remove(child);
+      itemGroups = [];
+      slabMeshes = [];
+    }
+
     function refreshContent() {
-      if (roomContent) {
-        scene.remove(roomContent);
-        disposeObject(roomContent);
+      if (rebuild) {
+        pendingRefresh = true;
+        return;
       }
       const desc = typeof getSceneDesc === "function" ? getSceneDesc() : null;
-      roomContent = buildRoomContent(loader, desc);
-      scene.add(roomContent);
+      currentCells = (desc && desc.slabs) || [[0, 0]];
+      const placements = (desc && desc.placements) || [];
+
+      clearRoom();
+      const selectedId = interaction.getSelected()
+        ? interaction.getSelected().userData.itemId
+        : null;
+      interaction.deselect();
+
+      rebuild = loadModel(loader, SLAB_MODEL_URL)
+        .then((slab) => {
+          applyShadows(slab, true, true);
+          for (const [dx, dz] of currentCells) {
+            const cell = slab.clone();
+            cell.position.set(dx * config.cellSpacing, 0, dz * config.cellSpacing);
+            slabGroup.add(cell);
+            slabMeshes.push(cell);
+          }
+          return buildItems(itemFactory, currentCells, placements);
+        })
+        .then(({ root, groups }) => {
+          itemRoot.add(root);
+          itemGroups = groups;
+          if (selectedId) {
+            const group = groups.find((g) => g.userData.itemId === selectedId);
+            if (group) interaction.select(group);
+          }
+        })
+        .finally(() => {
+          rebuild = null;
+          if (pendingRefresh) {
+            pendingRefresh = false;
+            refreshContent();
+          }
+        });
     }
-    refreshContent();
+
+    const interaction = createInteraction({
+      camera,
+      domElement: renderer.domElement,
+      setPanEnabled: (enabled) => controls.setPanEnabled(enabled),
+      getCells: () => currentCells,
+      getGroups: () => itemGroups,
+      getSlabMeshes: () => slabMeshes,
+      onPlaceItem: (itemId, cellIndex) => window.Game.placeItem(itemId, cellIndex),
+      onRotateItem: (itemId) => window.Game.rotateItem(itemId),
+    });
+
     const sunSpot = new THREE.SpotLight(SUNSPOT_COLOR, SUNSPOT_INTENSITY);
     sunSpot.position.set(...WINDOW_POSITION);
     sunSpot.target.position.set(...SUNSPOT_TARGET);
@@ -370,6 +322,8 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
 
+    refreshContent();
+
     function onResize() {
       const width = container.clientWidth;
       const height = Math.max(1, container.clientHeight);
@@ -396,7 +350,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
         animating = false;
         controls.dispose();
         window.removeEventListener("resize", onResize);
-        disposeSceneResources();
+        disposeObject(scene);
         draco.dispose();
         composer.dispose();
         renderer.dispose();
@@ -405,10 +359,6 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
         }
       },
     };
-
-    function disposeSceneResources() {
-      disposeObject(scene);
-    }
 
     function disposeObject(root) {
       root.traverse((obj) => {
@@ -427,7 +377,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
   if (container && window.Game) {
     const instance = createRoom(container, () => ({
       slabs: Game.slabOffsets(Game.slabCountForLevel(Game.levelFromXp(Game.state.xp))),
-      items: Game.state.ownedItems,
+      placements: Game.state.placedItems,
     }));
     window.addEventListener("game-state-changed", () => instance.refresh());
   }
