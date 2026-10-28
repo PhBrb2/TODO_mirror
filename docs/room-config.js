@@ -39,6 +39,16 @@ window.RoomConfig = {
       providesSurface: false,
       decorate: "lampGlow",
     },
+    pedestal: {
+      type: "slab",
+      // procedural model: a small gray pedestal with a brown chest on top,
+      // built from primitives in room-items.js (no glb)
+      url: null,
+      scale: 1,
+      baseY: 0,
+      providesSurface: false,
+      decorate: null,
+    },
   },
 
   decorations: {
@@ -48,5 +58,23 @@ window.RoomConfig = {
       distance: 6,
       yOffset: 0.5,
     },
+  },
+
+  chestDisplay: {
+    // pedestal (gray) and chest (brown) built from primitives
+    pedestalColor: 0x8a8a8a,
+    pedestalSize: [0.7, 0.35, 0.7],
+    chestColor: 0x8b5a2b,
+    chestSize: [0.5, 0.4, 0.35],
+    chestLidOverhang: 0.05,
+    // emissive glow when the displayed chest can be opened
+    highlightColor: 0xffb84d,
+    highlightIntensity: 0.5,
+    // countdown ring around the pedestal while the chest is locked
+    ringInnerRadius: 0.5,
+    ringOuterRadius: 0.62,
+    ringColor: 0xffb84d,
+    ringOpacity: 0.85,
+    ringYOffset: 0.02,
   },
 };

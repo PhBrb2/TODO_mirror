@@ -20,10 +20,12 @@ Curated from 2_EngagemetFeatures.md
   - 25% chance for 2 gems on medium, 50% chance on hard
 - ~~F4: Chests~~
   - ~~earned as daily reward for first completed task~~
+  - Chest Pedestal: chests are only earned after buying the pedestal item in the store; the pedestal in the room shows the newest chest - highlighted if it can be opened, plain if still locked, empty if none
+  - Buying the pedestal spawns a bonus chest that opens after 1 minute; daily chests keep their 12h delay
+  - No chest buttons in the task panel: a countdown ring around the pedestal shrinks with remaining-time/open-delay; tapping the pedestal opens a ready chest
   - ~~contains random coins, gems, items~~ (20-40 coins, 1-2 gems, 10-20 XP; no items yet)
   - ~~opens after 12h~~
   - ~~Chests are opened manually by the user; a counter shows ready and locked chests~~
-  - If multiple boxes exist, show only one button: the currently openable box, or otherwise the one that can be opened next
 
 #### Task 
 - ~~F5: Can be created by user~~

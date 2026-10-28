@@ -2,6 +2,7 @@
   "use strict";
 
   const listEl = document.getElementById("task-list");
+  const sheetContentEl = document.querySelector(".sheet-content");
   const emptyHint = document.getElementById("empty-hint");
   const coinBalanceEl = document.getElementById("coin-balance");
   const gemBalanceEl = document.getElementById("gem-balance");
@@ -10,7 +11,6 @@
   const weeklyProgressEl = document.getElementById("weekly-progress");
   const weeklyBar = document.getElementById("weekly-bar");
   const levelDisplayEl = document.getElementById("level-display");
-  const chestAreaEl = document.getElementById("chest-area");
   const boostBannerEl = document.getElementById("boost-banner");
   const boostTimerEl = document.getElementById("boost-timer");
   const resetBtn = document.getElementById("reset-btn");
@@ -105,12 +105,6 @@
       select.appendChild(o);
     }
     return select;
-  }
-
-  function formatHoursMinutes(remaining) {
-    const h = Math.floor(remaining / 3600000);
-    const m = Math.ceil((remaining % 3600000) / 60000);
-    return `${h}h ${m}m`;
   }
 
   function formatMinutesSeconds(remaining) {
@@ -426,6 +420,14 @@
         Game.completeTask(task);
         if (task.done) {
           Confetti.burstAt(origin, Game.CONFETTI_COUNT[task.difficulty] || 12);
+          RewardFlight.flyRewards(
+            { x: origin.x + origin.width / 2, y: origin.y },
+            task.reward.coins,
+            task.reward.gems,
+            coinBalanceEl,
+            gemBalanceEl,
+            sheetContentEl
+          );
         }
       } else {
         Game.uncompleteTask(task);
@@ -503,6 +505,14 @@
           Game.toggleSubtask(task, st);
           if (st.done) {
             Confetti.burstAt(origin, Math.ceil((Game.CONFETTI_COUNT[st.difficulty] || 12) / 2));
+            RewardFlight.flyRewards(
+              { x: origin.x + origin.width / 2, y: origin.y },
+              st.reward ? st.reward.coins : 0,
+              st.reward ? st.reward.gems : 0,
+              coinBalanceEl,
+              gemBalanceEl,
+              sheetContentEl
+            );
           }
         });
         const stTitle = document.createElement("span");
@@ -727,37 +737,6 @@
     xpProgressEl.textContent =
       `${Game.state.xp - curLevelXp}/${nextLevelXp - curLevelXp} XP`;
 
-    chestAreaEl.innerHTML = "";
-    const unopened = Game.state.chests.filter((c) => !c.opened);
-    if (unopened.length > 0) {
-      const counter = document.createElement("span");
-      counter.className = "chest-counter";
-      counter.textContent = `📦 ${unopened.length}`;
-      chestAreaEl.appendChild(counter);
-    }
-    const grouped = new Map();
-    for (const chest of unopened) {
-      const ready = Game.chestReady(chest);
-      const key = ready ? "ready" : `locked:${Game.CHEST_OPEN_MS - (Date.now() - chest.earnedAt)}`;
-      if (!grouped.has(key)) grouped.set(key, { chest, ready, count: 0 });
-      grouped.get(key).count++;
-    }
-    for (const { chest, ready, count } of grouped.values()) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      if (ready) {
-        btn.className = "chest ready";
-        btn.textContent = `📦 Open me!${count > 1 ? ` (x${count})` : ""}`;
-        btn.addEventListener("click", () => Game.openChest(chest));
-      } else {
-        btn.className = "chest waiting";
-        btn.disabled = true;
-        const remaining = Game.CHEST_OPEN_MS - (Date.now() - chest.earnedAt);
-        btn.textContent = `🔒 open in ${formatHoursMinutes(remaining)}${count > 1 ? ` (x${count})` : ""}`;
-      }
-      chestAreaEl.appendChild(btn);
-    }
-
     if (Game.isBoostActive()) {
       boostBannerEl.classList.remove("hidden");
       const remaining = Math.max(0, Game.state.boostUntil - Date.now());
@@ -794,17 +773,6 @@
       node.classList.toggle("overdue", remaining <= 0);
     }
 
-    const unopened = Game.state.chests.filter((c) => !c.opened);
-    let idx = 0;
-    for (const node of chestAreaEl.querySelectorAll(".chest")) {
-      const chest = unopened[idx];
-      if (!chest) break;
-      const remaining = Game.CHEST_OPEN_MS - (now - chest.earnedAt);
-      if (!Game.chestReady(chest) && remaining > 0) {
-        node.textContent = `🔒 open in ${formatHoursMinutes(remaining)}`;
-      }
-      idx++;
-    }
   }
   setInterval(updateLiveClocks, 1000);
 

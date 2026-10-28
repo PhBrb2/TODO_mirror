@@ -6,7 +6,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { createItemFactory, applyShadows, loadModel, buildItems } from "./room-items.js";
+import { createItemFactory, applyShadows, loadModel, buildItems, updateCountdownRing } from "./room-items.js";
 import { createInteraction } from "./room-interaction.js";
 
 (() => {
@@ -248,6 +248,7 @@ import { createInteraction } from "./room-interaction.js";
       const desc = typeof getSceneDesc === "function" ? getSceneDesc() : null;
       currentCells = (desc && desc.slabs) || [[0, 0]];
       const placements = (desc && desc.placements) || [];
+      const chestDisplay = (desc && desc.chestDisplay) || { state: "none" };
 
       clearRoom();
       const selectedId = interaction.getSelected()
@@ -264,7 +265,7 @@ import { createInteraction } from "./room-interaction.js";
             slabGroup.add(cell);
             slabMeshes.push(cell);
           }
-          return buildItems(itemFactory, currentCells, placements);
+          return buildItems(itemFactory, currentCells, placements, chestDisplay);
         })
         .then(({ root, groups }) => {
           itemRoot.add(root);
@@ -292,6 +293,15 @@ import { createInteraction } from "./room-interaction.js";
       getSlabMeshes: () => slabMeshes,
       onPlaceItem: (itemId, cellIndex) => window.Game.placeItem(itemId, cellIndex),
       onRotateItem: (itemId) => window.Game.rotateItem(itemId),
+      onItemTap: (itemId) => {
+        if (itemId !== "pedestal") return false;
+        const display = typeof getSceneDesc === "function"
+          ? getSceneDesc().chestDisplay
+          : null;
+        if (!display || !display.chest || !Game.chestReady(display.chest)) return false;
+        Game.openChest(display.chest);
+        return true;
+      },
     });
 
     const sunSpot = new THREE.SpotLight(SUNSPOT_COLOR, SUNSPOT_INTENSITY);
@@ -335,14 +345,49 @@ import { createInteraction } from "./room-interaction.js";
     window.addEventListener("resize", onResize);
 
     let animating = true;
+    let lastChestTick = 0;
     function animate() {
       if (!animating) return;
       controls.update();
       updateDust(dust, clock.getElapsedTime());
       composer.render();
+      const now = performance.now();
+      if (now - lastChestTick >= 1000) {
+        lastChestTick = now;
+        chestTick();
+      }
       requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
+
+    let chestWasReady = null;
+
+    function chestTick() {
+      const pedestalGroup = itemGroups.find((g) => g.userData.itemId === "pedestal");
+      if (!pedestalGroup) return;
+      const display = typeof getSceneDesc === "function"
+        ? getSceneDesc().chestDisplay
+        : null;
+      if (!display || !display.chest) return;
+      const ready = Game.chestReady(display.chest);
+      if (chestWasReady === null) {
+        chestWasReady = ready;
+        if (!ready) {
+          const model = pedestalGroup.children[0];
+          if (model) updateCountdownRing(model, display.progress);
+        }
+        return;
+      }
+      if (ready !== chestWasReady) {
+        chestWasReady = ready;
+        refreshContent();
+        return;
+      }
+      if (ready) return;
+      const model = pedestalGroup.children[0];
+      if (!model) return;
+      updateCountdownRing(model, display.progress);
+    }
 
     return {
       refresh: refreshContent,
@@ -373,11 +418,40 @@ import { createInteraction } from "./room-interaction.js";
 
   window.Room = { create: createRoom };
 
+  function nextChest() {
+    const unopened = Game.state.chests.filter((c) => !c.opened);
+    if (unopened.length === 0) return null;
+    const ready = unopened.find((c) => Game.chestReady(c));
+    if (ready) return ready;
+    return unopened.reduce((a, b) =>
+      a.earnedAt + (a.openDelayMs ?? Game.CHEST_OPEN_MS) <=
+      b.earnedAt + (b.openDelayMs ?? Game.CHEST_OPEN_MS)
+        ? a
+        : b
+    );
+  }
+
+  function chestProgress(chest) {
+    const delay = chest.openDelayMs ?? Game.CHEST_OPEN_MS;
+    return Math.min(1, Math.max(0, (Date.now() - chest.earnedAt) / delay));
+  }
+
+  function chestDisplay() {
+    const chest = nextChest();
+    if (!chest) return { state: "none", progress: 0, chest: null };
+    return {
+      state: Game.chestReady(chest) ? "ready" : "locked",
+      progress: chestProgress(chest),
+      chest,
+    };
+  }
+
   const container = document.getElementById("room-view");
   if (container && window.Game) {
     const instance = createRoom(container, () => ({
       slabs: Game.slabOffsets(Game.slabCountForLevel(Game.levelFromXp(Game.state.xp))),
       placements: Game.state.placedItems,
+      chestDisplay: chestDisplay(),
     }));
     window.addEventListener("game-state-changed", () => instance.refresh());
   }

@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.33.4";
+  const VERSION = "0.36.2";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -33,6 +33,7 @@
   const CONFETTI_COUNT = { too_easy: 12, easy: 24, medium: 48, hard: 80 };
   const XP_BASE_LEVEL = 100;
   const CHEST_OPEN_MS = 12 * 60 * 60 * 1000;
+  const CHEST_PURCHASE_OPEN_MS = 60 * 1000;
   const CHEST_COINS = [20, 30, 40];
   const CHEST_GEMS = [1, 2];
   const CHEST_XP = [10, 20];
@@ -65,11 +66,13 @@
     { id: "plant",       name: "Plant",        emoji: "🪴", costCoins: 50,  costGems: 0, minLevel: 1 },
     { id: "table",       name: "Table",        emoji: "🪑", costCoins: 150, costGems: 0, minLevel: 1 },
     { id: "lamp",        name: "Lamp",         emoji: "💡", costCoins: 100, costGems: 0, minLevel: 2 },
+    { id: "pedestal",    name: "Chest Pedestal", emoji: "📦", costCoins: 75,  costGems: 0, minLevel: 1 },
   ];
 
   // Placement classes: "slab" items occupy a floor cell, "top" items sit on
   // top of slab items (e.g. the table). Mirrors RoomConfig.items in room-config.js.
-  const ITEM_TYPES = { plant: "top", table: "slab", lamp: "top" };
+  const ITEM_TYPES = { plant: "top", table: "slab", lamp: "top", pedestal: "slab" };
+  const CHEST_ITEM_ID = "pedestal";
   const ITEM_ROTATIONS = 4;
   const PLACEMENT_VERSION = 1;
 
@@ -241,6 +244,7 @@
               earnedAt: num(c.earnedAt, 0),
               opened: c.opened === true,
               openedAt: num(c.openedAt, 0),
+              openDelayMs: num(c.openDelayMs, CHEST_OPEN_MS),
               contents: null,
             }))
         : [],
@@ -445,7 +449,9 @@
   }
 
   function chestReady(chest) {
-    return !chest.opened && Date.now() - chest.earnedAt >= CHEST_OPEN_MS;
+    if (chest.opened) return false;
+    const openDelay = chest.openDelayMs ?? CHEST_OPEN_MS;
+    return Date.now() - chest.earnedAt >= openDelay;
   }
 
   function openChest(chest) {
@@ -760,13 +766,14 @@
     return reward;
   }
 
-  function earnChest() {
+  function earnChest(openDelayMs) {
     const chest = {
       id: state.nextId++,
       earnedAt: Date.now(),
       opened: false,
       openedAt: 0,
       contents: null,
+      openDelayMs: openDelayMs ?? CHEST_OPEN_MS,
     };
     state.chests.push(chest);
     return chest.id;
@@ -855,7 +862,7 @@
       reward.gems += firstBonus.gems;
     }
 
-    const chestEarned = Boolean(firstBonus);
+    const chestEarned = Boolean(firstBonus) && itemIsOwned(CHEST_ITEM_ID);
     const chestId = chestEarned ? earnChest() : null;
 
     const leveledUp = grantXpAndCoins(reward.coins, reward.gems, reward.xp);
@@ -881,7 +888,7 @@
     }
     showToast(buildRewardMessage(task, reward, firstBonus));
 
-    if (firstBonus) showToast("📦 Chest earned! Opens in 12h");
+    if (chestEarned) showToast("📦 Chest earned! Opens in 12h");
     maybeStartBoost();
     promptDifficultyRating(task);
     maybeSuggestDifficultyReduction(task);
@@ -1048,6 +1055,7 @@
     state.gems -= item.costGems;
     state.ownedItems.push(id);
     defaultPlaceItem(id);
+    if (id === CHEST_ITEM_ID) earnChest(CHEST_PURCHASE_OPEN_MS);
     saveState();
     return { ok: true };
   }
@@ -1126,6 +1134,8 @@
     XP_BASE_LEVEL,
     CHEST_OPEN_MS,
     CHEST_COINS,
+    CHEST_OPEN_MS,
+    CHEST_ITEM_ID,
     CHEST_GEMS,
     CHEST_XP,
     BOOST_MULT,

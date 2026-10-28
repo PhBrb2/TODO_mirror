@@ -257,33 +257,6 @@ header h1 {
   text-align: center;
 }
 
-#chest-area {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.chest-counter {
-  font-size: 0.9rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.chest {
-  border: none;
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-}
-
-.chest.ready { background: #ffe9c7; color: #b8860b; }
-.chest.waiting { background: #f0f0f5; color: var(--muted); cursor: not-allowed; }
-
 #reset-btn {
   display: block;
   margin: 32px auto 0;
@@ -716,5 +689,21 @@ header h1 {
   top: 0;
   left: 0;
   border-radius: 2px;
+  will-change: transform, opacity;
+}
+
+.reward-flight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 75;
+  overflow: hidden;
+}
+
+.reward-flyer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 18px;
   will-change: transform, opacity;
 }

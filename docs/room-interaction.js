@@ -15,6 +15,7 @@ export function createInteraction({
   getSlabMeshes,
   onPlaceItem,
   onRotateItem,
+  onItemTap,
 }) {
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -189,6 +190,7 @@ export function createInteraction({
   function handleTap(ev) {
     const group = intersectGroups(ev);
     if (group && group === selectedGroup) {
+      if (onItemTap && onItemTap(group.userData.itemId)) return;
       onRotateItem(group.userData.itemId);
       return;
     }

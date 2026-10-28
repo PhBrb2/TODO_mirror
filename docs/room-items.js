@@ -31,6 +31,94 @@ function decorate(model, def, config) {
   model.add(glow);
 }
 
+function boxMesh(size, color) {
+  const geometry = new THREE.BoxGeometry(size[0], size[1], size[2]);
+  const material = new THREE.MeshStandardMaterial({ color });
+  return new THREE.Mesh(geometry, material);
+}
+
+// Procedural chest pedestal: a small gray pedestal with an optional brown
+// chest on top. The chest glows when it can be opened (chestState:
+// "ready" | "locked" | "none"). While locked, a countdown ring around the
+// pedestal shrinks with remaining/openDelay (progress: 0 = just earned,
+// 1 = ready).
+export function createChestPedestalModel(chestState, progress) {
+  const config = window.RoomConfig.chestDisplay;
+  const group = new THREE.Group();
+
+  const pedestal = boxMesh(config.pedestalSize, config.pedestalColor);
+  pedestal.position.y = config.pedestalSize[1] / 2;
+  group.add(pedestal);
+
+  if (chestState !== "none") {
+    const chest = new THREE.Group();
+    const body = boxMesh(config.chestSize, config.chestColor);
+    body.position.y = config.chestSize[1] / 2;
+    const lidSize = [
+      config.chestSize[0] + config.chestLidOverhang * 2,
+      config.chestSize[1] * 0.4,
+      config.chestSize[2] + config.chestLidOverhang * 2,
+    ];
+    const lid = boxMesh(lidSize, config.chestColor);
+    lid.position.y = config.chestSize[1] + lidSize[1] / 2;
+    chest.add(body);
+    chest.add(lid);
+    chest.position.y = config.pedestalSize[1];
+    if (chestState === "ready") {
+      chest.traverse((child) => {
+        if (child.isMesh && child.material.emissive) {
+          child.material.emissive.setHex(config.highlightColor);
+          child.material.emissiveIntensity = config.highlightIntensity;
+        }
+      });
+    }
+    group.add(chest);
+
+    if (chestState === "locked" && progress < 1) {
+      const ring = countdownRing(config, progress);
+      group.add(ring);
+    }
+  }
+
+  applyShadows(group, true, true);
+  return group;
+}
+
+function countdownRing(config, progress) {
+  const inner = config.ringInnerRadius;
+  const outer = config.ringOuterRadius;
+  const geometry = new THREE.RingGeometry(inner, outer, 48, 1, 0, Math.PI * 2 * (1 - progress));
+  const material = new THREE.MeshBasicMaterial({
+    color: config.ringColor,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: config.ringOpacity,
+  });
+  const ring = new THREE.Mesh(geometry, material);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = config.ringYOffset;
+  ring.userData.isCountdownRing = true;
+  return ring;
+}
+
+// Regenerates the countdown ring geometry for the current progress.
+// No-op if the pedestal has no ring (chest not locked).
+export function updateCountdownRing(pedestalModel, progress) {
+  const config = window.RoomConfig.chestDisplay;
+  const old = pedestalModel.children.find((c) => c.userData.isCountdownRing);
+  if (!old) return;
+  const geometry = new THREE.RingGeometry(
+    config.ringInnerRadius,
+    config.ringOuterRadius,
+    48,
+    1,
+    0,
+    Math.PI * 2 * (1 - Math.min(1, Math.max(0, progress)))
+  );
+  old.geometry.dispose();
+  old.geometry = geometry;
+}
+
 export function createItemFactory(loader) {
   const config = window.RoomConfig;
   const baseModels = new Map();
@@ -50,9 +138,12 @@ export function createItemFactory(loader) {
   }
 
   return {
-    create(itemId) {
+    create(itemId, chestState, chestProgress) {
       const def = config.items[itemId];
       if (!def) return Promise.reject(new Error(itemId));
+      if (!def.url) {
+        return Promise.resolve(createChestPedestalModel(chestState || "none", chestProgress ?? 0));
+      }
       return baseModel(itemId).then((model) => {
         const clone = model.clone();
         clone.scale.setScalar(def.scale);
@@ -123,11 +214,18 @@ export function positionItemGroup(group, cellIndex, cells, surfaceDef) {
   );
 }
 
-export function buildItems(factory, cells, placements) {
+export function buildItems(factory, cells, placements, chestDisplay) {
   const config = window.RoomConfig;
   const root = new THREE.Group();
   const valid = placements.filter((p) => config.items[p.itemId]);
-  return Promise.allSettled(valid.map((p) => factory.create(p.itemId))).then((results) => {
+  const display = chestDisplay || {};
+  return Promise.allSettled(
+    valid.map((p) =>
+      p.itemId === "pedestal"
+        ? factory.create(p.itemId, display.state, display.progress)
+        : factory.create(p.itemId)
+    )
+  ).then((results) => {
     const groups = [];
     valid.forEach((p, i) => {
       const result = results[i];
