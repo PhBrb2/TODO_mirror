@@ -60,7 +60,7 @@ Curated from 2_EngagemetFeatures.md
   - ~~F22: Very satisfying animation and sound on completion, confetti, banner, fanfare, reward trickeling into coin/gem inventory. It should be fun but not startling.~~
     - ~~Confetti effect originates at the completed task; more difficult tasks produce more confetti~~ (sound, banner and fanfare still pending)
 - ~~F23: If streak becomes long without the user reporting it as difficult, suggest reducing its difficulty after completion (after a 5-streak, eg. 5 days for daily, 5 weeks for weekly, without a "harder" rating)~~
-- ~~F84: Backlog: user can create tasks with very low priority. They are not shown in the normal task list. When the normal task list is close to empty, suggest adding a task from the backlog.~~ (implemented as a tab; empty-list suggestion still pending)
+- ~~F84: Backlog: user can create tasks with very low priority. They are not shown in the normal task list. When the normal task list is close to empty, suggest adding a task from the backlog.~~ (implemented as a tab; the highlight tab already surfaces backlog tasks when nothing else is open, so no separate suggestion is needed)
 - Task list tabs: Highlight (top 4 by rating: bonus, deadline urgency, streak, difficulty; backlog penalized), Todo, Backlog, Fun
 - Fun tasks: small fixed reward (5 coins / 5 XP), no difficulty, no repeat/deadline, no goal counter increase, no chest, no chaining; chains always take the list of their first task
 - ~~F85: For repeating tasks with a bonus reward, the bonus is rerolled every time the task becomes available again.~~
@@ -166,16 +166,24 @@ Curated from 2_EngagemetFeatures.md
 
 
 #### Small achievements
-- Eg.:
-  - **F64: Task Master:** Complete X tasks
-  - **F65: Streak Champion:** Maintain X-day streak
-  - **F66: Early Bird:** Complete tasks before noon
-  - **F67: Night Owl:** Complete tasks after 8 PM
-  - **F68: Weekend Warrior:** Complete tasks on weekends
-  - **F69: Perfectionist:** 100% task completion rate for a week
-  - **F70: Collector:** Own X decorations
-  - **F71: Redecorator:** Move items around X times
-- No reward, just shown somewhere
+- ~~Shown in a dedicated overlay (opened via a header button, styled like the shop), with progress bars and locked/unlocked states; unlock announces a toast. No reward, just shown.~~
+- Implemented:
+  - ~~F64: Task Master:~~ First Step (1 task) and Task Master (25 tasks)
+  - ~~F65: Streak Champion:~~ On Fire (3-day streak on one task)
+  - ~~F66: Early Bird:~~ 5 tasks completed before noon
+  - ~~F67: Night Owl:~~ 5 tasks completed after 8 PM
+  - ~~F70: Collector:~~ own all 4 room items
+  - ~~F71: Redecorator:~~ move or rotate room items 10 times
+  - Fun Lover: complete 10 fun tasks
+  - ~~F68: Weekend Warrior:~~ 5 tasks completed on weekends
+  - Marathon: complete 100 tasks
+  - Chain Gang: complete 5 chained tasks
+  - Bonus Hunter: complete 5 bonus tasks
+  - Treasure Hunter: open 5 chests
+  - Goal Getter: reach 5 daily goals
+  - Big Spender: spend 500 coins in the shop
+  - Decorator: buy your first room item
+- Not implemented: F69 (Perfectionist)
 
 #### Room
 - ~~2.5D room view (three.js): warm lighting with soft shadows, sunbeam with drifting dust, subtle bloom; pan (drag / one finger) and zoom (wheel / pinch), scene center kept in the viewport~~

@@ -23,6 +23,7 @@
           <span class="gems">💎 <b id="gem-balance">0</b></span>
           <span class="level">✨ Lv <b id="level-display">1</b></span>
           <button id="shop-btn" type="button" aria-label="Open shop">🛒</button>
+          <button id="achievements-btn" type="button" aria-label="Achievements">🏆</button>
           <span class="version" id="app-version"></span>
         </div>
       </header>
@@ -97,6 +98,16 @@
             <button id="tab-owned" type="button">Owned</button>
           </div>
           <div id="shop-content"></div>
+        </div>
+      </div>
+
+      <div id="achievements-overlay" class="shop-overlay hidden">
+        <div class="shop-panel">
+          <div class="shop-header">
+            <h2>🏆 Achievements</h2>
+            <button id="achievements-close" type="button" aria-label="Close achievements">✕</button>
+          </div>
+          <div id="achievements-content"></div>
         </div>
       </div>
 

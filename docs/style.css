@@ -596,6 +596,11 @@ header h1 {
   align-content: flex-start;
 }
 
+#achievements-content {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .shop-item {
   width: calc(50% - 5px);
   background: var(--bg);
@@ -735,4 +740,52 @@ header h1 {
 .badge.fun {
   background: #ffe9f0;
   color: #d63384;
+}
+
+.achievement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ddd8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fff;
+  opacity: 0.6;
+}
+
+.achievement.unlocked {
+  opacity: 1;
+  border-color: var(--done);
+  background: #f0fff9;
+}
+
+.achievement .item-emoji { font-size: 1.6rem; }
+.achievement .item-name { font-weight: 700; font-size: 0.85rem; flex: 1; }
+.achievement .item-cost { font-size: 0.75rem; color: var(--muted); flex: 1; }
+
+.achievement-progress {
+  width: 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: #eeeaf8;
+  overflow: hidden;
+}
+
+.achievement-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.achievement.unlocked .achievement-progress-fill {
+  background: var(--done);
+}
+
+.achievement-count {
+  font-size: 0.7rem;
+  color: var(--muted);
+  min-width: 34px;
+  text-align: right;
 }

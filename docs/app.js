@@ -840,6 +840,10 @@
 
   render();
 
+  const achievementsBtn = document.getElementById("achievements-btn");
+  const achievementsOverlay = document.getElementById("achievements-overlay");
+  const achievementsClose = document.getElementById("achievements-close");
+  const achievementsContent = document.getElementById("achievements-content");
   const shopBtn = document.getElementById("shop-btn");
   const shopOverlay = document.getElementById("shop-overlay");
   const shopClose = document.getElementById("shop-close");
@@ -929,6 +933,92 @@
     }
     renderBalances();
   }
+
+  function achievementProgressValue(a) {
+    const stats = Game.state.achievements.stats;
+    if (a.id === "collector") return Game.state.ownedItems.length;
+    const keyMap = {
+      first_step: "totalCompleted",
+      task_master: "totalCompleted",
+      marathon: "totalCompleted",
+      streak_3: "bestStreak",
+      early_bird: "morningCompleted",
+      night_owl: "nightCompleted",
+      weekend_warrior: "weekendCompleted",
+      chain_gang: "chainedCompleted",
+      bonus_hunter: "bonusCompleted",
+      chests_opened: "chestsOpened",
+      goal_getter: "dailyGoalsReached",
+      big_spender: "coinsSpent",
+      decorator: "itemsBought",
+      redecorator: "itemMoves",
+      fun_lover: "funCompleted",
+    };
+    return stats[keyMap[a.id]] ?? 0;
+  }
+
+  function achievementNode(a) {
+    const card = document.createElement("div");
+    const unlocked = Game.achievementIsUnlocked(a.id);
+    card.className = "achievement" + (unlocked ? " unlocked" : "");
+
+    const emoji = document.createElement("div");
+    emoji.className = "item-emoji";
+    emoji.textContent = unlocked ? a.emoji : "🔒";
+
+    const name = document.createElement("div");
+    name.className = "item-name";
+    name.textContent = a.name;
+
+    const hint = document.createElement("div");
+    hint.className = "item-cost";
+    hint.textContent = a.hint;
+
+    const progress = document.createElement("div");
+    progress.className = "achievement-progress";
+    const fill = document.createElement("div");
+    fill.className = "achievement-progress-fill";
+    fill.style.width = Math.min(100, (achievementProgressValue(a) / a.goal) * 100) + "%";
+    progress.appendChild(fill);
+
+    const label = document.createElement("div");
+    label.className = "achievement-count";
+    label.textContent = `${Math.min(achievementProgressValue(a), a.goal)}/${a.goal}`;
+
+    card.appendChild(emoji);
+    card.appendChild(name);
+    card.appendChild(hint);
+    card.appendChild(progress);
+    card.appendChild(label);
+    return card;
+  }
+
+  function renderAchievements() {
+    achievementsContent.innerHTML = "";
+    const sorted = [...Game.ACHIEVEMENTS].sort((a, b) => {
+      const ua = Game.achievementIsUnlocked(a.id) ? 1 : 0;
+      const ub = Game.achievementIsUnlocked(b.id) ? 1 : 0;
+      return ua - ub;
+    });
+    for (const a of sorted) {
+      achievementsContent.appendChild(achievementNode(a));
+    }
+  }
+
+  function openAchievements() {
+    renderAchievements();
+    achievementsOverlay.classList.remove("hidden");
+  }
+
+  function closeAchievements() {
+    achievementsOverlay.classList.add("hidden");
+  }
+
+  achievementsBtn.addEventListener("click", openAchievements);
+  achievementsClose.addEventListener("click", closeAchievements);
+  achievementsOverlay.addEventListener("click", (e) => {
+    if (e.target === achievementsOverlay) closeAchievements();
+  });
 
   function openShop() {
     shopTab = "shop";
