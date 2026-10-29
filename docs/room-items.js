@@ -40,9 +40,9 @@ function boxMesh(size, color) {
 // Procedural chest pedestal: a small gray pedestal with an optional brown
 // chest on top. The chest glows when it can be opened (chestState:
 // "ready" | "locked" | "none"). While locked, a countdown ring around the
-// pedestal shrinks with remaining/openDelay (progress: 0 = just earned,
-// 1 = ready).
-export function createChestPedestalModel(chestState, progress) {
+// pedestal covers ringFraction of the full circle (1 = just earned, shrinks
+// to 0 as the chest becomes openable).
+export function createChestPedestalModel(chestState, ringFraction) {
   const config = window.RoomConfig.chestDisplay;
   const group = new THREE.Group();
 
@@ -74,8 +74,8 @@ export function createChestPedestalModel(chestState, progress) {
     }
     group.add(chest);
 
-    if (chestState === "locked" && progress < 1) {
-      const ring = countdownRing(config, progress);
+    if (chestState === "locked" && ringFraction > 0) {
+      const ring = countdownRing(config, ringFraction);
       group.add(ring);
     }
   }
@@ -84,10 +84,10 @@ export function createChestPedestalModel(chestState, progress) {
   return group;
 }
 
-function countdownRing(config, progress) {
+function countdownRing(config, ringFraction) {
   const inner = config.ringInnerRadius;
   const outer = config.ringOuterRadius;
-  const geometry = new THREE.RingGeometry(inner, outer, 48, 1, 0, Math.PI * 2 * (1 - progress));
+  const geometry = new THREE.RingGeometry(inner, outer, 48, 1, 0, Math.PI * 2 * ringFraction);
   const material = new THREE.MeshBasicMaterial({
     color: config.ringColor,
     side: THREE.DoubleSide,
@@ -103,7 +103,7 @@ function countdownRing(config, progress) {
 
 // Regenerates the countdown ring geometry for the current progress.
 // No-op if the pedestal has no ring (chest not locked).
-export function updateCountdownRing(pedestalModel, progress) {
+export function updateCountdownRing(pedestalModel, ringFraction) {
   const config = window.RoomConfig.chestDisplay;
   const old = pedestalModel.children.find((c) => c.userData.isCountdownRing);
   if (!old) return;
@@ -113,7 +113,7 @@ export function updateCountdownRing(pedestalModel, progress) {
     48,
     1,
     0,
-    Math.PI * 2 * (1 - Math.min(1, Math.max(0, progress)))
+    Math.PI * 2 * Math.min(1, Math.max(0, ringFraction))
   );
   old.geometry.dispose();
   old.geometry = geometry;
@@ -138,11 +138,11 @@ export function createItemFactory(loader) {
   }
 
   return {
-    create(itemId, chestState, chestProgress) {
+    create(itemId, chestState, ringFraction) {
       const def = config.items[itemId];
       if (!def) return Promise.reject(new Error(itemId));
       if (!def.url) {
-        return Promise.resolve(createChestPedestalModel(chestState || "none", chestProgress ?? 0));
+        return Promise.resolve(createChestPedestalModel(chestState || "none", ringFraction ?? 0));
       }
       return baseModel(itemId).then((model) => {
         const clone = model.clone();
@@ -222,7 +222,7 @@ export function buildItems(factory, cells, placements, chestDisplay) {
   return Promise.allSettled(
     valid.map((p) =>
       p.itemId === "pedestal"
-        ? factory.create(p.itemId, display.state, display.progress)
+        ? factory.create(p.itemId, display.state, display.fraction)
         : factory.create(p.itemId)
     )
   ).then((results) => {

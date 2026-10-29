@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.36.2";
+  const VERSION = "0.37.2";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -119,6 +119,7 @@
     return {
       id: num(raw.id, i + 1),
       title: str(raw.title, "Untitled"),
+      list: TASK_LISTS.includes(raw.list) ? raw.list : "todo",
       difficulty: raw.difficulty in COIN_REWARD ? raw.difficulty : "easy",
       repeat: REPEAT_VALUES.includes(raw.repeat) ? raw.repeat : "none",
       done: raw.done === true,
@@ -521,20 +522,52 @@
     return { coins, gems, streak: state.firstTaskStreak };
   }
 
-  function addTask(title, difficulty, repeat, deadlineInput) {
-    const isBonus = Math.random() < BONUS_TASK_RATE;
+  // Recommended tasks for the highlight tab: every open task gets a
+  // rating and the top HIGHLIGHT_COUNT are shown.
+  function highlightRating(task, now) {
+    let score = 0;
+    if (task.bonus) score += 40;
+    if (task.deadline !== null) {
+      const hoursLeft = (task.deadline - now) / 3600000;
+      if (hoursLeft < 0) score += 50;
+      else if (hoursLeft < 48) score += Math.round(40 * (1 - hoursLeft / 48));
+    }
+    if (task.repeat !== "none" && task.streak > 0) {
+      score = Math.min(50, score + 15 + task.streak * 2);
+    }
+    if (task.difficulty === "hard") score += 10;
+    else if (task.difficulty === "medium") score += 5;
+    if (task.list === "backlog") score -= 10;
+    return score;
+  }
+
+  function highlightTasks() {
+    const now = Date.now();
+    return state.tasks
+      .filter((t) => !t.done && t.list !== "fun")
+      .map((t) => ({ task: t, score: highlightRating(t, now) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, HIGHLIGHT_COUNT)
+      .map((e) => e.task);
+  }
+
+  function addTask(title, difficulty, repeat, deadlineInput, list) {
+    const taskList = TASK_LISTS.includes(list) ? list : "todo";
+    const isFun = taskList === "fun";
+    const isBonus = !isFun && Math.random() < BONUS_TASK_RATE;
     const task = {
       id: state.nextId++,
       title,
-      difficulty,
-      repeat,
+      list: taskList,
+      difficulty: isFun ? null : difficulty,
+      repeat: isFun ? "none" : repeat,
       done: false,
       createdAt: Date.now(),
       completedAt: null,
       streak: 0,
       streakDayKeys: [],
       bonus: isBonus,
-      deadline: deadlineInput ? new Date(deadlineInput).getTime() : null,
+      deadline: isFun ? null : (deadlineInput ? new Date(deadlineInput).getTime() : null),
       repeatTime: NaN,
       repeatAfterCompletion: false,
       chainedAfter: 0,
@@ -554,6 +587,10 @@
 
   const DIFFICULTY_ORDER = ["too_easy", "easy", "medium", "hard"];
   const REPEAT_VALUES = ["none", "daily", "weekly", "monthly", "every_5min"];
+  const TASK_LISTS = ["todo", "backlog", "fun"];
+  const FUN_TASK_COINS = 5;
+  const FUN_TASK_XP = 5;
+  const HIGHLIGHT_COUNT = 4;
 
   function deriveDifficulty(task) {
     if (task.subtasks.length === 0) return task.difficulty;
@@ -607,10 +644,26 @@
     return chainWouldCycleIn(siblings, item, predecessor);
   }
 
+  function chainHead(siblings, item) {
+    let head = item;
+    while (head.chainedAfter) {
+      const predecessor = siblings.find((s) => s.id === head.chainedAfter);
+      if (!predecessor) break;
+      head = predecessor;
+    }
+    return head;
+  }
+
   function chainIn(siblings, item, targetId, linkEmoji) {
     if (!item || item.done) return { ok: false, reason: "not chainable" };
     const target = siblings.find((s) => s.id === targetId);
     if (!target || target.id === item.id) return { ok: false, reason: "invalid target" };
+    if (item.list === "fun" || target.list === "fun") {
+      return { ok: false, reason: "fun not chainable" };
+    }
+    if (item.list !== target.list) {
+      return { ok: false, reason: "different lists" };
+    }
     if (target.chainedAfter === item.id) return { ok: false, reason: "would swap" };
     if (chainWouldCycleIn(siblings, item, target)) return { ok: false, reason: "cycle" };
     for (const other of siblings) {
@@ -619,6 +672,11 @@
       }
     }
     item.chainedAfter = target.id;
+    const headList = chainHead(siblings, item).list;
+    for (const other of siblings) {
+      if (other.list === "fun") continue;
+      if (chainHead(siblings, other) === chainHead(siblings, item)) other.list = headList;
+    }
     saveState();
     render();
     showToast(`${linkEmoji} "${item.title}" is now chained after "${target.title}"`);
@@ -845,7 +903,20 @@
     return unchainIn(state.tasks, task);
   }
 
+  // Fun tasks are pure enjoyment: small fixed reward, no goal counters,
+  // no first-task chest, no streaks.
+  function completeFunTask(task) {
+    task.done = true;
+    task.completedAt = Date.now();
+    task.reward = { coins: FUN_TASK_COINS, gems: 0, xp: FUN_TASK_XP };
+    grantXpAndCoins(FUN_TASK_COINS, 0, FUN_TASK_XP);
+    showToast(`\ud83c\udf89 +${FUN_TASK_COINS} \ud83e\ude99 +${FUN_TASK_XP} \u2728`);
+    saveState();
+    render();
+  }
+
   function completeTask(task) {
+    if (task.list === "fun") return completeFunTask(task);
     if (!chainSatisfiesDependency(task)) {
       showToast(`\ud83e\uddf1 "${task.title}" is chained \u2014 complete "${chainPredecessor(task).title}" first`);
       return;
@@ -911,7 +982,17 @@
     }
   }
 
+  function uncompleteFunTask(task) {
+    task.done = false;
+    task.completedAt = null;
+    clawBackReward(task.reward);
+    task.reward = null;
+    saveState();
+    render();
+  }
+
   function uncompleteTask(task) {
+    if (task.list === "fun") return uncompleteFunTask(task);
     task.done = false;
     task.startedAt = 0;
     for (const other of state.tasks) {
@@ -1145,6 +1226,12 @@
     VERSION,
     DIFFICULTY_ORDER,
     REPEAT_VALUES,
+    TASK_LISTS,
+    FUN_TASK_COINS,
+    highlightTasks,
+    highlightRating,
+    HIGHLIGHT_COUNT,
+    FUN_TASK_XP,
     defaultState,
     resetState,
     state,

@@ -47,12 +47,23 @@
       </div>
 
       <main>
+        <div class="task-tabs" id="task-tabs">
+          <button type="button" data-tab="highlight">Highlight</button>
+          <button type="button" data-tab="todo" class="active">Todo</button>
+          <button type="button" data-tab="backlog">Backlog</button>
+          <button type="button" data-tab="fun">Fun</button>
+        </div>
         <ul id="task-list"></ul>
         <p id="empty-hint" class="empty-hint hidden">Nothing to do yet — add a task! 🎉</p>
 
         <form id="task-form">
           <input id="task-input" type="text" placeholder="New task..." autocomplete="off" maxlength="80" required>
           <div class="form-row">
+            <select id="list-select" aria-label="List">
+              <option value="todo" selected>Todo</option>
+              <option value="backlog">Backlog</option>
+              <option value="fun">Fun</option>
+            </select>
             <select id="difficulty-select" aria-label="Difficulty">
               <option value="too_easy">Too easy</option>
               <option value="easy" selected>Easy</option>

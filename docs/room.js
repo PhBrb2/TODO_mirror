@@ -51,6 +51,7 @@ import { createInteraction } from "./room-interaction.js";
   const CONTROLS_MAX_DISTANCE = 30;
   const CONTROLS_MAX_POLAR_ANGLE = Math.PI / 2;
   const PAN_MARGIN_PX = 32;
+  const CHEST_RING_START_GAP = 5 / 360;
 
   function createDustTexture() {
     const canvas = document.createElement("canvas");
@@ -187,6 +188,19 @@ import { createInteraction } from "./room-interaction.js";
     };
   }
 
+  let cachedSlabModel = null;
+
+  function slabModelCache(loader) {
+    if (!cachedSlabModel) {
+      cachedSlabModel = loadModel(loader, SLAB_MODEL_URL).then((slab) => {
+        applyShadows(slab, true, true);
+        return slab;
+      });
+      cachedSlabModel.catch(() => { cachedSlabModel = null; });
+    }
+    return cachedSlabModel;
+  }
+
   function createRoom(container, getSceneDesc) {
     const config = window.RoomConfig;
     const scene = new THREE.Scene();
@@ -219,25 +233,50 @@ import { createInteraction } from "./room-interaction.js";
     const grid = new THREE.Group();
     grid.scale.setScalar(config.gridScale);
     scene.add(grid);
-    const slabGroup = new THREE.Group();
-    const itemRoot = new THREE.Group();
-    grid.add(slabGroup);
-    grid.add(itemRoot);
-
     let currentCells = [];
     let itemGroups = [];
     let slabMeshes = [];
+    let roomContent = null;
     let rebuild = null;
     let pendingRefresh = false;
 
-    function clearRoom() {
-      for (const child of [...slabGroup.children]) {
-        slabGroup.remove(child);
-        disposeObject(child);
-      }
-      for (const child of [...itemRoot.children]) itemRoot.remove(child);
-      itemGroups = [];
-      slabMeshes = [];
+    // Slab clones and item clones share geometry/material with the cached
+    // models, so nothing here may be disposed - only detached.
+    function disposeRoomContent(content) {
+      content.slabGroup.removeFromParent();
+      content.itemRoot.removeFromParent();
+    }
+
+    function buildRoomContent(desc) {
+      const cells = (desc && desc.slabs) || [[0, 0]];
+      const placements = (desc && desc.placements) || [];
+      const chestDisplay = (desc && desc.chestDisplay) || { state: "none" };
+
+      const staged = { slabGroup: new THREE.Group(), slabMeshes: [] };
+      const slabs = slabModelCache(loader).then((slab) => {
+        for (const [dx, dz] of cells) {
+          const cell = slab.clone();
+          cell.position.set(dx * config.cellSpacing, 0, dz * config.cellSpacing);
+          staged.slabGroup.add(cell);
+          staged.slabMeshes.push(cell);
+        }
+        return buildItems(itemFactory, cells, placements, chestDisplay);
+      });
+      return slabs.then((built) => {
+        staged.itemGroups = built.groups;
+        staged.itemRoot = built.root;
+        return staged;
+      });
+    }
+
+    function adoptRoomContent(staged) {
+      if (roomContent) disposeRoomContent(roomContent);
+      roomContent = staged;
+      grid.add(staged.slabGroup);
+      grid.add(staged.itemRoot);
+      currentCells = staged.currentCells;
+      itemGroups = staged.itemGroups;
+      slabMeshes = staged.slabMeshes;
     }
 
     function refreshContent() {
@@ -246,32 +285,17 @@ import { createInteraction } from "./room-interaction.js";
         return;
       }
       const desc = typeof getSceneDesc === "function" ? getSceneDesc() : null;
-      currentCells = (desc && desc.slabs) || [[0, 0]];
-      const placements = (desc && desc.placements) || [];
-      const chestDisplay = (desc && desc.chestDisplay) || { state: "none" };
-
-      clearRoom();
       const selectedId = interaction.getSelected()
         ? interaction.getSelected().userData.itemId
         : null;
       interaction.deselect();
 
-      rebuild = loadModel(loader, SLAB_MODEL_URL)
-        .then((slab) => {
-          applyShadows(slab, true, true);
-          for (const [dx, dz] of currentCells) {
-            const cell = slab.clone();
-            cell.position.set(dx * config.cellSpacing, 0, dz * config.cellSpacing);
-            slabGroup.add(cell);
-            slabMeshes.push(cell);
-          }
-          return buildItems(itemFactory, currentCells, placements, chestDisplay);
-        })
-        .then(({ root, groups }) => {
-          itemRoot.add(root);
-          itemGroups = groups;
+      rebuild = buildRoomContent(desc)
+        .then((staged) => {
+          staged.currentCells = (desc && desc.slabs) || [[0, 0]];
+          adoptRoomContent(staged);
           if (selectedId) {
-            const group = groups.find((g) => g.userData.itemId === selectedId);
+            const group = itemGroups.find((g) => g.userData.itemId === selectedId);
             if (group) interaction.select(group);
           }
         })
@@ -374,7 +398,7 @@ import { createInteraction } from "./room-interaction.js";
         chestWasReady = ready;
         if (!ready) {
           const model = pedestalGroup.children[0];
-          if (model) updateCountdownRing(model, display.progress);
+          if (model) updateCountdownRing(model, display.fraction);
         }
         return;
       }
@@ -386,7 +410,7 @@ import { createInteraction } from "./room-interaction.js";
       if (ready) return;
       const model = pedestalGroup.children[0];
       if (!model) return;
-      updateCountdownRing(model, display.progress);
+      updateCountdownRing(model, display.fraction);
     }
 
     return {
@@ -431,17 +455,21 @@ import { createInteraction } from "./room-interaction.js";
     );
   }
 
-  function chestProgress(chest) {
+  // Fraction of the full circle covered by the countdown ring: proportional
+  // to the remaining wait time, but even a freshly earned chest starts with a
+  // small visible gap (CHEST_RING_START_GAP) instead of a seamless full ring.
+  function chestRingFraction(chest) {
     const delay = chest.openDelayMs ?? Game.CHEST_OPEN_MS;
-    return Math.min(1, Math.max(0, (Date.now() - chest.earnedAt) / delay));
+    const remaining = Math.min(delay, Math.max(0, delay - (Date.now() - chest.earnedAt)));
+    return (remaining / delay) * (1 - CHEST_RING_START_GAP);
   }
 
   function chestDisplay() {
     const chest = nextChest();
-    if (!chest) return { state: "none", progress: 0, chest: null };
+    if (!chest) return { state: "none", fraction: 0, chest: null };
     return {
       state: Game.chestReady(chest) ? "ready" : "locked",
-      progress: chestProgress(chest),
+      fraction: chestRingFraction(chest),
       chest,
     };
   }

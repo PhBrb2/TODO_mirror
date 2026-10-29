@@ -2,6 +2,9 @@
   "use strict";
 
   const listEl = document.getElementById("task-list");
+  const tabsEl = document.getElementById("task-tabs");
+  const listSelect = document.getElementById("list-select");
+  let activeTab = "todo";
   const sheetContentEl = document.querySelector(".sheet-content");
   const emptyHint = document.getElementById("empty-hint");
   const coinBalanceEl = document.getElementById("coin-balance");
@@ -444,8 +447,10 @@
     const meta = document.createElement("div");
     meta.className = "task-meta";
     const badge = document.createElement("span");
-    badge.className = "badge " + task.difficulty;
-    badge.textContent = task.difficulty.replace("_", " ");
+    badge.className = "badge " + (task.difficulty || "fun");
+    badge.textContent = task.list === "fun"
+      ? "🎈 fun"
+      : task.difficulty.replace("_", " ");
     meta.appendChild(badge);
     if (task.repeat !== "none") {
       const rep = document.createElement("span");
@@ -686,8 +691,14 @@
     listEl.insertBefore(row, listEl.querySelector(`[data-id="${task.id}"]`).nextSibling);
   }
 
+  function tasksForTab() {
+    if (activeTab === "highlight") return Game.highlightTasks();
+    return Game.state.tasks.filter((t) => (t.list || "todo") === activeTab);
+  }
+
   let render = function () {
-    const sorted = chainOrdered(Game.state.tasks, sortTasks(Game.state.tasks));
+    const visible = tasksForTab();
+    const sorted = chainOrdered(visible, sortTasks(visible));
     listEl.innerHTML = "";
     for (const task of sorted) {
       if (task.chainedAfter) {
@@ -696,7 +707,10 @@
       listEl.appendChild(taskNode(task));
     }
 
-    emptyHint.classList.toggle("hidden", Game.state.tasks.length > 0);
+    emptyHint.classList.toggle("hidden", visible.length > 0);
+    emptyHint.textContent = activeTab === "highlight"
+      ? "Nothing to highlight — complete tasks to earn recommendations! 🎉"
+      : "Nothing to do yet — add a task! 🎉";
     renderBalances();
 
     const lastGoal = Game.DAILY_GOALS[Game.DAILY_GOALS.length - 1];
@@ -783,24 +797,40 @@
     render();
   });
 
-  function updateCreateFormMode() {
-    const isDaily = repeatSelect.value === "daily";
-    deadlineWrap.classList.toggle("hidden", isDaily);
-    repeatTimeWrap.classList.toggle("hidden", !isDaily);
-  }
   repeatSelect.addEventListener("change", updateCreateFormMode);
+  listSelect.addEventListener("change", updateCreateFormMode);
   updateCreateFormMode();
+
+  tabsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-tab]");
+    if (!btn) return;
+    activeTab = btn.dataset.tab;
+    for (const b of tabsEl.querySelectorAll("button")) {
+      b.classList.toggle("active", b === btn);
+    }
+    render();
+  });
+
+  function updateCreateFormMode() {
+    const isFun = listSelect.value === "fun";
+    difficultySelect.disabled = isFun;
+    repeatSelect.disabled = isFun;
+    deadlineWrap.classList.toggle("hidden", isFun || repeatSelect.value === "daily");
+    repeatTimeWrap.classList.toggle("hidden", isFun || repeatSelect.value !== "daily");
+  }
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const title = taskInput.value.trim();
     if (!title) return;
-    if (repeatSelect.value === "daily" && repeatTimeInput.value) {
+    if (listSelect.value === "fun") {
+      Game.addTask(title, null, "none", "", "fun");
+    } else if (repeatSelect.value === "daily" && repeatTimeInput.value) {
       const [h, m] = repeatTimeInput.value.split(":").map(Number);
-      const t = Game.addTask(title, difficultySelect.value, repeatSelect.value, "");
+      const t = Game.addTask(title, difficultySelect.value, repeatSelect.value, "", listSelect.value);
       Game.editTask(t, { repeatTime: (h || 0) * 60 + (m || 0) });
     } else {
-      Game.addTask(title, difficultySelect.value, repeatSelect.value, deadlineInput.value);
+      Game.addTask(title, difficultySelect.value, repeatSelect.value, deadlineInput.value, listSelect.value);
     }
     taskInput.value = "";
     repeatTimeInput.value = "";

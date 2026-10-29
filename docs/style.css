@@ -707,3 +707,32 @@ header h1 {
   font-size: 18px;
   will-change: transform, opacity;
 }
+
+.task-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.task-tabs button {
+  flex: 1;
+  border: 1px solid #ddd8f0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.task-tabs button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.badge.fun {
+  background: #ffe9f0;
+  color: #d63384;
+}
