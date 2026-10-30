@@ -49,8 +49,8 @@
 
       <main>
         <div class="task-tabs" id="task-tabs">
-          <button type="button" data-tab="highlight">Highlight</button>
-          <button type="button" data-tab="todo" class="active">Todo</button>
+          <button type="button" data-tab="highlight" class="active">Highlight</button>
+          <button type="button" data-tab="todo">Todo</button>
           <button type="button" data-tab="backlog">Backlog</button>
           <button type="button" data-tab="fun">Fun</button>
         </div>
@@ -58,7 +58,10 @@
         <p id="empty-hint" class="empty-hint hidden">Nothing to do yet — add a task! 🎉</p>
 
         <form id="task-form">
-          <input id="task-input" type="text" placeholder="New task..." autocomplete="off" maxlength="80" required>
+          <div class="task-input-row">
+            <input id="task-input" type="text" placeholder="New task..." autocomplete="off" maxlength="80" required>
+            <button type="submit" id="add-btn">Add</button>
+          </div>
           <div class="form-row">
             <select id="list-select" aria-label="List">
               <option value="todo" selected>Todo</option>
@@ -78,7 +81,6 @@
               <option value="monthly">Monthly</option>
               <option value="every_5min">Every 5 min (test)</option>
             </select>
-            <button type="submit" id="add-btn">Add</button>
           </div>
           <label class="deadline-label" id="deadline-wrap">📅 Deadline <input id="deadline-input" type="datetime-local"></label>
           <label class="deadline-label hidden" id="repeat-time-wrap">🕐 Repeat due at <input id="repeat-time-input" type="time"></label>

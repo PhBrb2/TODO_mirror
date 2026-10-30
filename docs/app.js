@@ -4,7 +4,7 @@
   const listEl = document.getElementById("task-list");
   const tabsEl = document.getElementById("task-tabs");
   const listSelect = document.getElementById("list-select");
-  let activeTab = "todo";
+  let activeTab = "highlight";
   const sheetContentEl = document.querySelector(".sheet-content");
   const emptyHint = document.getElementById("empty-hint");
   const coinBalanceEl = document.getElementById("coin-balance");
@@ -169,7 +169,7 @@
   function holdDraggable(li, canDrag, onDragStart) {
     li.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
-      if (e.target.closest("button, input, select, a, .edit-row")) return;
+      if (e.target.closest("button, input, select, a")) return;
       if (!canDrag()) return;
       const startX = e.clientX;
       const startY = e.clientY;
@@ -245,62 +245,98 @@
     );
   }
 
-  function closeExistingEditRows() {
-    document.querySelectorAll(".edit-row").forEach((el) => el.remove());
+  let editingTaskId = null;
+  let editingSubtaskKey = null;
+  let pendingEdit = null;
+  let activeEdit = null;
+
+  function editingSubtaskOf(task) {
+    if (editingSubtaskKey == null || editingTaskId != null) return null;
+    const sep = editingSubtaskKey.indexOf(":");
+    const parentId = Number(editingSubtaskKey.slice(0, sep));
+    const subtaskId = Number(editingSubtaskKey.slice(sep + 1));
+    if (parentId !== task.id) return null;
+    return task.subtasks.find((st) => st.id === subtaskId) || null;
   }
 
-  function buildEditRow(className, title, controls, onSave) {
-    closeExistingEditRows();
-    const row = document.createElement("div");
-    row.className = className;
+  function clearEditing() {
+    editingTaskId = null;
+    editingSubtaskKey = null;
+    pendingEdit = null;
+    activeEdit = null;
+  }
 
+  function editValues(input, controls) {
+    return [input.value, ...controls.map((c) => c.value)];
+  }
+
+  function buildTitleInput(title) {
     const input = document.createElement("input");
     input.type = "text";
+    input.className = "title-input";
     input.value = title;
     input.maxLength = 80;
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        onSave(input.value);
+        if (activeEdit) activeEdit.onSave(activeEdit.input.value);
+      } else if (e.key === "Escape") {
+        clearEditing();
+        render();
       }
     });
+    return input;
+  }
 
+  function buildEditControlsRow() {
+    const row = document.createElement("div");
+    row.className = "edit-controls";
+    for (const control of activeEdit.controls) row.appendChild(control);
     const save = document.createElement("button");
     save.type = "button";
     save.textContent = "Save";
-    save.addEventListener("click", () => onSave(input.value));
-
+    save.addEventListener("click", () => activeEdit.onSave(activeEdit.input.value));
     const cancel = document.createElement("button");
     cancel.type = "button";
     cancel.textContent = "Cancel";
-    cancel.addEventListener("click", () => row.remove());
-
-    row.appendChild(input);
-    for (const control of controls) row.appendChild(control);
+    cancel.addEventListener("click", () => {
+      clearEditing();
+      render();
+    });
     row.appendChild(save);
     row.appendChild(cancel);
-    input.focus();
     return row;
   }
 
-  function openSubtaskEditRow(parent, subtask) {
-    const diff = buildSelect(DIFFICULTY_OPTIONS, subtask.difficulty);
-    const row = buildEditRow(
-      "edit-row subtask-edit-row",
-      subtask.title,
-      [diff],
-      (title) => Game.editSubtask(parent, subtask, title, diff.value)
-    );
-    const subRow = document.querySelector(`[data-id="${parent.id}"] .subtask-row-${subtask.id}`);
-    if (subRow && subRow.nextSibling) {
-      subRow.parentNode.insertBefore(row, subRow.nextSibling);
-    } else {
-      document
-        .querySelector(`[data-id="${parent.id}"] .subtask-list`)
-        .appendChild(row);
-    }
-    input.focus();
+  function activateEdit(scope, input, controls, onSave) {
+    activeEdit = { scope, input, controls, onSave, initial: editValues(input, controls) };
+    pendingEdit = null;
   }
+
+  function openSubtaskEdit(parent, subtask) {
+    const diff = buildSelect(DIFFICULTY_OPTIONS, subtask.difficulty);
+    clearEditing();
+    editingSubtaskKey = parent.id + ":" + subtask.id;
+    pendingEdit = {
+      kind: "subtask",
+      controls: [diff],
+      onSave: (title) => {
+        clearEditing();
+        Game.editSubtask(parent, subtask, title, diff.value);
+      },
+    };
+    render();
+  }
+
+  document.addEventListener("focusout", (e) => {
+    if (!activeEdit) return;
+    if (e.relatedTarget && activeEdit.scope.contains(e.relatedTarget)) return;
+    const current = editValues(activeEdit.input, activeEdit.controls);
+    if (current.every((v, i) => v === activeEdit.initial[i])) {
+      clearEditing();
+      render();
+    }
+  });
 
   const RATING_OPTIONS = [
     { label: "😫 Harder", value: "harder" },
@@ -440,18 +476,28 @@
     const body = document.createElement("div");
     body.className = "task-body";
 
-    const title = document.createElement("div");
-    title.className = "task-title";
-    title.textContent = task.title;
+    const editingThisTask = editingTaskId === task.id && pendingEdit && pendingEdit.kind === "task";
+    let title;
+    let titleInput = null;
+    if (editingThisTask) {
+      titleInput = buildTitleInput(task.title);
+      title = document.createElement("div");
+      title.className = "task-title editing";
+      title.appendChild(titleInput);
+    } else {
+      title = document.createElement("div");
+      title.className = "task-title";
+      title.textContent = task.title;
+    }
 
-    const meta = document.createElement("div");
-    meta.className = "task-meta";
     const badge = document.createElement("span");
-    badge.className = "badge " + (task.difficulty || "fun");
+    badge.className = "badge task-difficulty-badge " + (task.difficulty || "fun");
     badge.textContent = task.list === "fun"
       ? "🎈 fun"
       : task.difficulty.replace("_", " ");
-    meta.appendChild(badge);
+
+    const meta = document.createElement("div");
+    meta.className = "task-meta";
     if (task.repeat !== "none") {
       const rep = document.createElement("span");
       rep.className = "badge repeat";
@@ -485,8 +531,13 @@
       }
     }
 
+    if (editingThisTask) title.appendChild(badge);
     body.appendChild(title);
     body.appendChild(meta);
+    if (editingThisTask) {
+      activateEdit(li, titleInput, pendingEdit.controls, pendingEdit.onSave);
+      body.appendChild(buildEditControlsRow());
+    }
 
     if (task.subtasks.length > 0 || !task.done) {
       const sublist = document.createElement("div");
@@ -520,16 +571,17 @@
             );
           }
         });
-        const stTitle = document.createElement("span");
-        stTitle.className = "subtask-title";
-        stTitle.textContent = st.title;
+        const editingThisSub = editingSubtaskOf(task) === st && pendingEdit && pendingEdit.kind === "subtask";
+        const stTitle = editingThisSub ? buildTitleInput(st.title) : document.createElement("span");
+        stTitle.className = editingThisSub ? "subtask-title title-input" : "subtask-title";
+        if (!editingThisSub) stTitle.textContent = st.title;
         const stEdit = document.createElement("button");
         stEdit.className = "task-edit subtask-edit";
         stEdit.textContent = "✎";
-        stEdit.addEventListener("click", () => openSubtaskEditRow(task, st));
+        stEdit.addEventListener("click", () => openSubtaskEdit(task, st));
         const stBadge = document.createElement("span");
-        stBadge.className = "badge " + st.difficulty;
-        stBadge.textContent = st.difficulty.replace("_", " ");
+        stBadge.className = "subtask-difficulty-dot " + st.difficulty;
+        stBadge.title = st.difficulty.replace("_", " ");
         const stDel = document.createElement("button");
         stDel.className = "task-delete subtask-delete";
         stDel.textContent = "✕";
@@ -541,6 +593,10 @@
         row.appendChild(stEdit);
         row.appendChild(stDel);
         sublist.appendChild(row);
+        if (editingThisSub) {
+          activateEdit(li, stTitle, pendingEdit.controls, pendingEdit.onSave);
+          sublist.insertBefore(buildEditControlsRow(), row.nextSibling);
+        }
       }
       if (!task.done) {
         const addRow = document.createElement("div");
@@ -553,7 +609,17 @@
         const addBtn = document.createElement("button");
         addBtn.type = "button";
         addBtn.textContent = "+";
+        addBtn.title = "Add subtask";
+        const addForm = document.createElement("div");
+        addForm.className = "subtask-add-form hidden";
+        addForm.appendChild(addInput);
+        addForm.appendChild(addDiff);
         addBtn.addEventListener("click", () => {
+          if (addForm.classList.contains("hidden")) {
+            addForm.classList.remove("hidden");
+            addInput.focus();
+            return;
+          }
           const v = addInput.value.trim();
           if (!v) return;
           Game.addSubtask(task.id, v, addDiff.value);
@@ -563,11 +629,16 @@
             e.preventDefault();
             const v = addInput.value.trim();
             if (v) Game.addSubtask(task.id, v, addDiff.value);
+          } else if (e.key === "Escape") {
+            addForm.classList.add("hidden");
+            addInput.blur();
           }
         });
-        addRow.appendChild(addInput);
-        addRow.appendChild(addDiff);
+        addForm.addEventListener("focusout", (e) => {
+          if (!addRow.contains(e.relatedTarget)) addForm.classList.add("hidden");
+        });
         addRow.appendChild(addBtn);
+        addRow.appendChild(addForm);
         sublist.appendChild(addRow);
       }
       body.appendChild(sublist);
@@ -584,7 +655,8 @@
     edit.addEventListener("click", () => openEditRow(task));
 
     const actions = document.createElement("div");
-    actions.className = "task-actions";
+    const editingThis = editingTaskId === task.id || editingSubtaskOf(task);
+    actions.className = "task-actions" + (editingThis ? " hidden" : "");
     actions.appendChild(edit);
     actions.appendChild(del);
 
@@ -603,6 +675,7 @@
     li.appendChild(cb);
     li.appendChild(body);
     li.appendChild(actions);
+    if (!editingThisTask) li.appendChild(badge);
     return li;
   }
 
@@ -662,11 +735,12 @@
       ? [diff, rep, repTimeWrap, afterComp, timeLimitWrap]
       : [diff, rep, dlWrap, timeLimitWrap];
 
-    const row = buildEditRow(
-      "edit-row",
-      task.title,
+    clearEditing();
+    editingTaskId = task.id;
+    pendingEdit = {
+      kind: "task",
       controls,
-      (title) => {
+      onSave: (title) => {
         const updates = {
           title,
           difficulty: diff.value,
@@ -685,10 +759,11 @@
           updates.deadline = dl.value;
           updates.timeLimit = Number(timeLimit.value);
         }
+        clearEditing();
         Game.editTask(task.id, updates);
-      }
-    );
-    listEl.insertBefore(row, listEl.querySelector(`[data-id="${task.id}"]`).nextSibling);
+      },
+    };
+    render();
   }
 
   function tasksForTab() {
@@ -700,11 +775,14 @@
     const visible = tasksForTab();
     const sorted = chainOrdered(visible, sortTasks(visible));
     listEl.innerHTML = "";
+    if (activeEdit && !activeEdit.scope.isConnected) clearEditing();
     for (const task of sorted) {
       if (task.chainedAfter) {
         listEl.appendChild(chainLinkNode("chain-link-row", () => Game.unchainTask(task)));
       }
-      listEl.appendChild(taskNode(task));
+      const node = taskNode(task);
+      listEl.appendChild(node);
+      if (activeEdit && activeEdit.scope === node) activeEdit.input.focus();
     }
 
     emptyHint.classList.toggle("hidden", visible.length > 0);
