@@ -413,8 +413,14 @@ import { createInteraction } from "./room-interaction.js";
       updateCountdownRing(model, display.fraction);
     }
 
+    function setVisibleHeightRatio(ratio) {
+      container.style.height = Math.min(100, Math.max(0, ratio * 100)) + "%";
+      onResize();
+    }
+
     return {
       refresh: refreshContent,
+      setVisibleHeightRatio,
       dispose() {
         animating = false;
         controls.dispose();
@@ -482,5 +488,7 @@ import { createInteraction } from "./room-interaction.js";
       chestDisplay: chestDisplay(),
     }));
     window.addEventListener("game-state-changed", () => instance.refresh());
+    window.Room.lastInstance = instance;
+    window.dispatchEvent(new CustomEvent("room-ready"));
   }
 })();

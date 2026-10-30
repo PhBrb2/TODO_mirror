@@ -28,7 +28,10 @@ body {
 
 #room-view {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
   z-index: 0;
 }
 
@@ -52,7 +55,7 @@ body {
 
 .sheet-handle {
   flex: none;
-  padding: 16px 0 12px;
+  padding: 10px 0 8px;
   cursor: grab;
   touch-action: none;
 }
@@ -71,38 +74,76 @@ body {
 .sheet-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+  padding: 8px 16px calc(24px + env(safe-area-inset-bottom));
   -webkit-overflow-scrolling: touch;
-}
-
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0 8px;
-}
-
-header h1 {
-  margin: 0;
-  font-size: 1.4rem;
-  color: var(--accent);
 }
 
 .stats { display: flex; gap: 12px; font-size: 0.9rem; }
 .stats b { color: var(--accent); }
 
-.daily-progress { margin-bottom: 16px; }
+.top-stats {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+
+.top-stats .version { order: 2; margin-left: auto; font-size: 0.65rem; }
+
+.top-stats-actions { display: flex; gap: 2px; order: 3; }
+
+.top-stats-actions button {
+  border: none;
+  background: none;
+  font-size: 1.05rem;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.daily-progress {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 2;
+  box-sizing: border-box;
+  background: var(--bg);
+  padding: calc(6px + env(safe-area-inset-top)) 12px 6px;
+  box-shadow: 0 2px 8px rgba(45, 42, 61, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+}
 
 .daily-progress-label {
-  margin: 0 0 6px;
-  font-size: 0.8rem;
+  margin: 0;
+  font-size: 0.7rem;
   color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
+
+.progress-line {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-line .daily-progress-label { flex: 0 0 72px; text-align: right; }
+
+.progress-line .daily-bar { flex: 1; min-width: 0; }
 
 .daily-bar {
   position: relative;
-  height: 8px;
-  border-radius: 4px;
+  height: 5px;
+  border-radius: 3px;
   background: #e6e2ff;
 }
 
@@ -127,11 +168,11 @@ header h1 {
 
 #task-list {
   list-style: none;
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .task {
@@ -140,7 +181,7 @@ header h1 {
   gap: 10px;
   background: var(--card);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 9px 12px;
   box-shadow: var(--shadow);
   position: relative;
 }
@@ -232,7 +273,7 @@ header h1 {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid #ddd8f0;
   border-radius: 10px;
   background: #fff;
@@ -259,16 +300,16 @@ header h1 {
   border: 1px solid #ffeaa7;
   color: #b8860b;
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-align: center;
 }
 
 #reset-btn {
   display: block;
-  margin: 32px auto 0;
+  margin: 20px auto 0;
   border: 1px solid #ddd8f0;
   background: none;
   color: var(--muted);
@@ -283,7 +324,7 @@ header h1 {
 .task-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
 .subtask-list {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -493,8 +534,8 @@ header h1 {
 .empty-hint {
   text-align: center;
   color: var(--muted);
-  padding: 24px 0;
-  margin-bottom: 16px;
+  padding: 16px 0;
+  margin-bottom: 10px;
 }
 
 .hidden { display: none !important; }
@@ -502,11 +543,11 @@ header h1 {
 #task-form {
   background: var(--card);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .task-input-row { display: flex; gap: 8px; }
@@ -526,7 +567,7 @@ header h1 {
 
 .form-row select {
   flex: 1;
-  padding: 10px 8px;
+  padding: 7px 8px;
   border: 1px solid #ddd8f0;
   border-radius: 10px;
   background: #fff;
@@ -584,6 +625,24 @@ header h1 {
   align-items: flex-end;
   justify-content: center;
   z-index: 50;
+}
+
+.shop-overlay .shop-panel { padding-top: 12px; }
+
+#settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+#settings-content select {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 .shop-panel {
@@ -695,16 +754,6 @@ header h1 {
   padding: 24px 0;
 }
 
-.day-start-label select {
-  border: 1px solid #ddd8f0;
-  border-radius: 8px;
-  background: #fff;
-  font-size: 0.75rem;
-  padding: 2px 4px;
-  color: var(--accent);
-  font-weight: 700;
-}
-
 .edit-controls input[type="time"],
 .edit-controls input[type="number"] {
   flex: 1;
@@ -766,7 +815,7 @@ header h1 {
 .task-tabs {
   display: flex;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .task-tabs button {
@@ -774,7 +823,7 @@ header h1 {
   border: 1px solid #ddd8f0;
   border-radius: 10px;
   background: #fff;
-  padding: 8px 4px;
+  padding: 6px 4px;
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--muted);

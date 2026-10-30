@@ -27,8 +27,6 @@
   const repeatTimeWrap = document.getElementById("repeat-time-wrap");
   const repeatTimeInput = document.getElementById("repeat-time-input");
   const toastEl = document.getElementById("toast");
-  const levelInlineEl = document.getElementById("level-display-inline");
-  const xpProgressEl = document.getElementById("xp-progress");
 
   let toastTimer = null;
   const toastQueue = [];
@@ -821,13 +819,7 @@
     wFill.style.width = Math.min(100, (Game.state.weeklyCompleted / nextWeekly) * 100) + "%";
     weeklyBar.appendChild(wFill);
 
-    const level = Game.levelFromXp(Game.state.xp);
-    levelDisplayEl.textContent = level;
-    levelInlineEl.textContent = level;
-    const curLevelXp = Game.levelStartXp(level);
-    const nextLevelXp = Game.xpForLevel(level + 1);
-    xpProgressEl.textContent =
-      `${Game.state.xp - curLevelXp}/${nextLevelXp - curLevelXp} XP`;
+    levelDisplayEl.textContent = Game.levelFromXp(Game.state.xp);
 
     if (Game.isBoostActive()) {
       boostBannerEl.classList.remove("hidden");
@@ -928,6 +920,9 @@
   const tabShop = document.getElementById("tab-shop");
   const tabOwned = document.getElementById("tab-owned");
   const shopContent = document.getElementById("shop-content");
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsOverlay = document.getElementById("settings-overlay");
+  const settingsClose = document.getElementById("settings-close");
   let shopTab = "shop";
 
   function itemCostLabel(item) {
@@ -1116,6 +1111,20 @@
   shopOverlay.addEventListener("click", (e) => {
     if (e.target === shopOverlay) closeShop();
   });
+
+  function openSettings() {
+    settingsOverlay.classList.remove("hidden");
+  }
+
+  function closeSettings() {
+    settingsOverlay.classList.add("hidden");
+  }
+
+  settingsBtn.addEventListener("click", openSettings);
+  settingsClose.addEventListener("click", closeSettings);
+  settingsOverlay.addEventListener("click", (e) => {
+    if (e.target === settingsOverlay) closeSettings();
+  });
   tabShop.addEventListener("click", () => {
     shopTab = "shop";
     tabShop.classList.add("active");
@@ -1141,15 +1150,43 @@
 
   const uiSheetEl = document.getElementById("ui-sheet");
   const sheetHandleEl = document.getElementById("sheet-handle");
+  const topProgressEl = document.querySelector(".daily-progress");
   const SHEET_MIN_VH = 25;
-  const SHEET_MAX_VH = 95;
+  const SHEET_TOP_GAP_PX = 8;
+
+  let vhProbeEl = null;
+  function getVhPx() {
+    if (!vhProbeEl) {
+      vhProbeEl = document.createElement("div");
+      vhProbeEl.style.cssText =
+        "position:fixed;top:0;left:0;width:0;height:100vh;visibility:hidden;pointer-events:none;";
+      document.body.appendChild(vhProbeEl);
+    }
+    return vhProbeEl.getBoundingClientRect().height;
+  }
+
+  function getSheetMaxVh() {
+    const topUiBottom = topProgressEl ? topProgressEl.getBoundingClientRect().bottom : 0;
+    const availablePx = Math.max(0, window.innerHeight - topUiBottom - SHEET_TOP_GAP_PX);
+    const maxVh = (availablePx / getVhPx()) * 100;
+    return Math.max(SHEET_MIN_VH, maxVh);
+  }
 
   function applySheetHeightVh(vh) {
-    uiSheetEl.style.height = vh + "vh";
+    const clamped = Math.min(getSheetMaxVh(), Math.max(SHEET_MIN_VH, vh));
+    uiSheetEl.style.height = clamped + "vh";
+    const roomApi = window.Room && window.Room.lastInstance;
+    if (roomApi) roomApi.setVisibleHeightRatio(Math.max(0, 1 - clamped / 100));
   }
 
   function initUiSheet() {
     applySheetHeightVh(Game.state.uiSheetHeightVh || SHEET_MIN_VH);
+    window.addEventListener("room-ready", () => {
+      applySheetHeightVh(parseFloat(uiSheetEl.style.height) || SHEET_MIN_VH);
+    });
+    window.addEventListener("resize", () => {
+      applySheetHeightVh(parseFloat(uiSheetEl.style.height) || SHEET_MIN_VH);
+    });
 
     let dragging = false;
     let startY = 0;
@@ -1159,8 +1196,8 @@
       if (!dragging) return;
       ev.preventDefault();
       const dy = ev.clientY - startY;
-      const vhPerPx = 100 / window.innerHeight;
-      const next = Math.min(SHEET_MAX_VH, Math.max(SHEET_MIN_VH, startVh - dy * vhPerPx));
+      const vhPerPx = 100 / getVhPx();
+      const next = Math.min(getSheetMaxVh(), Math.max(SHEET_MIN_VH, startVh - dy * vhPerPx));
       applySheetHeightVh(next);
     };
     const onUp = () => {
