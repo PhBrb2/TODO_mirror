@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.43.6";
+  const VERSION = "0.44.0";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;

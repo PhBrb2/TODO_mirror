@@ -198,15 +198,24 @@ body {
 
 .task-body { flex: 1; min-width: 0; }
 .task-title { font-weight: 600; overflow-wrap: break-word; }
-.task-difficulty-badge {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  z-index: 1;
-  font-size: 0.6rem;
-  padding: 1px 6px;
-}
 .task-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+.task::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  border-radius: 0 12px 12px 0;
+  background: var(--diff-color, transparent);
+}
+
+.task.diff-too_easy { --diff-color: #b5b3c3; }
+.task.diff-easy     { --diff-color: #70c4ae; }
+.task.diff-medium   { --diff-color: #e9a470; }
+.task.diff-hard     { --diff-color: #e08e87; }
+.task.diff-fun      { --diff-color: #d63384; }
 
 .badge {
   display: inline-block;
@@ -216,10 +225,6 @@ body {
   font-weight: 600;
 }
 
-.badge.too_easy { background: #f0f0f5; color: var(--muted); }
-.badge.easy      { background: #e0f7ef; color: #00916e; }
-.badge.medium    { background: #fff3e0; color: #d35400; }
-.badge.hard      { background: #ffe3e3; color: #c0392b; }
 .badge.repeat    { background: #ece8ff; color: var(--accent); margin-left: 4px; }
 .badge.streak   { background: #fff0e0; color: #e17055; margin-left: 4px; }
 .badge.bonus    { background: #fffbe0; color: #b8860b; margin-left: 4px; }
@@ -431,11 +436,6 @@ body {
 .task-title.editing .title-input {
   flex: 1;
   width: auto;
-}
-
-.task-title.editing .task-difficulty-badge {
-  position: static;
-  flex-shrink: 0;
 }
 
 .title-input {
@@ -834,11 +834,6 @@ body {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-}
-
-.badge.fun {
-  background: #ffe9f0;
-  color: #d63384;
 }
 
 .achievement {

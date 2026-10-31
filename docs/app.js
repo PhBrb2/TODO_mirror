@@ -5,7 +5,6 @@
   const tabsEl = document.getElementById("task-tabs");
   const listSelect = document.getElementById("list-select");
   let activeTab = "highlight";
-  const sheetContentEl = document.querySelector(".sheet-content");
   const emptyHint = document.getElementById("empty-hint");
   const coinBalanceEl = document.getElementById("coin-balance");
   const gemBalanceEl = document.getElementById("gem-balance");
@@ -442,8 +441,9 @@
 
   function taskNode(task) {
     const li = document.createElement("li");
-    li.className = "task" + (task.done ? " done" : "");
+    li.className = "task diff-" + (task.difficulty || "fun") + (task.done ? " done" : "");
     li.dataset.id = task.id;
+    li.title = task.list === "fun" ? "Fun task" : "Difficulty: " + task.difficulty.replace("_", " ");
 
     const locked = !Game.chainSatisfiesDependency(task) && !task.done;
     const cb = document.createElement("input");
@@ -462,8 +462,7 @@
             task.reward.coins,
             task.reward.gems,
             coinBalanceEl,
-            gemBalanceEl,
-            sheetContentEl
+            gemBalanceEl
           );
         }
       } else {
@@ -487,12 +486,6 @@
       title.className = "task-title";
       title.textContent = task.title;
     }
-
-    const badge = document.createElement("span");
-    badge.className = "badge task-difficulty-badge " + (task.difficulty || "fun");
-    badge.textContent = task.list === "fun"
-      ? "🎈 fun"
-      : task.difficulty.replace("_", " ");
 
     const meta = document.createElement("div");
     meta.className = "task-meta";
@@ -529,7 +522,6 @@
       }
     }
 
-    if (editingThisTask) title.appendChild(badge);
     body.appendChild(title);
     body.appendChild(meta);
     if (editingThisTask) {
@@ -564,8 +556,7 @@
               st.reward ? st.reward.coins : 0,
               st.reward ? st.reward.gems : 0,
               coinBalanceEl,
-              gemBalanceEl,
-              sheetContentEl
+              gemBalanceEl
             );
           }
         });
@@ -673,7 +664,6 @@
     li.appendChild(cb);
     li.appendChild(body);
     li.appendChild(actions);
-    if (!editingThisTask) li.appendChild(badge);
     return li;
   }
 
