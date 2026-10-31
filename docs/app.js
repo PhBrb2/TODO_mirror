@@ -3,7 +3,7 @@
 
   const listEl = document.getElementById("task-list");
   const tabsEl = document.getElementById("task-tabs");
-  const listSelect = document.getElementById("list-select");
+  let listSelect;
   let activeTab = "highlight";
   const emptyHint = document.getElementById("empty-hint");
   const coinBalanceEl = document.getElementById("coin-balance");
@@ -19,8 +19,8 @@
   const versionEl = document.getElementById("app-version");
   const form = document.getElementById("task-form");
   const taskInput = document.getElementById("task-input");
-  const difficultySelect = document.getElementById("difficulty-select");
-  const repeatSelect = document.getElementById("repeat-select");
+  let difficultySelect;
+  let repeatSelect;
   const deadlineInput = document.getElementById("deadline-input");
   const deadlineWrap = document.getElementById("deadline-wrap");
   const repeatTimeWrap = document.getElementById("repeat-time-wrap");
@@ -94,6 +94,25 @@
     [30, "30 min"],
     [60, "60 min"],
   ];
+  const LIST_OPTIONS = [
+    ["todo", "Todo"],
+    ["backlog", "Backlog"],
+    ["fun", "Fun"],
+  ];
+
+  function createWheel(options, selected, label, onChange, compact = false) {
+    return WheelSelect.createWheelSelect(options, { selected, label, onChange, compact });
+  }
+
+  function mountWheel(containerId, options, selected, label, onChange) {
+    const wheel = createWheel(options, selected, label, onChange);
+    document.getElementById(containerId).appendChild(wheel.el);
+    return wheel;
+  }
+
+  listSelect = mountWheel("list-wheel", LIST_OPTIONS, "todo", "List", updateCreateFormMode);
+  difficultySelect = mountWheel("difficulty-wheel", DIFFICULTY_OPTIONS, "easy", "Difficulty");
+  repeatSelect = mountWheel("repeat-wheel", REPEAT_OPTIONS, "none", "Repeat", updateCreateFormMode);
 
   function buildSelect(options, selected) {
     const select = document.createElement("select");
@@ -675,13 +694,13 @@
   }
 
   function openEditRow(task) {
-    const diff = buildSelect(DIFFICULTY_OPTIONS, task.difficulty);
+    const diff = createWheel(DIFFICULTY_OPTIONS, task.difficulty, "Difficulty", null, true);
     diff.disabled = task.subtasks.length > 0;
-    diff.title = task.subtasks.length > 0
+    diff.el.title = task.subtasks.length > 0
       ? "Difficulty is derived from the most difficult sub-task"
       : "";
 
-    const rep = buildSelect(REPEAT_OPTIONS, task.repeat);
+    const rep = createWheel(REPEAT_OPTIONS, task.repeat, "Repeat", null, true);
 
     const dl = document.createElement("input");
     dl.type = "datetime-local";
@@ -703,11 +722,11 @@
     repTimeWrap.textContent = "🕐 Repeat due at ";
     repTimeWrap.appendChild(repTime);
 
-    const timeLimit = buildSelect(TIME_LIMIT_OPTIONS, task.timeLimit || 0);
+    const timeLimit = createWheel(TIME_LIMIT_OPTIONS, task.timeLimit || 0, "Time limit", null, true);
     const timeLimitWrap = document.createElement("label");
     timeLimitWrap.className = "deadline-label";
     timeLimitWrap.textContent = "⏱️ Time limit ";
-    timeLimitWrap.appendChild(timeLimit);
+    timeLimitWrap.appendChild(timeLimit.el);
 
     const afterComp = document.createElement("label");
     afterComp.className = "after-completion-label";
@@ -720,8 +739,8 @@
     afterComp.appendChild(afterCompText);
 
     const controls = isRepeating
-      ? [diff, rep, repTimeWrap, afterComp, timeLimitWrap]
-      : [diff, rep, dlWrap, timeLimitWrap];
+      ? [diff.el, rep.el, repTimeWrap, afterComp, timeLimitWrap]
+      : [diff.el, rep.el, dlWrap, timeLimitWrap];
 
     clearEditing();
     editingTaskId = task.id;
@@ -857,8 +876,6 @@
     render();
   });
 
-  repeatSelect.addEventListener("change", updateCreateFormMode);
-  listSelect.addEventListener("change", updateCreateFormMode);
   updateCreateFormMode();
 
   tabsEl.addEventListener("click", (e) => {
@@ -872,6 +889,7 @@
   });
 
   function updateCreateFormMode() {
+    if (!listSelect || !difficultySelect || !repeatSelect) return;
     const isFun = listSelect.value === "fun";
     difficultySelect.disabled = isFun;
     repeatSelect.disabled = isFun;

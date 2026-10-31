@@ -56,24 +56,9 @@
             <button type="submit" id="add-btn">Add</button>
           </div>
           <div class="form-row">
-            <select id="list-select" aria-label="List">
-              <option value="todo" selected>Todo</option>
-              <option value="backlog">Backlog</option>
-              <option value="fun">Fun</option>
-            </select>
-            <select id="difficulty-select" aria-label="Difficulty">
-              <option value="too_easy">Too easy</option>
-              <option value="easy" selected>Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-            <select id="repeat-select" aria-label="Repeat">
-              <option value="none" selected>No repeat</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="every_5min">Every 5 min (test)</option>
-            </select>
+            <div id="list-wheel"></div>
+            <div id="difficulty-wheel"></div>
+            <div id="repeat-wheel"></div>
           </div>
           <label class="deadline-label" id="deadline-wrap">📅 Deadline <input id="deadline-input" type="datetime-local"></label>
           <label class="deadline-label hidden" id="repeat-time-wrap">🕐 Repeat due at <input id="repeat-time-input" type="time"></label>
@@ -142,6 +127,7 @@
   <script src="game.js"></script>
   <script src="confetti.js"></script>
   <script src="reward-flight.js"></script>
+  <script src="wheel-select.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
