@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.50.5";
+  const VERSION = "0.53.0";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -431,9 +431,7 @@
       return d.getTime();
     }
     if (repeat === "weekly") {
-      const weekdays = (task.repeatWeekdays && task.repeatWeekdays.length > 0
-        ? task.repeatWeekdays
-        : [1]);
+      const weekdays = task.repeatWeekdays || [];
       for (let offset = 1; offset <= 7; offset++) {
         const candidate = new Date(base);
         candidate.setDate(candidate.getDate() + offset);
@@ -473,13 +471,15 @@
     return new Date(year, month, 1 + offset);
   }
 
+  function clampWeekdays(raw) {
+    if (!Array.isArray(raw)) return [];
+    return [...new Set(raw.map((d) => Math.floor(Number(d))).filter((d) => d >= 0 && d <= 6))]
+      .sort((a, b) => a - b);
+  }
+
   function normalizeWeekdays(raw, legacySingle) {
-    const fromArray = Array.isArray(raw)
-      ? raw.map((d) => Math.floor(Number(d))).filter((d) => d >= 0 && d <= 6)
-      : null;
-    if (fromArray && fromArray.length > 0) {
-      return [...new Set(fromArray)].sort((a, b) => a - b);
-    }
+    const fromArray = clampWeekdays(raw);
+    if (fromArray.length > 0) return fromArray;
     if (Number.isFinite(legacySingle)) {
       return [Math.min(6, Math.max(0, Math.floor(legacySingle)))];
     }
@@ -662,7 +662,7 @@
       .map((e) => e.task);
   }
 
-  function addTask(title, difficulty, repeat, deadlineInput, list) {
+  function addTask(title, difficulty, repeat, deadlineInput, list, timeLimit = 0) {
     const taskList = TASK_LISTS.includes(list) ? list : "todo";
     const isFun = taskList === "fun";
     const isBonus = !isFun && Math.random() < BONUS_TASK_RATE;
@@ -687,7 +687,7 @@
       repeatCustomMs: CUSTOM_REPEAT_DEFAULT_MS,
       repeatCustomFromCompletion: false,
       chainedAfter: 0,
-      timeLimit: 0,
+      timeLimit: isFun ? 0 : (TIME_LIMIT_MINUTES.includes(timeLimit) ? timeLimit : 0),
       startedAt: 0,
       ratedDifficulty: null,
       difficultySuggested: false,
@@ -1264,6 +1264,16 @@
       const t = updates.title.trim();
       if (t) task.title = t;
     }
+    if (updates.list !== undefined &&
+        TASK_LISTS.includes(updates.list) &&
+        updates.list !== task.list) {
+      task.list = updates.list;
+      task.chainedAfter = null;
+      for (const st of task.subtasks) st.chainedAfter = null;
+      for (const other of state.tasks) {
+        if (other.chainedAfter === task.id) other.chainedAfter = null;
+      }
+    }
     if (
       updates.difficulty !== undefined &&
       updates.difficulty in COIN_REWARD &&
@@ -1286,7 +1296,7 @@
       task.repeatAfterCompletion = updates.repeatAfterCompletion === true;
     }
     if (updates.repeatWeekdays !== undefined) {
-      task.repeatWeekdays = normalizeWeekdays(updates.repeatWeekdays, null);
+      task.repeatWeekdays = clampWeekdays(updates.repeatWeekdays);
     }
     if (updates.repeatMonthlyWeekday !== undefined) {
       task.repeatMonthlyWeekday = updates.repeatMonthlyWeekday === null

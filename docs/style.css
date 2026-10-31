@@ -502,17 +502,7 @@ body.actions-hidden .subtask-add { display: none; }
 
 .edit-controls select { padding: 6px; }
 
-.edit-controls .deadline-label {
-  flex: 1 1 100%;
-  padding: 6px 8px;
-  font-size: 0.75rem;
-}
-
-.edit-controls .deadline-label input {
-  font-size: 0.75rem;
-}
-
-.edit-controls button {
+.edit-controls > button {
   border: none;
   border-radius: 8px;
   padding: 6px 12px;
@@ -521,8 +511,8 @@ body.actions-hidden .subtask-add { display: none; }
   cursor: pointer;
 }
 
-.edit-controls button:first-of-type { background: var(--accent); color: #fff; }
-.edit-controls button:last-of-type { background: #fff; color: var(--muted); }
+.edit-controls > button:first-of-type { background: var(--accent); color: #fff; }
+.edit-controls > button:last-of-type { background: #fff; color: var(--muted); }
 
 .rating-panel {
   position: fixed;
@@ -652,7 +642,31 @@ body.actions-hidden .subtask-add { display: none; }
   font-size: 0.85rem;
 }
 
-.form-row > [id$="-wheel"] { flex: 1; min-width: 0; }
+.form-row-labeled { align-items: flex-start; }
+
+.labeled-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding-left: 2px;
+  white-space: nowrap;
+}
+
+#due-at-wheels,
+.due-at-wheels { display: flex; gap: 8px; }
+
+#due-at-wheels .wheel-select,
+.due-at-wheels .wheel-select { flex: 1; min-width: 0; }
 
 .wheel-select {
   --wheel-item-height: 28px;
@@ -916,6 +930,8 @@ body.actions-hidden .subtask-add { display: none; }
 
 .repeat-schedule .deadline-label { flex: 1 1 100%; }
 .repeat-schedule .wheel-select { flex: 1; min-width: 0; }
+.repeat-schedule .due-at-hour,
+.repeat-schedule .due-at-minute { flex: 0 1 22%; }
 
 .day-toggle-grid {
   flex: 1 1 100%;
@@ -952,7 +968,12 @@ body.actions-hidden .subtask-add { display: none; }
   color: #fff;
 }
 
-.edit-schedule { margin-top: 6px; }
+.edit-selectors { display: flex; gap: 8px; align-items: flex-start; flex: 1 1 100%; }
+.edit-selectors .labeled-field { flex: 1; min-width: 0; }
+
+.edit-bottom-row { flex: 1 1 100%; }
+
+.edit-schedule { margin-top: 6px; flex: 1 1 100%; }
 .edit-schedule .deadline-label { flex: 1 1 100%; }
 .edit-schedule .wheel-select { flex: 1 1 30%; }
 

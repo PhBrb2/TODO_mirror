@@ -55,12 +55,31 @@
             <input id="task-input" type="text" placeholder="New task..." autocomplete="off" maxlength="80" required>
             <button type="submit" id="add-btn">Add</button>
           </div>
-          <div class="form-row">
-            <div id="list-wheel"></div>
-            <div id="difficulty-wheel"></div>
-            <div id="repeat-wheel"></div>
+          <div class="form-row form-row-labeled">
+            <div class="labeled-field">
+              <span class="field-label">Type</span>
+              <div id="list-wheel"></div>
+            </div>
+            <div class="labeled-field">
+              <span class="field-label">Difficulty</span>
+              <div id="difficulty-wheel"></div>
+            </div>
+            <div class="labeled-field">
+              <span class="field-label">Repeat</span>
+              <div id="repeat-wheel"></div>
+            </div>
           </div>
           <div id="repeat-schedule"></div>
+          <div class="form-row form-row-labeled">
+            <div class="labeled-field hidden" id="due-at-field">
+              <span class="field-label">🕓 Due at</span>
+              <div id="due-at-wheels"></div>
+            </div>
+            <div class="labeled-field">
+              <span class="field-label">⏱️ Time limit</span>
+              <div id="time-limit-wheel"></div>
+            </div>
+          </div>
         </form>
       </main>
 
