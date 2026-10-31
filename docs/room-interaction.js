@@ -74,15 +74,14 @@ export function createInteraction({
     raycaster.setFromCamera(pointer, camera);
     const cells = getCells();
     const half = (config.cellSpacing * config.gridScale) / 2;
-    const planeY = config.slabTopY * config.gridScale;
+    scratchPlane.constant = -(config.slabTopY * config.gridScale);
+    const hit = raycaster.ray.intersectPlane(scratchPlane, scratchPoint);
+    if (!hit) return -1;
     let bestIndex = -1;
     let bestDistance = Infinity;
     cells.forEach(([x, z], i) => {
       const cx = x * config.cellSpacing * config.gridScale;
       const cz = z * config.cellSpacing * config.gridScale;
-      scratchPlane.constant = -planeY;
-      const hit = raycaster.ray.intersectPlane(scratchPlane, scratchPoint);
-      if (!hit) return;
       if (Math.abs(scratchPoint.x - cx) > half || Math.abs(scratchPoint.z - cz) > half) return;
       const distance = raycaster.ray.origin.distanceTo(scratchPoint);
       if (distance < bestDistance) {

@@ -8,6 +8,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { createItemFactory, applyShadows, loadModel, buildItems, updateCountdownRing } from "./room-items.js";
 import { createInteraction } from "./room-interaction.js";
+import { Game } from "./game.js";
 
 (() => {
   "use strict";
@@ -201,7 +202,123 @@ import { createInteraction } from "./room-interaction.js";
     return cachedSlabModel;
   }
 
-  function createRoom(container, getSceneDesc) {
+  function createRoomContentManager({ grid, loader, itemFactory, getSceneDesc, config }) {
+  let interaction = null;
+  let currentCells = [];
+  let itemGroups = [];
+  let slabMeshes = [];
+  let roomContent = null;
+  let rebuild = null;
+  let pendingRefresh = false;
+
+  // Slab clones and item clones share geometry/material with the cached
+  // models, so nothing here may be disposed - only detached.
+  function disposeRoomContent(content) {
+    content.slabGroup.removeFromParent();
+    content.itemRoot.removeFromParent();
+  }
+
+  function buildRoomContent(desc) {
+    const cells = (desc && desc.slabs) || [[0, 0]];
+    const placements = (desc && desc.placements) || [];
+    const chestDisplay = (desc && desc.chestDisplay) || { state: "none" };
+
+    const staged = { slabGroup: new THREE.Group(), slabMeshes: [] };
+    const slabs = slabModelCache(loader).then((slab) => {
+      for (const [dx, dz] of cells) {
+        const cell = slab.clone();
+        cell.position.set(dx * config.cellSpacing, 0, dz * config.cellSpacing);
+        staged.slabGroup.add(cell);
+        staged.slabMeshes.push(cell);
+      }
+      return buildItems(itemFactory, cells, placements, chestDisplay);
+    });
+    return slabs.then((built) => {
+      staged.itemGroups = built.groups;
+      staged.itemRoot = built.root;
+      return staged;
+    });
+  }
+
+  function adoptRoomContent(staged) {
+    if (roomContent) disposeRoomContent(roomContent);
+    roomContent = staged;
+    grid.add(staged.slabGroup);
+    grid.add(staged.itemRoot);
+    currentCells = staged.currentCells;
+    itemGroups = staged.itemGroups;
+    slabMeshes = staged.slabMeshes;
+  }
+
+  function refreshContent() {
+    if (rebuild) {
+      pendingRefresh = true;
+      return;
+    }
+    const desc = typeof getSceneDesc === "function" ? getSceneDesc() : null;
+    const selectedId = interaction.getSelected()
+      ? interaction.getSelected().userData.itemId
+      : null;
+    interaction.deselect();
+
+    rebuild = buildRoomContent(desc)
+      .then((staged) => {
+        staged.currentCells = (desc && desc.slabs) || [[0, 0]];
+        adoptRoomContent(staged);
+        if (selectedId) {
+          const group = itemGroups.find((g) => g.userData.itemId === selectedId);
+          if (group) interaction.select(group);
+        }
+      })
+      .finally(() => {
+        rebuild = null;
+        if (pendingRefresh) {
+          pendingRefresh = false;
+          refreshContent();
+        }
+      });
+  }
+
+  return {
+    refresh: refreshContent,
+    setInteraction(i) { interaction = i; },
+    getCells: () => currentCells,
+    getGroups: () => itemGroups,
+    getSlabMeshes: () => slabMeshes,
+  };
+}
+
+function createChestTicker({ content, getSceneDesc }) {
+  let chestWasReady = null;
+  return function chestTick() {
+    const pedestalGroup = content.getGroups().find((g) => g.userData.itemId === "pedestal");
+    if (!pedestalGroup) return;
+    const display = typeof getSceneDesc === "function"
+      ? getSceneDesc().chestDisplay
+      : null;
+    if (!display || !display.chest) return;
+    const ready = Game.chestReady(display.chest);
+    if (chestWasReady === null) {
+      chestWasReady = ready;
+      if (!ready) {
+        const model = pedestalGroup.children[0];
+        if (model) updateCountdownRing(model, display.fraction);
+      }
+      return;
+    }
+    if (ready !== chestWasReady) {
+      chestWasReady = ready;
+      content.refresh();
+      return;
+    }
+    if (ready) return;
+    const model = pedestalGroup.children[0];
+    if (!model) return;
+    updateCountdownRing(model, display.fraction);
+  };
+}
+
+function createRoom(container, getSceneDesc) {
     const config = window.RoomConfig;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(ROOM_BG_COLOR);
@@ -233,90 +350,22 @@ import { createInteraction } from "./room-interaction.js";
     const grid = new THREE.Group();
     grid.scale.setScalar(config.gridScale);
     scene.add(grid);
-    let currentCells = [];
-    let itemGroups = [];
-    let slabMeshes = [];
-    let roomContent = null;
-    let rebuild = null;
-    let pendingRefresh = false;
 
-    // Slab clones and item clones share geometry/material with the cached
-    // models, so nothing here may be disposed - only detached.
-    function disposeRoomContent(content) {
-      content.slabGroup.removeFromParent();
-      content.itemRoot.removeFromParent();
-    }
+    const controls = createCameraControls(camera, container, renderer.domElement);
 
-    function buildRoomContent(desc) {
-      const cells = (desc && desc.slabs) || [[0, 0]];
-      const placements = (desc && desc.placements) || [];
-      const chestDisplay = (desc && desc.chestDisplay) || { state: "none" };
-
-      const staged = { slabGroup: new THREE.Group(), slabMeshes: [] };
-      const slabs = slabModelCache(loader).then((slab) => {
-        for (const [dx, dz] of cells) {
-          const cell = slab.clone();
-          cell.position.set(dx * config.cellSpacing, 0, dz * config.cellSpacing);
-          staged.slabGroup.add(cell);
-          staged.slabMeshes.push(cell);
-        }
-        return buildItems(itemFactory, cells, placements, chestDisplay);
-      });
-      return slabs.then((built) => {
-        staged.itemGroups = built.groups;
-        staged.itemRoot = built.root;
-        return staged;
-      });
-    }
-
-    function adoptRoomContent(staged) {
-      if (roomContent) disposeRoomContent(roomContent);
-      roomContent = staged;
-      grid.add(staged.slabGroup);
-      grid.add(staged.itemRoot);
-      currentCells = staged.currentCells;
-      itemGroups = staged.itemGroups;
-      slabMeshes = staged.slabMeshes;
-    }
-
-    function refreshContent() {
-      if (rebuild) {
-        pendingRefresh = true;
-        return;
-      }
-      const desc = typeof getSceneDesc === "function" ? getSceneDesc() : null;
-      const selectedId = interaction.getSelected()
-        ? interaction.getSelected().userData.itemId
-        : null;
-      interaction.deselect();
-
-      rebuild = buildRoomContent(desc)
-        .then((staged) => {
-          staged.currentCells = (desc && desc.slabs) || [[0, 0]];
-          adoptRoomContent(staged);
-          if (selectedId) {
-            const group = itemGroups.find((g) => g.userData.itemId === selectedId);
-            if (group) interaction.select(group);
-          }
-        })
-        .finally(() => {
-          rebuild = null;
-          if (pendingRefresh) {
-            pendingRefresh = false;
-            refreshContent();
-          }
-        });
-    }
+    const content = createRoomContentManager({
+      grid, loader, itemFactory, getSceneDesc, config,
+    });
 
     const interaction = createInteraction({
       camera,
       domElement: renderer.domElement,
       setPanEnabled: (enabled) => controls.setPanEnabled(enabled),
-      getCells: () => currentCells,
-      getGroups: () => itemGroups,
-      getSlabMeshes: () => slabMeshes,
-      onPlaceItem: (itemId, cellIndex) => window.Game.placeItem(itemId, cellIndex),
-      onRotateItem: (itemId) => window.Game.rotateItem(itemId),
+      getCells: content.getCells,
+      getGroups: content.getGroups,
+      getSlabMeshes: content.getSlabMeshes,
+      onPlaceItem: (itemId, cellIndex) => Game.placeItem(itemId, cellIndex),
+      onRotateItem: (itemId) => Game.rotateItem(itemId),
       onItemTap: (itemId) => {
         if (itemId !== "pedestal") return false;
         const display = typeof getSceneDesc === "function"
@@ -327,6 +376,8 @@ import { createInteraction } from "./room-interaction.js";
         return true;
       },
     });
+
+    content.setInteraction(interaction);
 
     const sunSpot = new THREE.SpotLight(SUNSPOT_COLOR, SUNSPOT_INTENSITY);
     sunSpot.position.set(...WINDOW_POSITION);
@@ -343,8 +394,6 @@ import { createInteraction } from "./room-interaction.js";
     camera.position.set(...CAMERA_POSITION);
     camera.lookAt(...CAMERA_TARGET);
 
-    const controls = createCameraControls(camera, container, renderer.domElement);
-
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     const bloomPass = new UnrealBloomPass(
@@ -356,7 +405,7 @@ import { createInteraction } from "./room-interaction.js";
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
 
-    refreshContent();
+    content.refresh();
 
     function onResize() {
       const width = container.clientWidth;
@@ -368,6 +417,7 @@ import { createInteraction } from "./room-interaction.js";
     }
     window.addEventListener("resize", onResize);
 
+    const chestTick = createChestTicker({ content, getSceneDesc });
     let animating = true;
     let lastChestTick = 0;
     function animate() {
@@ -384,42 +434,13 @@ import { createInteraction } from "./room-interaction.js";
     }
     requestAnimationFrame(animate);
 
-    let chestWasReady = null;
-
-    function chestTick() {
-      const pedestalGroup = itemGroups.find((g) => g.userData.itemId === "pedestal");
-      if (!pedestalGroup) return;
-      const display = typeof getSceneDesc === "function"
-        ? getSceneDesc().chestDisplay
-        : null;
-      if (!display || !display.chest) return;
-      const ready = Game.chestReady(display.chest);
-      if (chestWasReady === null) {
-        chestWasReady = ready;
-        if (!ready) {
-          const model = pedestalGroup.children[0];
-          if (model) updateCountdownRing(model, display.fraction);
-        }
-        return;
-      }
-      if (ready !== chestWasReady) {
-        chestWasReady = ready;
-        refreshContent();
-        return;
-      }
-      if (ready) return;
-      const model = pedestalGroup.children[0];
-      if (!model) return;
-      updateCountdownRing(model, display.fraction);
-    }
-
     function setVisibleHeightRatio(ratio) {
       container.style.height = Math.min(100, Math.max(0, ratio * 100)) + "%";
       onResize();
     }
 
     return {
-      refresh: refreshContent,
+      refresh: content.refresh,
       setVisibleHeightRatio,
       dispose() {
         animating = false;
@@ -481,7 +502,7 @@ import { createInteraction } from "./room-interaction.js";
   }
 
   const container = document.getElementById("room-view");
-  if (container && window.Game) {
+  if (container) {
     const instance = createRoom(container, () => ({
       slabs: Game.slabOffsets(Game.slabCountForLevel(Game.levelFromXp(Game.state.xp))),
       placements: Game.state.placedItems,
