@@ -7,7 +7,7 @@
   <title>TODO — MWE</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="actions-hidden">
   <div id="room-view"></div>
 
   <div class="daily-progress">
@@ -34,11 +34,11 @@
 
   <section id="ui-sheet" class="ui-sheet" aria-label="Task panel">
     <div id="sheet-handle" class="sheet-handle">
+      <div id="boost-banner" class="boost-banner hidden">⚡ x1.5 <span id="boost-timer"></span></div>
       <span class="sheet-handle-bar"></span>
+      <button id="toggle-actions-btn" type="button" aria-label="Show edit and delete buttons" aria-pressed="false">✎</button>
     </div>
     <div class="sheet-content">
-
-      <div id="boost-banner" class="boost-banner hidden">⚡ Reward boost x1.5 — <span id="boost-timer"></span></div>
 
       <main>
         <div class="task-tabs" id="task-tabs">
@@ -60,8 +60,7 @@
             <div id="difficulty-wheel"></div>
             <div id="repeat-wheel"></div>
           </div>
-          <label class="deadline-label" id="deadline-wrap">📅 Deadline <input id="deadline-input" type="datetime-local"></label>
-          <label class="deadline-label hidden" id="repeat-time-wrap">🕐 Repeat due at <input id="repeat-time-input" type="time"></label>
+          <div id="repeat-schedule"></div>
         </form>
       </main>
 
@@ -128,6 +127,7 @@
   <script src="confetti.js"></script>
   <script src="reward-flight.js"></script>
   <script src="wheel-select.js"></script>
+  <script src="confirm-dialog.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

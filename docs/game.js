@@ -2,7 +2,7 @@
   "use strict";
 
 
-  const VERSION = "0.46.1";
+  const VERSION = "0.50.5";
 
   const STORAGE_KEY = "todo-mwe-state";
   const SCHEMA_VERSION = 3;
@@ -152,6 +152,13 @@
       deadline: typeof raw.deadline === "number" ? raw.deadline : null,
       repeatTime: num(raw.repeatTime, NaN),
       repeatAfterCompletion: raw.repeatAfterCompletion === true,
+      repeatWeekdays: normalizeWeekdays(raw.repeatWeekdays, raw.repeatWeekday),
+      repeatMonthlyWeekday: raw.repeatMonthlyWeekday == null
+        ? null
+        : Math.min(6, Math.max(0, Math.floor(num(raw.repeatMonthlyWeekday, 0)))),
+      repeatMonthlyFirst: raw.repeatMonthlyFirst === true,
+      repeatCustomMs: Math.max(60000, num(raw.repeatCustomMs, CUSTOM_REPEAT_DEFAULT_MS)),
+      repeatCustomFromCompletion: raw.repeatCustomFromCompletion === true,
       chainedAfter: num(raw.chainedAfter, 0),
       timeLimit: num(raw.timeLimit, 0),
       startedAt: num(raw.startedAt, 0),
@@ -348,13 +355,46 @@
     return `${dayKey(ts)}-${Math.floor(ts / 300000)}`;
   }
 
-  function repeatKey(repeat, ts) {
-    if (repeat === "every_5min") return fiveMinKey(ts);
+  function repeatKey(task, ts) {
+    if (task.repeat === "every_5min") return fiveMinKey(ts);
+    if (task.repeat === "custom") return fiveMinKey(ts);
+    if (task.repeat === "weekly") {
+      const d = new Date(ts);
+      d.setHours(d.getHours() - (state.dayStartHour ?? 0));
+      return `${d.getFullYear()}-W${isoWeek(d)}`;
+    }
+    if (task.repeat === "monthly") {
+      const d = new Date(ts);
+      d.setHours(d.getHours() - (state.dayStartHour ?? 0));
+      return `${d.getFullYear()}-${d.getMonth() + 1}`;
+    }
     return dayKey(ts);
   }
 
-  function prevRepeatKey(repeat, ts) {
-    if (repeat === "every_5min") return fiveMinKey(ts - 300000);
+  function isoWeek(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - dayNum + 3);
+    const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+    return 1 + Math.round((date - firstThursday) / 604800000);
+  }
+
+  function prevRepeatKey(task, ts) {
+    if (task.repeat === "every_5min" || task.repeat === "custom") {
+      return fiveMinKey(ts - (task.repeatCustomMs || CUSTOM_REPEAT_DEFAULT_MS));
+    }
+    if (task.repeat === "weekly") {
+      const d = new Date(ts);
+      d.setDate(d.getDate() - 7);
+      return repeatKey(task, d.getTime());
+    }
+    if (task.repeat === "monthly") {
+      const d = new Date(ts);
+      d.setMonth(d.getMonth() - 1);
+      return repeatKey(task, d.getTime());
+    }
     const d = new Date(ts);
     d.setDate(d.getDate() - 1);
     return dayKey(d.getTime());
@@ -367,59 +407,91 @@
     return next.getTime();
   }
 
-  function nextOccurrence(repeat, completedAt, repeatTime, repeatAfterCompletion) {
+  function timeOfDayMs(repeatTime) {
+    return Number.isFinite(repeatTime)
+      ? (Math.floor(repeatTime / 60) * 3600000 + (repeatTime % 60) * 60000)
+      : 0;
+  }
+
+  function nextOccurrence(task, completedAt) {
+    const repeat = task.repeat;
     if (repeat === "every_5min") return completedAt + 300000;
-    const d = new Date(completedAt);
-    if (repeatAfterCompletion) {
-      if (repeat === "daily") {
-        d.setDate(d.getDate() + 1);
-        d.setHours(0, 0, 0, 0);
-        if (Number.isFinite(repeatTime)) {
-          d.setHours(Math.floor(repeatTime / 60), repeatTime % 60, 0, 0);
-        }
-        if (d.getTime() <= completedAt) d.setTime(d.getTime() + 86400000);
-        return d.getTime();
-      }
-      if (repeat === "weekly") {
-        d.setDate(d.getDate() + 7);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime();
-      }
-      if (repeat === "monthly") {
-        d.setMonth(d.getMonth() + 1);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime();
-      }
+    if (repeat === "custom") {
+      const interval = task.repeatCustomMs || CUSTOM_REPEAT_DEFAULT_MS;
+      return (task.repeatCustomFromCompletion ? completedAt : Date.now()) + interval;
     }
-    if (repeat === "daily" && Number.isFinite(repeatTime)) {
-      const next = new Date(d);
-      next.setHours(Math.floor(repeatTime / 60), repeatTime % 60, 0, 0);
-      if (next.getTime() <= completedAt) next.setDate(next.getDate() + 1);
-      return next.getTime();
-    }
+    const base = task.repeatAfterCompletion ? completedAt : Date.now();
+    const d = new Date(base);
+    const tod = timeOfDayMs(task.repeatTime);
     if (repeat === "daily") {
       d.setDate(d.getDate() + 1);
       d.setHours(0, 0, 0, 0);
+      d.setTime(d.getTime() + tod);
+      if (d.getTime() <= base) d.setTime(d.getTime() + 86400000);
       return d.getTime();
     }
     if (repeat === "weekly") {
-      const daysUntilMonday = (8 - d.getDay()) % 7 || 7;
-      d.setDate(d.getDate() + daysUntilMonday);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
+      const weekdays = (task.repeatWeekdays && task.repeatWeekdays.length > 0
+        ? task.repeatWeekdays
+        : [1]);
+      for (let offset = 1; offset <= 7; offset++) {
+        const candidate = new Date(base);
+        candidate.setDate(candidate.getDate() + offset);
+        if (!weekdays.includes(candidate.getDay())) continue;
+        candidate.setHours(0, 0, 0, 0);
+        candidate.setTime(candidate.getTime() + tod);
+        if (candidate.getTime() > base) return candidate.getTime();
+      }
+      return Infinity;
     }
     if (repeat === "monthly") {
-      return new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
+      for (let m = 1; m <= 2; m++) {
+        const next = nthWeekdayOfMonth(d.getFullYear(), d.getMonth() + m, task.repeatMonthlyWeekday, task.repeatMonthlyFirst !== false);
+        next.setHours(0, 0, 0, 0);
+        next.setTime(next.getTime() + tod);
+        if (next.getTime() > base) return next.getTime();
+      }
+      return Infinity;
     }
     return Infinity;
+  }
+
+  function daysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+
+  function nthWeekdayOfMonth(year, month, weekday, first) {
+    if (weekday === null || weekday === undefined) {
+      return new Date(year, month, 1);
+    }
+    if (first === false) {
+      const lastDay = daysInMonth(year, month);
+      const back = (new Date(year, month, lastDay).getDay() - weekday + 7) % 7;
+      return new Date(year, month, lastDay - back);
+    }
+    const offset = (weekday - new Date(year, month, 1).getDay() + 7) % 7;
+    return new Date(year, month, 1 + offset);
+  }
+
+  function normalizeWeekdays(raw, legacySingle) {
+    const fromArray = Array.isArray(raw)
+      ? raw.map((d) => Math.floor(Number(d))).filter((d) => d >= 0 && d <= 6)
+      : null;
+    if (fromArray && fromArray.length > 0) {
+      return [...new Set(fromArray)].sort((a, b) => a - b);
+    }
+    if (Number.isFinite(legacySingle)) {
+      return [Math.min(6, Math.max(0, Math.floor(legacySingle)))];
+    }
+    return [1];
   }
 
   function streakHasFailed(task, now) {
     if (task.streak === 0 || task.streakDayKeys.length === 0) return false;
     const lastKey = task.streakDayKeys[task.streakDayKeys.length - 1];
-    const currentKey = repeatKey(task.repeat, now);
+    const currentKey = repeatKey(task, now);
     if (lastKey === currentKey) return false;
-    return lastKey !== prevRepeatKey(task.repeat, now);
+    return lastKey !== prevRepeatKey(task, now);
   }
 
   function checkRecurringTasks() {
@@ -428,12 +500,15 @@
     for (const task of state.tasks) {
       if (task.repeat === "none") continue;
       if (task.done && task.completedAt !== null) {
-        if (nextOccurrence(task.repeat, task.completedAt, task.repeatTime, task.repeatAfterCompletion) <= now) {
+        if (nextOccurrence(task, task.completedAt) <= now) {
           task.done = false;
           task.completedAt = null;
-          if (Number.isFinite(task.repeatTime)) {
-            task.deadline = nextTimeOfDay(task.repeatTime);
+          for (const st of task.subtasks) {
+            st.done = false;
+            st.reward = null;
           }
+          const next = nextOccurrence(task, now);
+          task.deadline = next === Infinity ? task.deadline : next;
           if (task.bonus) {
             const wasBonus = task.bonus;
             task.bonus = Math.random() < BONUS_TASK_RATE;
@@ -606,6 +681,11 @@
       deadline: isFun ? null : (deadlineInput ? new Date(deadlineInput).getTime() : null),
       repeatTime: NaN,
       repeatAfterCompletion: false,
+      repeatWeekdays: [1],
+      repeatMonthlyWeekday: null,
+      repeatMonthlyFirst: false,
+      repeatCustomMs: CUSTOM_REPEAT_DEFAULT_MS,
+      repeatCustomFromCompletion: false,
       chainedAfter: 0,
       timeLimit: 0,
       startedAt: 0,
@@ -622,7 +702,8 @@
   }
 
   const DIFFICULTY_ORDER = ["too_easy", "easy", "medium", "hard"];
-  const REPEAT_VALUES = ["none", "daily", "weekly", "monthly", "every_5min"];
+  const REPEAT_VALUES = ["none", "daily", "weekly", "monthly", "every_5min", "custom"];
+  const CUSTOM_REPEAT_DEFAULT_MS = 86400000;
   const TASK_LISTS = ["todo", "backlog", "fun"];
   const FUN_TASK_COINS = 5;
   const FUN_TASK_XP = 5;
@@ -779,6 +860,13 @@
   function toggleSubtask(parent, subtask) {
     subtask.done = !subtask.done;
     if (subtask.done) {
+      if (subtasksLockedByChain(parent)) {
+        subtask.done = false;
+        showToast("🔗 Finish the chained predecessor task first");
+        saveState();
+        render();
+        return;
+      }
       if (!subtaskChainSatisfies(parent, subtask)) {
         subtask.done = false;
         const predecessor = subtaskPredecessor(parent, subtask);
@@ -836,10 +924,10 @@
 
   function updateStreak(task, completedAt) {
     if (task.repeat === "none") return;
-    const key = repeatKey(task.repeat, completedAt);
+    const key = repeatKey(task, completedAt);
     if (task.streakDayKeys.includes(key)) return;
     const lastKey = task.streakDayKeys[task.streakDayKeys.length - 1];
-    task.streak = lastKey === prevRepeatKey(task.repeat, completedAt)
+    task.streak = lastKey === prevRepeatKey(task, completedAt)
       ? task.streak + 1
       : 1;
     task.streakDayKeys.push(key);
@@ -955,6 +1043,10 @@
 
   function chainSatisfiesDependency(task) {
     return chainSatisfiedIn(state.tasks, task);
+  }
+
+  function subtasksLockedByChain(task) {
+    return Boolean(task.chainedAfter) && !task.done && !chainSatisfiesDependency(task);
   }
 
   function chainTask(task, targetId) {
@@ -1131,7 +1223,7 @@
     for (const other of state.tasks) {
       if (other.chainedAfter === task.id && other.done) uncompleteTask(other);
     }
-    const key = task.completedAt ? repeatKey(task.repeat, task.completedAt) : null;
+    const key = task.completedAt ? repeatKey(task, task.completedAt) : null;
     if (key && task.streakDayKeys.includes(key)) {
       task.streakDayKeys.pop();
       task.streak = Math.max(0, task.streak - 1);
@@ -1193,6 +1285,27 @@
     if (updates.repeatAfterCompletion !== undefined) {
       task.repeatAfterCompletion = updates.repeatAfterCompletion === true;
     }
+    if (updates.repeatWeekdays !== undefined) {
+      task.repeatWeekdays = normalizeWeekdays(updates.repeatWeekdays, null);
+    }
+    if (updates.repeatMonthlyWeekday !== undefined) {
+      task.repeatMonthlyWeekday = updates.repeatMonthlyWeekday === null
+        ? null
+        : Math.min(6, Math.max(0, Math.floor(updates.repeatMonthlyWeekday)));
+    }
+    if (updates.repeatMonthlyFirst !== undefined) {
+      task.repeatMonthlyFirst = updates.repeatMonthlyFirst === true;
+    }
+    if (updates.repeatCustomMs !== undefined) {
+      task.repeatCustomMs = Math.max(60000, Math.floor(updates.repeatCustomMs));
+    }
+    if (updates.repeatCustomFromCompletion !== undefined) {
+      task.repeatCustomFromCompletion = updates.repeatCustomFromCompletion === true;
+    }
+    if (task.repeat !== "none" && !task.done) {
+      const next = nextOccurrence(task, Date.now());
+      if (next !== Infinity) task.deadline = next;
+    }
     if (updates.timeLimit !== undefined) {
       task.timeLimit = TIME_LIMIT_MINUTES.includes(updates.timeLimit)
         ? updates.timeLimit
@@ -1203,9 +1316,6 @@
       task.repeatTime = Number.isFinite(updates.repeatTime)
         ? Math.min(1439, Math.max(0, Math.floor(updates.repeatTime)))
         : NaN;
-      if (Number.isFinite(task.repeatTime) && !task.done) {
-        task.deadline = nextTimeOfDay(task.repeatTime);
-      }
     }
     saveState();
     render();
@@ -1422,6 +1532,7 @@
     timeBonusEarned,
     chainPredecessor,
     chainSatisfiesDependency,
+    subtasksLockedByChain,
     chainTask,
     unchainTask,
     subtaskPredecessor,

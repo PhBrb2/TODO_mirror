@@ -31,7 +31,7 @@
     });
 
     let value = String(selected ?? options[0][0]);
-    let suppressScroll = false;
+    let programmaticUntil = 0;
     let scrollTimer = null;
 
     function indexOfValue(v) {
@@ -54,7 +54,7 @@
       value = String(options[i][0]);
       highlightIndex(i);
       if (scroll) {
-        suppressScroll = true;
+        programmaticUntil = performance.now() + 400;
         track.scrollTo({ top: scrollTopForIndex(i), behavior: "smooth" });
       }
       onChange?.(value);
@@ -65,13 +65,13 @@
     }
 
     track.addEventListener("pointerdown", () => {
-      suppressScroll = false;
+      programmaticUntil = 0;
       clearTimeout(scrollTimer);
     });
 
     track.addEventListener("scroll", () => {
       highlightIndex(itemIndexAtCenter());
-      if (suppressScroll) return;
+      if (performance.now() < programmaticUntil) return;
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => {
         selectByIndex(itemIndexAtCenter(), true);
@@ -79,10 +79,7 @@
     });
 
     track.addEventListener("scrollend", () => {
-      if (suppressScroll) {
-        suppressScroll = false;
-        return;
-      }
+      if (performance.now() < programmaticUntil) return;
       clearTimeout(scrollTimer);
       selectByIndex(itemIndexAtCenter(), true);
     });
@@ -104,7 +101,7 @@
       }
     });
 
-    selectByIndex(indexOfValue(value), false);
+    highlightIndex(indexOfValue(value));
     requestAnimationFrame(() => {
       track.scrollTop = scrollTopForIndex(indexOfValue(value));
     });

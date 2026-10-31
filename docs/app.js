@@ -21,10 +21,8 @@
   const taskInput = document.getElementById("task-input");
   let difficultySelect;
   let repeatSelect;
-  const deadlineInput = document.getElementById("deadline-input");
-  const deadlineWrap = document.getElementById("deadline-wrap");
-  const repeatTimeWrap = document.getElementById("repeat-time-wrap");
-  const repeatTimeInput = document.getElementById("repeat-time-input");
+  const scheduleContainer = document.getElementById("repeat-schedule");
+  let scheduleControls = null;
   const toastEl = document.getElementById("toast");
 
   let toastTimer = null;
@@ -86,7 +84,15 @@
     ["weekly", "Weekly"],
     ["monthly", "Monthly"],
     ["every_5min", "Every 5 min (test)"],
+    ["custom", "Custom"],
   ];
+  const WEEKDAY_CHECKBOXES = [
+    [1, "Mon"], [2, "Tue"], [3, "Wed"], [4, "Thu"],
+    [5, "Fri"], [6, "Sat"], [0, "Sun"],
+  ];
+  const CUSTOM_DAYS_OPTIONS = Array.from({ length: 31 }, (_, i) => [i, i === 1 ? "1 day" : `${i} days`]);
+  const CUSTOM_HOURS_OPTIONS = Array.from({ length: 24 }, (_, i) => [i, i === 1 ? "1 hour" : `${i} hours`]);
+  const CUSTOM_MINUTES_OPTIONS = Array.from({ length: 60 }, (_, i) => [i, i === 1 ? "1 min" : `${i} min`]);
   const TIME_LIMIT_OPTIONS = [
     [0, "No time limit"],
     [5, "5 min"],
@@ -113,6 +119,162 @@
   listSelect = mountWheel("list-wheel", LIST_OPTIONS, "todo", "List", updateCreateFormMode);
   difficultySelect = mountWheel("difficulty-wheel", DIFFICULTY_OPTIONS, "easy", "Difficulty");
   repeatSelect = mountWheel("repeat-wheel", REPEAT_OPTIONS, "none", "Repeat", updateCreateFormMode);
+
+  function minutesToTimeValue(minutes) {
+    if (!Number.isFinite(minutes)) return "";
+    return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  }
+
+  function timeValueToMinutes(value) {
+    if (!value) return NaN;
+    const [h, m] = value.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  }
+
+  function buildScheduleControls(repeat, values = {}, compact = false) {
+    const wrap = document.createElement("div");
+    wrap.className = "repeat-schedule";
+    const read = {};
+    const addTimeOfDay = (minutes) => {
+      const label = document.createElement("label");
+      label.className = "deadline-label";
+      label.textContent = "🔔 Due at ";
+      const input = document.createElement("input");
+      input.type = "time";
+      input.value = minutesToTimeValue(minutes);
+      label.appendChild(input);
+      wrap.appendChild(label);
+      read.repeatTime = () => timeValueToMinutes(input.value);
+    };
+    if (repeat === "none") {
+      const label = document.createElement("label");
+      label.className = "deadline-label";
+      label.textContent = "📅 Deadline ";
+      const input = document.createElement("input");
+      input.type = "datetime-local";
+      if (values.deadline) input.value = deadlineInputValue({ deadline: values.deadline });
+      label.appendChild(input);
+      wrap.appendChild(label);
+      read.deadline = () => input.value;
+    } else if (repeat === "daily") {
+      addTimeOfDay(values.repeatTime);
+    } else if (repeat === "weekly") {
+      const selected = values.repeatWeekdays && values.repeatWeekdays.length > 0
+        ? values.repeatWeekdays
+        : [1];
+      const group = document.createElement("div");
+      group.className = "day-toggle-grid weekday-grid";
+      const buttons = WEEKDAY_CHECKBOXES.map(([day, label]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "day-toggle";
+        btn.textContent = label;
+        btn.setAttribute("aria-pressed", String(selected.includes(day)));
+        btn.classList.toggle("on", selected.includes(day));
+        btn.addEventListener("click", () => {
+          const on = btn.classList.toggle("on");
+          btn.setAttribute("aria-pressed", String(on));
+        });
+        group.appendChild(btn);
+        return { btn, day };
+      });
+      wrap.appendChild(group);
+      read.repeatWeekdays = () => {
+        const days = buttons.filter((b) => b.btn.classList.contains("on")).map((b) => b.day);
+        return days.length > 0 ? days : [1];
+      };
+      addTimeOfDay(values.repeatTime);
+    } else if (repeat === "monthly") {
+      const weekday = values.repeatMonthlyWeekday ?? null;
+      const weekdayGroup = document.createElement("div");
+      weekdayGroup.className = "day-toggle-grid weekday-grid";
+      const buttons = WEEKDAY_CHECKBOXES.map(([day, label]) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "day-toggle" + (weekday === day ? " on" : "");
+        btn.textContent = label;
+        btn.setAttribute("aria-pressed", String(weekday === day));
+        btn.addEventListener("click", () => {
+          const on = !btn.classList.contains("on");
+          for (const b of buttons) {
+            b.btn.classList.remove("on");
+            b.btn.setAttribute("aria-pressed", "false");
+          }
+          if (on) {
+            btn.classList.add("on");
+            btn.setAttribute("aria-pressed", "true");
+          }
+          setFirstLastEnabled(on);
+        });
+        weekdayGroup.appendChild(btn);
+        return { btn, day };
+      });
+      wrap.appendChild(weekdayGroup);
+
+      const firstLast = document.createElement("div");
+      firstLast.className = "day-toggle-grid first-last-grid";
+      const firstBtn = document.createElement("button");
+      firstBtn.type = "button";
+      firstBtn.className = "day-toggle" + (weekday !== null && values.repeatMonthlyFirst !== false ? " on" : "");
+      firstBtn.textContent = "First";
+      const lastBtn = document.createElement("button");
+      lastBtn.type = "button";
+      lastBtn.className = "day-toggle" + (weekday !== null && values.repeatMonthlyFirst === false ? " on" : "");
+      lastBtn.textContent = "Last";
+      function setFirstLastEnabled(enabled) {
+        for (const b of [firstBtn, lastBtn]) {
+          b.disabled = !enabled;
+          b.classList.toggle("disabled", !enabled);
+          if (!enabled) {
+            b.classList.remove("on");
+            b.setAttribute("aria-pressed", "false");
+          }
+        }
+      }
+      firstBtn.setAttribute("aria-pressed", String(weekday !== null && values.repeatMonthlyFirst !== false));
+      lastBtn.setAttribute("aria-pressed", String(weekday !== null && values.repeatMonthlyFirst === false));
+      firstBtn.addEventListener("click", () => setFirstLast(true));
+      lastBtn.addEventListener("click", () => setFirstLast(false));
+      function setFirstLast(first) {
+        firstBtn.classList.toggle("on", first);
+        firstBtn.setAttribute("aria-pressed", String(first));
+        lastBtn.classList.toggle("on", !first);
+        lastBtn.setAttribute("aria-pressed", String(!first));
+      }
+      setFirstLastEnabled(weekday !== null);
+      firstLast.appendChild(firstBtn);
+      firstLast.appendChild(lastBtn);
+      wrap.appendChild(firstLast);
+
+      read.repeatMonthlyWeekday = () => {
+        const on = buttons.find((b) => b.btn.classList.contains("on"));
+        return on ? on.day : null;
+      };
+      read.repeatMonthlyFirst = () => firstBtn.classList.contains("on");
+      addTimeOfDay(values.repeatTime);
+    } else if (repeat === "custom") {
+      const days = createWheel(CUSTOM_DAYS_OPTIONS, values.customDays ?? 1, "Days", null, compact);
+      const hours = createWheel(CUSTOM_HOURS_OPTIONS, values.customHours ?? 0, "Hours", null, compact);
+      const mins = createWheel(CUSTOM_MINUTES_OPTIONS, values.customMinutes ?? 0, "Minutes", null, compact);
+      wrap.appendChild(days.el);
+      wrap.appendChild(hours.el);
+      wrap.appendChild(mins.el);
+      const fromCompLabel = document.createElement("label");
+      fromCompLabel.className = "after-completion-label";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = values.repeatCustomFromCompletion === true;
+      const span = document.createElement("span");
+      span.textContent = "Start counting after completion";
+      fromCompLabel.appendChild(cb);
+      fromCompLabel.appendChild(span);
+      wrap.appendChild(fromCompLabel);
+      read.repeatCustomMs = () =>
+        (Number(days.value) * 86400 + Number(hours.value) * 3600 + Number(mins.value) * 60) * 1000;
+      read.repeatCustomFromCompletion = () => cb.checked;
+    }
+    return { el: wrap, read };
+  }
 
   function buildSelect(options, selected) {
     const select = document.createElement("select");
@@ -344,15 +506,15 @@
     render();
   }
 
-  document.addEventListener("focusout", (e) => {
+  document.addEventListener("pointerdown", (e) => {
     if (!activeEdit) return;
-    if (e.relatedTarget && activeEdit.scope.contains(e.relatedTarget)) return;
+    if (activeEdit.scope.contains(e.target)) return;
     const current = editValues(activeEdit.input, activeEdit.controls);
     if (current.every((v, i) => v === activeEdit.initial[i])) {
       clearEditing();
       render();
     }
-  });
+  }, true);
 
   const RATING_OPTIONS = [
     { label: "😫 Harder", value: "harder" },
@@ -458,6 +620,41 @@
     return row;
   }
 
+  const DELETE_ARM_MS = 2000;
+
+  function armDeleteButton(btn, onConfirmDelete) {
+    let armTimer = null;
+    btn.addEventListener("click", () => {
+      if (armTimer) {
+        clearTimeout(armTimer);
+        armTimer = null;
+        btn.classList.remove("armed");
+        onConfirmDelete();
+        return;
+      }
+      btn.classList.add("armed");
+      armTimer = setTimeout(() => {
+        armTimer = null;
+        btn.classList.remove("armed");
+      }, DELETE_ARM_MS);
+    });
+  }
+
+  async function deleteTaskWithConfirm(task) {
+    const hasStreak = task.repeat !== "none" && task.streak > 0;
+    const hasSubtasks = task.subtasks.length > 0;
+    if (hasStreak || hasSubtasks) {
+      const reasons = [];
+      if (hasSubtasks) reasons.push(`${task.subtasks.length} subtask${task.subtasks.length === 1 ? "" : "s"}`);
+      if (hasStreak) reasons.push(`a ${task.streak}-day streak`);
+      const ok = await ConfirmDialog.confirm(
+        `Delete "${task.title}"? It has ${reasons.join(" and ")}.`
+      );
+      if (!ok) return;
+    }
+    Game.deleteTask(task.id);
+  }
+
   function taskNode(task) {
     const li = document.createElement("li");
     li.className = "task diff-" + (task.difficulty || "fun") + (task.done ? " done" : "");
@@ -548,9 +745,10 @@
       body.appendChild(buildEditControlsRow());
     }
 
+    const parentLocked = Game.subtasksLockedByChain(task);
     if (task.subtasks.length > 0 || !task.done) {
       const sublist = document.createElement("div");
-      sublist.className = "subtask-list";
+      sublist.className = "subtask-list" + (parentLocked ? " chain-locked" : "");
       for (const st of chainOrdered(task.subtasks)) {
         if (st.chainedAfter) {
           sublist.appendChild(chainLinkNode("subtask-link-row", () => Game.unchainSubtask(task, st)));
@@ -559,12 +757,16 @@
         row.className = "subtask subtask-row-" + st.id + (st.done ? " done" : "");
         row.dataset.parentId = task.id;
         row.dataset.subtaskId = st.id;
-        const stLocked = !Game.subtaskChainSatisfies(task, st) && !st.done;
+        const stLocked = parentLocked || (!Game.subtaskChainSatisfies(task, st) && !st.done);
         const scb = document.createElement("input");
         scb.type = "checkbox";
         scb.checked = st.done;
         scb.disabled = stLocked;
-        if (stLocked) scb.title = "Complete the chained predecessor first";
+        if (stLocked) {
+          scb.title = parentLocked
+            ? "Finish the chained predecessor task first"
+            : "Complete the chained predecessor first";
+        }
         scb.addEventListener("change", () => {
           const origin = Confetti.originOf(row);
           Game.toggleSubtask(task, st);
@@ -593,7 +795,7 @@
         const stDel = document.createElement("button");
         stDel.className = "task-delete subtask-delete";
         stDel.textContent = "✕";
-        stDel.addEventListener("click", () => Game.deleteSubtask(task, st.id));
+        armDeleteButton(stDel, () => Game.deleteSubtask(task, st.id));
         subtaskDraggable(row, task, st);
         row.appendChild(scb);
         row.appendChild(stTitle);
@@ -655,7 +857,7 @@
     const del = document.createElement("button");
     del.className = "task-delete";
     del.textContent = "✕";
-    del.addEventListener("click", () => Game.deleteTask(task.id));
+    armDeleteButton(del, () => deleteTaskWithConfirm(task));
 
     const edit = document.createElement("button");
     edit.className = "task-edit";
@@ -700,27 +902,8 @@
       ? "Difficulty is derived from the most difficult sub-task"
       : "";
 
-    const rep = createWheel(REPEAT_OPTIONS, task.repeat, "Repeat", null, true);
-
-    const dl = document.createElement("input");
-    dl.type = "datetime-local";
-    dl.value = deadlineInputValue(task);
-    const dlWrap = document.createElement("label");
-    dlWrap.className = "deadline-label edit-deadline";
-    dlWrap.textContent = "📅 Deadline ";
-    dlWrap.appendChild(dl);
-
     const isRepeating = task.repeat !== "none" && task.repeat !== "every_5min";
-
-    const repTime = document.createElement("input");
-    repTime.type = "time";
-    if (Number.isFinite(task.repeatTime)) {
-      repTime.value = `${String(Math.floor(task.repeatTime / 60)).padStart(2, "0")}:${String(task.repeatTime % 60).padStart(2, "0")}`;
-    }
-    const repTimeWrap = document.createElement("label");
-    repTimeWrap.className = "deadline-label edit-deadline";
-    repTimeWrap.textContent = "🕐 Repeat due at ";
-    repTimeWrap.appendChild(repTime);
+    const rep = createWheel(REPEAT_OPTIONS, task.repeat, "Repeat", null, true);
 
     const timeLimit = createWheel(TIME_LIMIT_OPTIONS, task.timeLimit || 0, "Time limit", null, true);
     const timeLimitWrap = document.createElement("label");
@@ -738,9 +921,11 @@
     afterComp.appendChild(afterCompCb);
     afterComp.appendChild(afterCompText);
 
-    const controls = isRepeating
-      ? [diff.el, rep.el, repTimeWrap, afterComp, timeLimitWrap]
-      : [diff.el, rep.el, dlWrap, timeLimitWrap];
+    const schedule = buildScheduleControls(task.repeat, task, true);
+    schedule.el.classList.add("edit-schedule");
+
+    const controls = [diff.el, rep.el, schedule.el, timeLimitWrap];
+    if (isRepeating) controls.push(afterComp);
 
     clearEditing();
     editingTaskId = task.id;
@@ -752,19 +937,11 @@
           title,
           difficulty: diff.value,
           repeat: rep.value,
+          timeLimit: Number(timeLimit.value),
+          ...schedule.read,
         };
         if (isRepeating) {
-          updates.timeLimit = Number(timeLimit.value);
-          if (repTime.value) {
-            const [h, m] = repTime.value.split(":").map(Number);
-            updates.repeatTime = (h || 0) * 60 + (m || 0);
-          } else {
-            updates.repeatTime = NaN;
-          }
           updates.repeatAfterCompletion = afterCompCb.checked;
-        } else {
-          updates.deadline = dl.value;
-          updates.timeLimit = Number(timeLimit.value);
         }
         clearEditing();
         Game.editTask(task.id, updates);
@@ -789,9 +966,9 @@
       }
       const node = taskNode(task);
       listEl.appendChild(node);
-      if (activeEdit && activeEdit.scope === node) activeEdit.input.focus();
     }
 
+    listEl.classList.toggle("editing", editingTaskId !== null || editingSubtaskKey !== null);
     emptyHint.classList.toggle("hidden", visible.length > 0);
     emptyHint.textContent = activeTab === "highlight"
       ? "Nothing to highlight — complete tasks to earn recommendations! 🎉"
@@ -893,26 +1070,30 @@
     const isFun = listSelect.value === "fun";
     difficultySelect.disabled = isFun;
     repeatSelect.disabled = isFun;
-    deadlineWrap.classList.toggle("hidden", isFun || repeatSelect.value === "daily");
-    repeatTimeWrap.classList.toggle("hidden", isFun || repeatSelect.value !== "daily");
+    const repeat = isFun ? "none" : repeatSelect.value;
+    scheduleContainer.innerHTML = "";
+    scheduleControls = buildScheduleControls(repeat, {}, false);
+    scheduleContainer.appendChild(scheduleControls.el);
   }
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const title = taskInput.value.trim();
     if (!title) return;
-    if (listSelect.value === "fun") {
-      Game.addTask(title, null, "none", "", "fun");
-    } else if (repeatSelect.value === "daily" && repeatTimeInput.value) {
-      const [h, m] = repeatTimeInput.value.split(":").map(Number);
-      const t = Game.addTask(title, difficultySelect.value, repeatSelect.value, "", listSelect.value);
-      Game.editTask(t, { repeatTime: (h || 0) * 60 + (m || 0) });
-    } else {
-      Game.addTask(title, difficultySelect.value, repeatSelect.value, deadlineInput.value, listSelect.value);
+    const repeat = listSelect.value === "fun" ? "none" : repeatSelect.value;
+    const values = scheduleControls ? scheduleControls.read : {};
+    const taskId = Game.addTask(
+      title,
+      listSelect.value === "fun" ? null : difficultySelect.value,
+      repeat,
+      values.deadline || "",
+      listSelect.value
+    );
+    if (repeat !== "none" && repeat !== "every_5min") {
+      Game.editTask(taskId, values);
     }
     taskInput.value = "";
-    repeatTimeInput.value = "";
-    deadlineInput.value = "";
+    updateCreateFormMode();
     taskInput.focus();
   });
 
@@ -1229,4 +1410,14 @@
   }
 
   initUiSheet();
+
+  const toggleActionsBtn = document.getElementById("toggle-actions-btn");
+  toggleActionsBtn.addEventListener("click", () => {
+    const hidden = document.body.classList.toggle("actions-hidden");
+    toggleActionsBtn.setAttribute("aria-pressed", String(!hidden));
+    toggleActionsBtn.setAttribute(
+      "aria-label",
+      hidden ? "Show edit and delete buttons" : "Hide edit and delete buttons"
+    );
+  });
 })();

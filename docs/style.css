@@ -58,7 +58,29 @@ body {
   padding: 10px 0 8px;
   cursor: grab;
   touch-action: none;
+  position: relative;
 }
+
+#toggle-actions-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  font-size: 1rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  touch-action: manipulation;
+}
+
+#toggle-actions-btn[aria-pressed="false"] { opacity: 0.35; }
+
+body.actions-hidden .task-actions,
+body.actions-hidden .subtask-edit,
+body.actions-hidden .subtask-delete,
+body.actions-hidden .subtask-add { display: none; }
 
 .sheet-handle:active { cursor: grabbing; }
 
@@ -301,15 +323,18 @@ body {
 .level b { color: #e17055; }
 
 .boost-banner {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   background: #fffbe0;
   border: 1px solid #ffeaa7;
   color: #b8860b;
   border-radius: 10px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
+  padding: 2px 8px;
+  font-size: 0.75rem;
   font-weight: 600;
-  margin-bottom: 8px;
-  text-align: center;
+  white-space: nowrap;
 }
 
 #reset-btn {
@@ -326,7 +351,11 @@ body {
 
 #reset-btn:active { background: #ffe3e3; color: #c0392b; }
 
-.task-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.task-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+
+#task-list.editing input[type="checkbox"] { display: none; }
+
+.subtask-list.chain-locked .subtask { opacity: 0.45; }
 
 .subtask-list {
   margin-top: 6px;
@@ -533,6 +562,52 @@ body {
   padding: 4px 6px;
   cursor: pointer;
 }
+
+.task-delete.armed {
+  color: #c0392b;
+  animation: delete-arm-fade 2s linear forwards;
+}
+
+@keyframes delete-arm-fade {
+  from { color: #c0392b; }
+  to { color: var(--muted); }
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(45, 42, 61, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirm-panel {
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(45, 42, 61, 0.3);
+  padding: 18px 20px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.confirm-message { margin: 0 0 14px; font-size: 0.9rem; }
+
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.confirm-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm-cancel { background: #ece8ff; color: var(--accent); }
+.confirm-ok { background: #c0392b; color: #fff; }
 
 .empty-hint {
   text-align: center;
@@ -831,6 +906,55 @@ body {
   background: #fff;
   font-size: 0.75rem;
 }
+
+.repeat-schedule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.repeat-schedule .deadline-label { flex: 1 1 100%; }
+.repeat-schedule .wheel-select { flex: 1; min-width: 0; }
+
+.day-toggle-grid {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekday-grid { grid-template-columns: repeat(7, 1fr); }
+.first-last-grid { grid-template-columns: repeat(2, 1fr); }
+
+.day-toggle:disabled,
+.day-toggle.disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.day-toggle {
+  border: 1px solid #ddd8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 0;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.day-toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.edit-schedule { margin-top: 6px; }
+.edit-schedule .deadline-label { flex: 1 1 100%; }
+.edit-schedule .wheel-select { flex: 1 1 30%; }
 
 .after-completion-label {
   display: flex;
