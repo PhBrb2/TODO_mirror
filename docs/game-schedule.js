@@ -111,7 +111,7 @@ function nextOccurrence(task, completedAt) {
   }
   if (repeat === "weekly") {
     const weekdays = task.repeatWeekdays || [];
-    for (let offset = 1; offset <= 7; offset++) {
+    for (let offset = 0; offset <= 7; offset++) {
       const candidate = new Date(base);
       candidate.setDate(candidate.getDate() + offset);
       if (!weekdays.includes(candidate.getDay())) continue;

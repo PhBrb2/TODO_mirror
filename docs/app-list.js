@@ -82,6 +82,7 @@ function taskMetaNode(task) {
   if (task.deadline && !task.done) {
     const dl = document.createElement("span");
     dl.className = "badge deadline" + (task.deadline < Date.now() ? " overdue" : "");
+    dl.dataset.taskId = task.id;
     dl.textContent = formatDeadline(task.deadline);
     meta.appendChild(dl);
   }
@@ -215,12 +216,15 @@ function subtaskListNode(task, li) {
   if (task.subtasks.length === 0 && task.done) return null;
   const sublist = document.createElement("div");
   sublist.className = "subtask-list" + (parentLocked ? " chain-locked" : "");
+  let prevSub = null;
   for (const st of chainOrdered(task.subtasks)) {
     if (st.chainedAfter) {
-      sublist.appendChild(chainLinkNode("subtask-link-row", () => Game.unchainSubtask(task, st)));
+      const adjacent = prevSub && prevSub.id === st.chainedAfter;
+      sublist.appendChild(chainLinkNode("subtask-link-row", () => Game.unchainSubtask(task, st), { withLine: adjacent }));
     }
     const { row, editingThisSub, stTitle } = subtaskRow(task, st, parentLocked);
     sublist.appendChild(row);
+    prevSub = st;
     if (editingThisSub) {
       activateEdit(li, stTitle, E.pending.controls, E.pending.onSave);
       sublist.insertBefore(buildEditControlsRow(), row.nextSibling);
@@ -305,12 +309,15 @@ let render = function () {
   }
   AppUI.els.listEl.innerHTML = "";
   if (E.active && !E.active.scope.isConnected) clearEditing();
+  let prevTask = null;
   for (const task of sorted) {
     if (task.chainedAfter) {
-      AppUI.els.listEl.appendChild(chainLinkNode("chain-link-row", () => Game.unchainTask(task)));
+      const adjacent = prevTask && prevTask.id === task.chainedAfter;
+      AppUI.els.listEl.appendChild(chainLinkNode("chain-link-row", () => Game.unchainTask(task), { withLine: adjacent }));
     }
     const node = taskNode(task);
     AppUI.els.listEl.appendChild(node);
+    prevTask = task;
   }
 
   AppUI.els.listEl.classList.toggle("editing", E.taskId !== null || E.subtaskKey !== null);
@@ -369,6 +376,13 @@ function updateLiveClocks() {
     AppUI.els.boostTimerEl.textContent = formatMinutesSeconds(remaining);
   } else {
     AppUI.els.boostBannerEl.classList.add("hidden");
+  }
+
+  for (const node of AppUI.els.listEl.querySelectorAll(".badge.deadline")) {
+    const task = Game.state.tasks.find((t) => t.id === Number(node.dataset.taskId));
+    if (!task || task.done) continue;
+    node.textContent = formatDeadline(task.deadline);
+    node.classList.toggle("overdue", task.deadline < Date.now());
   }
 
   for (const node of AppUI.els.listEl.querySelectorAll(".badge.timer.running")) {

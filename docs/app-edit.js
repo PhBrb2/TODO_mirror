@@ -123,12 +123,14 @@ function promptDifficultyRating(task) {
   setTimeout(() => panel.remove(), Game.RATE_PROMPT_TIMEOUT);
 }
 
-function buildEditSelectors(task, listSel, diff, rep) {
+function buildEditSelectors(task, listSel, diff, rep, scheduleArea, timeLimit) {
   const selectors = document.createElement("div");
   selectors.className = "edit-selectors form-row-labeled";
   selectors.appendChild(labeledField("Type", [listSel.el]));
   selectors.appendChild(labeledField("Difficulty", [diff.el]));
   selectors.appendChild(labeledField("Repeat", [rep.el]));
+  selectors.appendChild(scheduleArea.dueAtField);
+  selectors.appendChild(labeledField("⏱️ Time limit", [timeLimit.el]));
   return selectors;
 }
 
@@ -136,12 +138,12 @@ function buildEditScheduleArea(task) {
   const scheduleValues = scheduleValuesFromTask(task);
   const scheduleWrap = document.createElement("div");
   scheduleWrap.className = "repeat-schedule edit-schedule";
-  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null };
+  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, endOfDayBtn: document.createElement("button") };
   state.schedule = buildScheduleControls(task.repeat, scheduleValues, true);
   scheduleWrap.appendChild(state.schedule.el);
   state.dueAtWheelsWrap = document.createElement("div");
   state.dueAtWheelsWrap.className = "due-at-wheels";
-  state.dueAtField = labeledField("\ud83d\udd54 Due at", [state.dueAtWheelsWrap], true);
+  state.dueAtField = labeledField("\ud83d\udd54 Due at", [state.dueAtWheelsWrap], true, state.endOfDayBtn);
   return state;
 }
 
@@ -159,6 +161,8 @@ function refreshEditSchedule(task, edit) {
   if (showDueAt) {
     scheduleArea.dueAt = createDueAtWheels(scheduleArea.scheduleValues.repeatTime, true);
     for (const el of scheduleArea.dueAt.els) scheduleArea.dueAtWheelsWrap.appendChild(el);
+    scheduleArea.endOfDayBtn.replaceWith(scheduleArea.dueAt.endOfDayBtn);
+    scheduleArea.endOfDayBtn = scheduleArea.dueAt.endOfDayBtn;
   } else {
     scheduleArea.dueAt = null;
   }
@@ -173,15 +177,6 @@ function updateEditWheelsEnabled(task, edit) {
     ? "Difficulty is derived from the most difficult sub-task"
     : "";
   edit.rep.el.title = isFun ? "Fun tasks never repeat" : "";
-}
-
-function buildEditBottomRow(scheduleArea, timeLimit) {
-  const timeLimitField = labeledField("\u23f1\ufe0f Time limit", [timeLimit.el]);
-  const bottomRow = document.createElement("div");
-  bottomRow.className = "form-row form-row-labeled edit-bottom-row";
-  bottomRow.appendChild(scheduleArea.dueAtField);
-  bottomRow.appendChild(timeLimitField);
-  return bottomRow;
 }
 
 function saveEditRow(task, edit) {
@@ -222,15 +217,14 @@ function openEditRow(task) {
   edit.rep = createWheel(REPEAT_OPTIONS, task.repeat, "Repeat", onChange, true);
   edit.scheduleArea = buildEditScheduleArea(task);
 
-  const selectors = buildEditSelectors(task, edit.listSel, edit.diff, edit.rep);
-  const bottomRow = buildEditBottomRow(edit.scheduleArea, edit.timeLimit);
+  const selectors = buildEditSelectors(task, edit.listSel, edit.diff, edit.rep, edit.scheduleArea, edit.timeLimit);
 
   updateEditWheelsEnabled(task, edit);
   refreshEditSchedule(task, edit);
 
   E.pending = {
     kind: "task",
-    controls: [selectors, edit.scheduleArea.scheduleWrap, bottomRow],
+    controls: [selectors, edit.scheduleArea.scheduleWrap],
     onSave: (title) => {
       edit.titleInput = { value: title };
       saveEditRow(task, edit);
@@ -239,4 +233,4 @@ function openEditRow(task) {
   render();
 }
 
-export { RATING_OPTIONS, activateEdit, buildEditBottomRow, buildEditControlsRow, buildEditScheduleArea, buildEditSelectors, buildTitleInput, clearEditing, editValues, editingSubtaskOf, openEditRow, openSubtaskEdit, outsideEditDown, promptDifficultyRating, refreshEditSchedule, saveEditRow, updateEditWheelsEnabled  };
+export { RATING_OPTIONS, activateEdit, buildEditControlsRow, buildEditScheduleArea, buildEditSelectors, buildTitleInput, clearEditing, editValues, editingSubtaskOf, openEditRow, openSubtaskEdit, outsideEditDown, promptDifficultyRating, refreshEditSchedule, saveEditRow, updateEditWheelsEnabled  };

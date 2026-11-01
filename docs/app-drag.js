@@ -7,7 +7,15 @@ const D = AppUI.drag;
 
 const DRAG_HOLD_MS = 1000;
 
-// drag state lives in AppUI.drag (D)
+// While a hold-drag is armed or active, touch scrolling must not start:
+// the browser would otherwise scroll the page and swallow the gesture.
+document.addEventListener(
+  "touchmove",
+  (ev) => {
+    if (D.armed || D.active) ev.preventDefault();
+  },
+  { passive: false }
+);
 
 function clearDropHighlights() {
   document.querySelectorAll(".drop-target").forEach((el) => el.classList.remove("drop-target"));

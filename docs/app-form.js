@@ -171,9 +171,11 @@ function updateCreateFormMode() {
   AppUI.els.scheduleContainer.appendChild(AppUI.scheduleControls.el);
   AppUI.els.scheduleContainer.classList.toggle("hidden", AppUI.scheduleControls.el.childElementCount === 0);
   AppUI.els.dueAtWheelsEl.innerHTML = "";
+  AppUI.els.dueAtLabelRow.querySelectorAll(".end-of-day-btn").forEach((b) => b.remove());
   if (scheduleShowsTimeOfDay(repeat)) {
     AppUI.dueAtWheelsControls = createDueAtWheels(undefined, false);
     for (const el of AppUI.dueAtWheelsControls.els) AppUI.els.dueAtWheelsEl.appendChild(el);
+    AppUI.els.dueAtLabelRow.appendChild(AppUI.dueAtWheelsControls.endOfDayBtn);
     AppUI.els.dueAtField.classList.remove("hidden");
   } else {
     AppUI.dueAtWheelsControls = null;
