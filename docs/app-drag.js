@@ -50,11 +50,10 @@ function finishDrag(ev) {
   }
 }
 
-function holdDraggable(li, canDrag, onDragStart) {
+function holdDraggable(li, onDragStart) {
   li.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     if (e.target.closest("button, input, select, a")) return;
-    if (!canDrag()) return;
     const drag = createHoldSession(li, e, onDragStart);
     document.addEventListener("pointermove", drag.onMove, { passive: false });
     document.addEventListener("pointerup", drag.onUp);
@@ -122,19 +121,11 @@ function createHoldSession(li, e, onDragStart) {
 }
 
 function taskDraggable(li, task) {
-  holdDraggable(
-    li,
-    () => !task.done,
-    () => ({ kind: "task", task })
-  );
+  holdDraggable(li, () => ({ kind: "task", task }));
 }
 
 function subtaskDraggable(row, parent, subtask) {
-  holdDraggable(
-    row,
-    () => !subtask.done && !parent.done,
-    () => ({ kind: "subtask", parent, subtask })
-  );
+  holdDraggable(row, () => ({ kind: "subtask", parent, subtask }));
 }
 
 export { DRAG_HOLD_MS, clearDropHighlights, createHoldSession, dropTargetAt, finishDrag, holdDraggable, subtaskDraggable, taskDraggable  };

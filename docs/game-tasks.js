@@ -132,7 +132,7 @@ function chainHead(siblings, item) {
 }
 
 function chainIn(siblings, item, targetId, linkEmoji) {
-  if (!item || item.done) return { ok: false, reason: "not chainable" };
+  if (!item) return { ok: false, reason: "not chainable" };
   const target = siblings.find((s) => s.id === targetId);
   if (!target || target.id === item.id) return { ok: false, reason: "invalid target" };
   if (item.list === "fun" || target.list === "fun") {
