@@ -284,6 +284,27 @@ body.actions-hidden .subtask-add { display: none; }
   opacity: 0.8;
 }
 .chain-unlink:hover { opacity: 1; }
+.chain-zigzag-row {
+  display: flex;
+  align-items: center;
+  height: 8px;
+  margin: -2px 0 -2px 18px;
+}
+.subtask-zigzag-row {
+  display: flex;
+  align-items: center;
+  height: 6px;
+  margin: -3px 0 -3px 16px;
+}
+.chain-zigzag { flex: 1; width: 100%; height: 100%; }
+.chain-zigzag polyline {
+  fill: none;
+  stroke: #8b5cf6;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.65;
+}
 .subtask { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .subtask.drag-ready { outline: 2px dashed #8b5cf6; outline-offset: 1px; }
 .subtask.dragging { opacity: 0.45; }

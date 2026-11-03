@@ -23,12 +23,26 @@ function highlightRating(task, now) {
 
 function highlightTasks() {
   const now = Date.now();
-  return state.tasks
+  const candidates = state.tasks
     .filter((t) => !t.done && t.list !== "fun")
     .map((t) => ({ task: t, score: highlightRating(t, now) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, HIGHLIGHT_COUNT)
-    .map((e) => e.task);
+    .sort((a, b) => b.score - a.score);
+  const result = [];
+  const countedChains = new Set();
+  for (const { task } of candidates) {
+    const head = chainHead(state.tasks, task);
+    if (countedChains.has(head.id)) continue;
+    countedChains.add(head.id);
+    const chainTasks = [];
+    for (let cur = task; cur && !cur.done; cur = chainPredecessorIn(state.tasks, cur)) {
+      chainTasks.unshift(cur);
+    }
+    for (const t of chainTasks) {
+      if (!result.includes(t)) result.push(t);
+    }
+    if (countedChains.size >= HIGHLIGHT_COUNT) break;
+  }
+  return result;
 }
 
 function addTask(title, difficulty, repeat, deadlineInput, list, timeLimit = 0) {

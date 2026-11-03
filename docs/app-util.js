@@ -183,6 +183,90 @@ function chainLinkNode(className, onUnlink, { withLine = true } = {}) {
   return row;
 }
 
+const CHAIN_VISIBLE_UNCHECKED = 2;
+
+function isGlobalEditMode() {
+  return !document.body.classList.contains("actions-hidden");
+}
+
+function chainVisibility(items, showAll) {
+  const vis = new Map();
+  for (const it of items) vis.set(it.id, { hidden: false, zigzagAbove: false, zigzagBelow: false });
+  if (showAll) return vis;
+  const byId = new Map(items.map((it) => [it.id, it]));
+  const successors = new Map();
+  const chained = new Set();
+  for (const it of items) {
+    if (!it.chainedAfter || !byId.has(it.chainedAfter)) continue;
+    chained.add(it.id);
+    if (!successors.has(it.chainedAfter)) successors.set(it.chainedAfter, []);
+    successors.get(it.chainedAfter).push(it);
+  }
+  const inChain = (it) => chained.has(it.id) || (successors.get(it.id) || []).length > 0;
+  const headOf = (item) => {
+    let head = item;
+    while (head.chainedAfter && byId.has(head.chainedAfter)) head = byId.get(head.chainedAfter);
+    return head;
+  };
+  const heads = new Set();
+  for (const it of items) if (inChain(it)) heads.add(headOf(it).id);
+  for (const headId of heads) {
+    const component = [];
+    const stack = [byId.get(headId)];
+    const seen = new Set();
+    while (stack.length) {
+      const cur = stack.pop();
+      if (seen.has(cur.id)) continue;
+      seen.add(cur.id);
+      component.push(cur);
+      for (const s of successors.get(cur.id) || []) stack.push(s);
+    }
+    const split = component.some((it) => (successors.get(it.id) || []).length > 1);
+    if (split) continue;
+    let uncheckedRun = 0;
+    let cur = byId.get(headId);
+    while (cur) {
+      const v = vis.get(cur.id);
+      if (cur.done) {
+        v.hidden = true;
+        uncheckedRun = 0;
+      } else {
+        uncheckedRun += 1;
+        if (uncheckedRun > CHAIN_VISIBLE_UNCHECKED) v.hidden = true;
+      }
+      const succ = successors.get(cur.id) || [];
+      cur = succ.length === 1 ? succ[0] : null;
+    }
+  }
+  for (const it of items) {
+    const v = vis.get(it.id);
+    if (v.hidden) continue;
+    const pred = it.chainedAfter && byId.has(it.chainedAfter) ? byId.get(it.chainedAfter) : null;
+    if (pred && vis.get(pred.id).hidden) v.zigzagAbove = true;
+    for (const s of successors.get(it.id) || []) {
+      if (vis.get(s.id).hidden) {
+        v.zigzagBelow = true;
+        break;
+      }
+    }
+  }
+  return vis;
+}
+
+function zigzagNode(className) {
+  const row = document.createElement(className === "chain-zigzag-row" ? "li" : "div");
+  row.className = className;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "chain-zigzag");
+  svg.setAttribute("viewBox", "0 0 60 8");
+  svg.setAttribute("preserveAspectRatio", "none");
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  line.setAttribute("points", "0,6 3.75,2 7.5,6 11.25,2 15,6 18.75,2 22.5,6 26.25,2 30,6 33.75,2 37.5,6 41.25,2 45,6 48.75,2 52.5,6 56.25,2 60,6");
+  svg.appendChild(line);
+  row.appendChild(svg);
+  return row;
+}
+
 const DELETE_ARM_MS = 2000;
 
 function armDeleteButton(btn, onConfirmDelete) {
@@ -247,4 +331,4 @@ function labeledField(labelText, els, hidden = false, labelExtra = null) {
   return field;
 }
 
-export { CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildSelect, chainLinkNode, chainOrdered, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining };
+export { CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildSelect, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagNode };

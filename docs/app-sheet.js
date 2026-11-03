@@ -1,6 +1,6 @@
 import * as Game from "./game.js";
 import { AppUI } from "./app-state.js";
-import { state } from "./game-state.js";
+import { emitRender, state } from "./game-state.js";
 import { setUiSheetHeightVh } from "./game-tasks.js";
 
 const SHEET_MIN_VH = 25;
@@ -80,6 +80,7 @@ function initActionsToggle() {
       "aria-label",
       hidden ? "Show edit and delete buttons" : "Hide edit and delete buttons"
     );
+    emitRender();
   });
 }
 
