@@ -46,20 +46,13 @@ function showToast(message) {
   if (toastTimer === null) displayNextToast();
 }
 
-const VIBRATE_PULSE_MS = 55;
-const VIBRATE_GAP_MS = 45;
-const VIBRATE_MAX_PULSES = 4;
+const VIBRATE_BASE_MS = 40;
+const VIBRATE_MAX_MS = 250;
 
 function vibrateForReward(reward) {
   if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function" || !reward) return;
   const score = (reward.coins || 0) + (reward.gems || 0) * 20 + (reward.xp || 0) * 2;
-  const pulses = Math.min(VIBRATE_MAX_PULSES, 1 + Math.floor(score / 25));
-  const pattern = [];
-  for (let i = 0; i < pulses; i++) {
-    if (i > 0) pattern.push(VIBRATE_GAP_MS);
-    pattern.push(VIBRATE_PULSE_MS);
-  }
-  navigator.vibrate(pattern);
+  navigator.vibrate(Math.min(VIBRATE_MAX_MS, VIBRATE_BASE_MS + Math.round(score)));
 }
 
 export { animateBalance, balanceAnim, displayNextToast, renderBalances, showToast, toastQueue, toastTimer, vibrateForReward };

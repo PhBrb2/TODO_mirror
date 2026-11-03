@@ -71,7 +71,7 @@ Curated from 2_EngagemetFeatures.md
   - ~~When a task is set to repeating, the deadline selector changes to a time-of-day selector~~
   - ~~When the task becomes available again, the new deadline is the next occurrence of that time of day~~
 - ~~Sort tasks, always show some easy medium and hard tasks, so the user can easly select one fitting their current energy level. Prioritize tasks that are due soon.~~ Manual override with sticky pin.
-- ~~F90: Haptic feedback (navigator.vibrate) on task/subtask completion — short pulse pattern that grows with the reward (coins/gems/XP); no-op where unsupported~~
+- ~~F90: Haptic feedback (navigator.vibrate) on task/subtask completion — a single short vibration whose length grows with the reward (coins/gems/XP); no-op where unsupported~~
 
 
 #### Milestones/Quests
@@ -197,7 +197,7 @@ Curated from 2_EngagemetFeatures.md
 - F76: Needs (very little) care
 
 #### Transparency
-- F77: Psychological mechanics that can be used to improve real life task completion should be taught
+- ~~F77: Psychological mechanics that can be used to improve real life task completion should be taught~~ (info page via the ℹ️ button explains usage, features and the psychology behind them)
   - Eg. habit building or breaking down big tasks
 
 

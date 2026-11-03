@@ -899,7 +899,8 @@ body.actions-hidden .subtask-add { display: none; }
 
 .shop-header h2 { margin: 0; font-size: 1.1rem; color: var(--accent); }
 
-#shop-close {
+#shop-close,
+#info-close {
   border: none;
   background: none;
   font-size: 1.1rem;
@@ -938,6 +939,36 @@ body.actions-hidden .subtask-add { display: none; }
   flex-wrap: wrap;
   gap: 10px;
   align-content: flex-start;
+}
+
+#info-content {
+  overflow-y: auto;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-section h3 {
+  margin: 14px 0 4px;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.info-section:first-child h3 { margin-top: 0; }
+
+.info-section p {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.info-section ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 #achievements-content {

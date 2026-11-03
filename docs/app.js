@@ -3,6 +3,7 @@ import { render, updateLiveClocks } from "./app-list.js";
 import { promptDifficultyRating } from "./app-edit.js";
 import { showToast } from "./app-ui.js";
 import { initOverlays } from "./app-overlays.js";
+import { initInfoOverlay } from "./app-info.js";
 import { initActionsToggle, initUiSheet } from "./app-sheet.js";
 import { AppUI } from "./app-state.js";
 import { DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, mountWheel } from "./app-util.js";
@@ -49,6 +50,7 @@ AppUI.wheels.timeLimit = mountWheel("time-limit-wheel", TIME_LIMIT_OPTIONS, 0, "
 
 initForm();
 initOverlays();
+initInfoOverlay();
 initUiSheet();
 initActionsToggle();
 updateCreateFormMode();
