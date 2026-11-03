@@ -265,16 +265,11 @@ body.actions-hidden .subtask-add { display: none; }
 .chain-link-row {
   display: flex;
   align-items: center;
-  height: 10px;
-  margin: -3px 0 -3px 18px;
+  justify-content: flex-end;
+  height: 5px;
+  margin: -4px 0 -4px 18px;
+  padding-right: 10px;
 }
-.chain-line {
-  flex: 1;
-  height: 2px;
-  background: #8b5cf6;
-  border-radius: 1px;
-}
-.chain-icon-only { justify-content: flex-end; height: 8px; margin: -2px 0 -2px 18px; }
 .chain-unlink {
   background: none;
   border: none;
@@ -287,20 +282,46 @@ body.actions-hidden .subtask-add { display: none; }
 .chain-zigzag-row {
   display: flex;
   align-items: center;
-  height: 8px;
-  margin: -2px 0 -2px 18px;
+  height: 5px;
+  margin: -4px 0 -4px 18px;
 }
 .subtask-zigzag-row {
   display: flex;
   align-items: center;
+  height: 4px;
+  margin: -5px 0 -5px 16px;
+}
+.chain-corner-dot {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
+  width: 6px;
   height: 6px;
-  margin: -3px 0 -3px 16px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.subtask .chain-corner-dot { left: -2px; width: 4px; height: 4px; }
+.chain-split-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.subtask .chain-split-dot { width: 6px; height: 6px; margin-left: 4px; }
+.chain-inline-symbol {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
 }
 .chain-zigzag { flex: 1; width: 100%; height: 100%; }
 .chain-zigzag polyline {
   fill: none;
   stroke: #8b5cf6;
-  stroke-width: 2;
+  stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.65;
@@ -313,8 +334,10 @@ body.actions-hidden .subtask-add { display: none; }
 .subtask-link-row {
   display: flex;
   align-items: center;
-  height: 6px;
-  margin: -3px 0 -3px 16px;
+  justify-content: flex-end;
+  height: 4px;
+  margin: -5px 0 -5px 16px;
+  padding-right: 10px;
 }
 
 .deadline-label {
@@ -393,6 +416,7 @@ body.actions-hidden .subtask-add { display: none; }
   gap: 6px;
   padding: 1px 0 0 0;
   font-size: 0.85rem;
+  position: relative;
 }
 
 .subtask.done .subtask-title { text-decoration: line-through; opacity: 0.55; }

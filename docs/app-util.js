@@ -165,14 +165,9 @@ function chainOrdered(items, base) {
   return result;
 }
 
-function chainLinkNode(className, onUnlink, { withLine = true } = {}) {
+function chainLinkNode(className, onUnlink) {
   const row = document.createElement(className === "chain-link-row" ? "li" : "div");
-  row.className = className + (withLine ? "" : " chain-icon-only");
-  if (withLine) {
-    const line = document.createElement("span");
-    line.className = "chain-line";
-    row.appendChild(line);
-  }
+  row.className = className;
   const unlink = document.createElement("button");
   unlink.type = "button";
   unlink.className = "chain-unlink";
@@ -253,6 +248,84 @@ function chainVisibility(items, showAll) {
   return vis;
 }
 
+const CHAIN_PALETTE = [
+  "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+  "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+];
+
+function chainColorInfo(items, startIndex = 0) {
+  const byId = new Map(items.map((it) => [it.id, it]));
+  const indexOf = new Map(items.map((it, i) => [it.id, i]));
+  const successors = new Map();
+  for (const it of items) {
+    if (!it.chainedAfter || !byId.has(it.chainedAfter)) continue;
+    if (!successors.has(it.chainedAfter)) successors.set(it.chainedAfter, []);
+    successors.get(it.chainedAfter).push(it);
+  }
+  for (const list of successors.values()) list.sort((a, b) => indexOf.get(a.id) - indexOf.get(b.id));
+  const branchDots = new Map();
+  const splitDots = new Map();
+  const assigned = new Set();
+  let colorIndex = startIndex;
+  for (const it of items) {
+    const chained = Boolean(it.chainedAfter && byId.has(it.chainedAfter));
+    if (!chained && !(successors.get(it.id) || []).length) continue;
+    let head = it;
+    while (head.chainedAfter && byId.has(head.chainedAfter)) head = byId.get(head.chainedAfter);
+    if (assigned.has(head.id)) continue;
+    assigned.add(head.id);
+    const ordered = [];
+    const emitted = new Set();
+    const emit = (item) => {
+      if (emitted.has(item.id)) return;
+      emitted.add(item.id);
+      ordered.push(item);
+      for (const s of successors.get(item.id) || []) emit(s);
+    };
+    emit(head);
+    for (const c of ordered) {
+      const succ = successors.get(c.id) || [];
+      if (succ.length > 1) {
+        const color = CHAIN_PALETTE[colorIndex % CHAIN_PALETTE.length];
+        colorIndex += 1;
+        splitDots.set(c.id, color);
+        for (const s of succ) branchDots.set(s.id, color);
+      }
+    }
+  }
+  return { branchDots, splitDots, nextIndex: colorIndex };
+}
+
+function buildChainColorInfo(tasks) {
+  const taskLevel = chainColorInfo(tasks, 0);
+  const subtasks = new Map();
+  let nextIndex = taskLevel.nextIndex;
+  for (const task of tasks) {
+    if (!task.subtasks || task.subtasks.length === 0) continue;
+    const info = chainColorInfo(task.subtasks, nextIndex);
+    nextIndex = info.nextIndex;
+    subtasks.set(task.id, { branchDots: info.branchDots, splitDots: info.splitDots });
+  }
+  return { branchDots: taskLevel.branchDots, splitDots: taskLevel.splitDots, subtasks };
+}
+
+function chainInlineSymbol(onUnlink) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "chain-unlink chain-inline-symbol";
+  btn.textContent = "\ud83d\udd17";
+  btn.title = "Chained \u2014 click to remove the link";
+  btn.addEventListener("click", onUnlink);
+  return btn;
+}
+
+function chainDot(className, color) {
+  const dot = document.createElement("span");
+  dot.className = className;
+  dot.style.background = color;
+  return dot;
+}
+
 function zigzagNode(className) {
   const row = document.createElement(className === "chain-zigzag-row" ? "li" : "div");
   row.className = className;
@@ -331,4 +404,4 @@ function labeledField(labelText, els, hidden = false, labelExtra = null) {
   return field;
 }
 
-export { CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildSelect, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagNode };
+export { CHAIN_PALETTE, CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildChainColorInfo, buildSelect, chainColorInfo, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagNode };
