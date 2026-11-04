@@ -42,6 +42,9 @@ function highlightTasks() {
     }
     if (countedChains.size >= HIGHLIGHT_COUNT) break;
   }
+  for (const p of state.tasks) {
+    if (p.pinned && !p.done && p.list !== "fun" && !result.includes(p)) result.push(p);
+  }
   return result;
 }
 
@@ -69,6 +72,8 @@ function addTask(title, difficulty, repeat, deadlineInput, list, timeLimit = 0) 
     repeatMonthlyFirst: false,
     repeatCustomMs: CUSTOM_REPEAT_DEFAULT_MS,
     chainedAfter: 0,
+    pinned: false,
+    streakFreezeKey: null,
     timeLimit: isFun ? 0 : (TIME_LIMIT_MINUTES.includes(timeLimit) ? timeLimit : 0),
     startedAt: 0,
     ratedDifficulty: null,
@@ -396,6 +401,7 @@ function uncompleteOneTask(task) {
     task.streak = Math.max(0, task.streak - 1);
   }
   task.completedAt = null;
+  task.streakFreezeKey = null;
 
   state.dailyCompleted = Math.max(0, state.dailyCompleted - 1);
   state.weeklyCompleted = Math.max(0, state.weeklyCompleted - 1);
@@ -516,6 +522,9 @@ const EDIT_UPDATERS = {
   timeLimit(task, v) {
     task.timeLimit = TIME_LIMIT_MINUTES.includes(v) ? v : 0;
     if (!task.timeLimit) task.startedAt = 0;
+  },
+  pinned(task, v) {
+    task.pinned = v === true;
   },
   repeatTime(task, v) {
     task.repeatTime = Number.isFinite(v)

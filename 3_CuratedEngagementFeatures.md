@@ -70,7 +70,7 @@ Curated from 2_EngagemetFeatures.md
 - ~~F89: Repeating tasks get an option "time after completion": the task becomes available again one interval after it was completed, instead of the next calendar interval (eg. next Monday).~~
   - ~~When a task is set to repeating, the deadline selector changes to a time-of-day selector~~
   - ~~When the task becomes available again, the new deadline is the next occurrence of that time of day~~
-- ~~Sort tasks, always show some easy medium and hard tasks, so the user can easly select one fitting their current energy level. Prioritize tasks that are due soon.~~ Manual override with sticky pin.
+- ~~Sort tasks, always show some easy medium and hard tasks, so the user can easly select one fitting their current energy level. Prioritize tasks that are due soon.~~ ~~Manual override with sticky pin~~ (📌 on a task: always in Highlight, first in other lists)
 - ~~F90: Haptic feedback (navigator.vibrate) on task/subtask completion — a single short vibration whose length grows with the reward (coins/gems/XP); no-op where unsupported~~
 
 
@@ -110,10 +110,10 @@ Curated from 2_EngagemetFeatures.md
 
 
 #### Streak freeze
-- F37: protects a streak for a day
-- F38: Can be bought with gems to protect one streak, all streaks or all streaks for a user specified time (eg. for when the user is on vacation)
+- ~~F37: protects a streak for a day~~ (streak freeze bought with gems in the shop; auto-used when a streak would fail)
+- ~~F38: Can be bought with gems to protect one streak, all streaks or all streaks for a user specified time (eg. for when the user is on vacation)~~ (one freeze protects one streak for one missed period; bought in the shop)
   - Notification when multi day freeze is over
-- F39: Option to automaticly freeze a streak if it would have been lost 
+- ~~F39: Option to automaticly freeze a streak if it would have been lost~~
 
 
 #### Notifications

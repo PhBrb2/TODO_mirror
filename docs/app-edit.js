@@ -126,21 +126,45 @@ function promptDifficultyRating(task) {
 function buildEditSelectors(task, listSel, diff, rep, scheduleArea, timeLimit) {
   const selectors = document.createElement("div");
   selectors.className = "edit-selectors form-row-labeled";
-  selectors.appendChild(labeledField("Type", [listSel.el]));
-  selectors.appendChild(labeledField("Difficulty", [diff.el]));
-  selectors.appendChild(labeledField("Repeat", [rep.el]));
-  selectors.appendChild(scheduleArea.dueAtField);
-  selectors.appendChild(labeledField("⏱️ Time limit", [timeLimit.el]));
+  const mainRow = document.createElement("div");
+  mainRow.className = "edit-selectors-row";
+  mainRow.appendChild(labeledField("Type", [listSel.el]));
+  mainRow.appendChild(labeledField("Difficulty", [diff.el]));
+  mainRow.appendChild(labeledField("Repeat", [rep.el]));
+  const timeRow = document.createElement("div");
+  timeRow.className = "edit-selectors-row";
+  timeRow.appendChild(scheduleArea.dueAtField);
+  timeRow.appendChild(scheduleArea.deadlineSlot);
+  timeRow.appendChild(labeledField("⏱️ Time limit", [timeLimit.el]));
+  selectors.appendChild(mainRow);
+  selectors.appendChild(timeRow);
   return selectors;
+}
+
+function syncDeadlineSlot(scheduleArea) {
+  const slot = scheduleArea.deadlineSlot;
+  slot.innerHTML = "";
+  const dl = scheduleArea.schedule && scheduleArea.schedule.el
+    ? scheduleArea.schedule.el.querySelector(".deadline-label")
+    : null;
+  if (dl) {
+    slot.appendChild(dl);
+    slot.classList.remove("hidden");
+  } else {
+    slot.classList.add("hidden");
+  }
 }
 
 function buildEditScheduleArea(task) {
   const scheduleValues = scheduleValuesFromTask(task);
   const scheduleWrap = document.createElement("div");
   scheduleWrap.className = "repeat-schedule edit-schedule";
-  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, endOfDayBtn: document.createElement("button") };
+  const deadlineSlot = document.createElement("div");
+  deadlineSlot.className = "labeled-field deadline-slot hidden";
+  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, deadlineSlot, endOfDayBtn: document.createElement("button") };
   state.schedule = buildScheduleControls(task.repeat, scheduleValues, true);
   scheduleWrap.appendChild(state.schedule.el);
+  syncDeadlineSlot(state);
   state.dueAtWheelsWrap = document.createElement("div");
   state.dueAtWheelsWrap.className = "due-at-wheels";
   state.dueAtField = labeledField("\ud83d\udd54 Due at", [state.dueAtWheelsWrap], true, state.endOfDayBtn);
@@ -155,6 +179,7 @@ function refreshEditSchedule(task, edit) {
   scheduleArea.scheduleWrap.innerHTML = "";
   scheduleArea.schedule = buildScheduleControls(repeat, scheduleArea.scheduleValues, true);
   scheduleArea.scheduleWrap.appendChild(scheduleArea.schedule.el);
+  syncDeadlineSlot(scheduleArea);
   scheduleArea.scheduleWrap.classList.toggle("hidden", scheduleArea.schedule.el.childElementCount === 0);
   const showDueAt = scheduleShowsTimeOfDay(repeat);
   scheduleArea.dueAtWheelsWrap.innerHTML = "";
@@ -233,4 +258,4 @@ function openEditRow(task) {
   render();
 }
 
-export { RATING_OPTIONS, activateEdit, buildEditControlsRow, buildEditScheduleArea, buildEditSelectors, buildTitleInput, clearEditing, editValues, editingSubtaskOf, openEditRow, openSubtaskEdit, outsideEditDown, promptDifficultyRating, refreshEditSchedule, saveEditRow, updateEditWheelsEnabled  };
+export { RATING_OPTIONS, activateEdit, buildEditControlsRow, buildEditScheduleArea, buildEditSelectors, buildTitleInput, clearEditing, editValues, editingSubtaskOf, openEditRow, openSubtaskEdit, outsideEditDown, promptDifficultyRating, refreshEditSchedule, saveEditRow, syncDeadlineSlot, updateEditWheelsEnabled  };

@@ -133,6 +133,7 @@ function formatDeadline(ts) {
 function sortTasks(tasks) {
   const rank = { too_easy: 0, easy: 1, medium: 2, hard: 3 };
   return [...tasks].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
     if (a.done !== b.done) return a.done ? 1 : -1;
     const aDue = a.deadline && !a.done ? a.deadline : Infinity;
     const bDue = b.deadline && !b.done ? b.deadline : Infinity;
@@ -326,9 +327,7 @@ function chainDot(className, color) {
   return dot;
 }
 
-function zigzagNode(className) {
-  const row = document.createElement(className === "chain-zigzag-row" ? "li" : "div");
-  row.className = className;
+function zigzagSvg() {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("class", "chain-zigzag");
   svg.setAttribute("viewBox", "0 0 60 8");
@@ -336,8 +335,14 @@ function zigzagNode(className) {
   const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
   line.setAttribute("points", "0,6 3.75,2 7.5,6 11.25,2 15,6 18.75,2 22.5,6 26.25,2 30,6 33.75,2 37.5,6 41.25,2 45,6 48.75,2 52.5,6 56.25,2 60,6");
   svg.appendChild(line);
-  row.appendChild(svg);
-  return row;
+  return svg;
+}
+
+function zigzagEdgeNode(above) {
+  const el = document.createElement("div");
+  el.className = "chain-zigzag-edge " + (above ? "chain-zigzag-above" : "chain-zigzag-below");
+  el.appendChild(zigzagSvg());
+  return el;
 }
 
 const DELETE_ARM_MS = 2000;
@@ -404,4 +409,4 @@ function labeledField(labelText, els, hidden = false, labelExtra = null) {
   return field;
 }
 
-export { CHAIN_PALETTE, CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildChainColorInfo, buildSelect, chainColorInfo, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagNode };
+export { CHAIN_PALETTE, CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildChainColorInfo, buildSelect, chainColorInfo, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagEdgeNode, zigzagSvg };

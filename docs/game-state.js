@@ -40,6 +40,7 @@ function defaultState() {
     achievements: { unlocked: [], stats: defaultAchievementStats() },
     dayStartHour: 0,
     uiSheetHeightVh: 0,
+    streakFreezes: 0,
   };
 }
 
@@ -112,6 +113,8 @@ const TASK_FIELD_MIGRATORS = {
   repeatMonthlyFirst: (raw) => raw.repeatMonthlyFirst === true,
   repeatCustomMs: (raw) => Math.max(60000, num(raw.repeatCustomMs, CUSTOM_REPEAT_DEFAULT_MS)),
   chainedAfter: (raw) => num(raw.chainedAfter, 0),
+  pinned: (raw) => raw.pinned === true,
+  streakFreezeKey: (raw) => (typeof raw.streakFreezeKey === "string" ? raw.streakFreezeKey : null),
   timeLimit: (raw) => num(raw.timeLimit, 0),
   startedAt: (raw) => num(raw.startedAt, 0),
   ratedDifficulty: (raw) => raw.ratedDifficulty ?? null,
@@ -232,6 +235,7 @@ function migrateState(raw) {
     achievements: migrateAchievements(raw.achievements),
     dayStartHour: Math.min(23, Math.max(0, Math.floor(num(raw.dayStartHour, 0)))),
     uiSheetHeightVh: Math.min(95, Math.max(0, num(raw.uiSheetHeightVh, 0))),
+    streakFreezes: num(raw.streakFreezes, 0),
   };
 }
 

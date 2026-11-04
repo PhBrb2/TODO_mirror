@@ -155,7 +155,10 @@ function streakHasFailed(task, now) {
   const lastKey = task.streakDayKeys[task.streakDayKeys.length - 1];
   const currentKey = repeatKey(task, now);
   if (lastKey === currentKey) return false;
-  return lastKey !== prevRepeatKey(task, now);
+  const prevKey = prevRepeatKey(task, now);
+  if (lastKey === prevKey) return false;
+  if (task.streakFreezeKey === prevKey) return false;
+  return true;
 }
 
 function checkRecurringTasks() {
@@ -181,8 +184,14 @@ function checkRecurringTasks() {
       }
     }
     if (streakHasFailed(task, now)) {
-      task.streak = 0;
-      task.streakDayKeys = [];
+      if (state.streakFreezes > 0) {
+        state.streakFreezes -= 1;
+        task.streakFreezeKey = prevRepeatKey(task, now);
+        emitToast(`\ud83c\uddf8\ufe0f Streak freeze used \u2014 "${task.title}" keeps its \ud83d\udd25 ${task.streak} streak`);
+      } else {
+        task.streak = 0;
+        task.streakDayKeys = [];
+      }
       changed = true;
     }
   }

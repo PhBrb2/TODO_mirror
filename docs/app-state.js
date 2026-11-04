@@ -20,6 +20,7 @@ export const AppUI = {
     taskInput: $("task-input"),
     scheduleContainer: $("repeat-schedule"),
     dueAtField: $("due-at-field"),
+    deadlineSlot: $("deadline-slot"),
     dueAtLabelRow: $("due-at-label-row"),
     dueAtWheelsEl: $("due-at-wheels"),
     toastEl: $("toast"),

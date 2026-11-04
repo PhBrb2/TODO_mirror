@@ -69,9 +69,38 @@ function shopItemNode(item, onBuy) {
   return card;
 }
 
+function streakFreezeNode(ctx) {
+  const card = document.createElement("div");
+  card.className = "shop-item";
+  const emoji = document.createElement("div");
+  emoji.className = "item-emoji";
+  emoji.textContent = "\ud83c\uddf8\ufe0f";
+  const name = document.createElement("div");
+  name.className = "item-name";
+  name.textContent = "Streak freeze";
+  const cost = document.createElement("div");
+  cost.className = "item-cost";
+  cost.textContent = `${Game.STREAK_FREEZE_GEM_COST} \ud83d\udc8e \u2014 protects one streak for one missed period`;
+  const stock = document.createElement("div");
+  stock.className = "item-lock";
+  stock.textContent = `${Game.state.streakFreezes} in stock`;
+  const buy = document.createElement("button");
+  buy.type = "button";
+  buy.textContent = "Buy";
+  buy.disabled = Game.state.gems < Game.STREAK_FREEZE_GEM_COST;
+  buy.addEventListener("click", () => ctx.onBuyFreeze());
+  card.appendChild(emoji);
+  card.appendChild(name);
+  card.appendChild(cost);
+  card.appendChild(stock);
+  card.appendChild(buy);
+  return card;
+}
+
 function renderShop(ctx) {
   const { shopContent } = AppUI.els;
   shopContent.innerHTML = "";
+  if (ctx.shopTab === "shop") shopContent.appendChild(streakFreezeNode(ctx));
   const items = ctx.shopTab === "shop"
     ? Game.SHOP_ITEMS
     : Game.SHOP_ITEMS.filter((it) => Game.itemIsOwned(it.id));
@@ -156,6 +185,11 @@ function initOverlays() {
       }
       renderShop(ctx);
     },
+    onBuyFreeze() {
+      const result = Game.buyStreakFreeze();
+      if (!result.ok) showToast("Not enough gems \ud83d\udc94");
+      renderShop(ctx);
+    },
   };
 
   const openAchievements = () => {
@@ -204,4 +238,4 @@ function initOverlays() {
   });
 }
 
-export { ACHIEVEMENT_STAT_KEYS, achievementNode, achievementProgressValue, initOverlays, itemCostLabel, renderAchievements, renderShop, setShopTab, shopItemNode };
+export { ACHIEVEMENT_STAT_KEYS, achievementNode, achievementProgressValue, initOverlays, itemCostLabel, renderAchievements, renderShop, setShopTab, shopItemNode, streakFreezeNode };

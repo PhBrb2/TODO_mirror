@@ -169,6 +169,14 @@ function updateCreateFormMode() {
   AppUI.els.scheduleContainer.innerHTML = "";
   AppUI.scheduleControls = buildScheduleControls(repeat, {}, false);
   AppUI.els.scheduleContainer.appendChild(AppUI.scheduleControls.el);
+  const deadlineLabel = AppUI.scheduleControls.el.querySelector(".deadline-label");
+  AppUI.els.deadlineSlot.innerHTML = "";
+  if (deadlineLabel) {
+    AppUI.els.deadlineSlot.appendChild(deadlineLabel);
+    AppUI.els.deadlineSlot.classList.remove("hidden");
+  } else {
+    AppUI.els.deadlineSlot.classList.add("hidden");
+  }
   AppUI.els.scheduleContainer.classList.toggle("hidden", AppUI.scheduleControls.el.childElementCount === 0);
   AppUI.els.dueAtWheelsEl.innerHTML = "";
   AppUI.els.dueAtLabelRow.querySelectorAll(".end-of-day-btn").forEach((b) => b.remove());

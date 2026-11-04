@@ -1,10 +1,20 @@
-import { CHEST_ITEM_ID, CHEST_PURCHASE_OPEN_MS, ITEM_ROTATIONS, ITEM_TYPES, PLACEMENT_VERSION, SHOP_ITEMS } from "./game-constants.js";
+import { CHEST_ITEM_ID, CHEST_PURCHASE_OPEN_MS, ITEM_ROTATIONS, ITEM_TYPES, PLACEMENT_VERSION, SHOP_ITEMS, STREAK_FREEZE_GEM_COST } from "./game-constants.js";
 import { levelFromXp } from "./game-progression.js";
 import { announceAchievements, earnChest, trackAchievement } from "./game-rewards.js";
-import { itemIsOwned, normalizePlaced, saveState, state } from "./game-state.js";
+import { emitRender, emitToast, itemIsOwned, normalizePlaced, saveState, state } from "./game-state.js";
 
 function shopItemById(id) {
   return SHOP_ITEMS.find((it) => it.id === id) || null;
+}
+
+function buyStreakFreeze() {
+  if (state.gems < STREAK_FREEZE_GEM_COST) return { ok: false, reason: "gems" };
+  state.gems -= STREAK_FREEZE_GEM_COST;
+  state.streakFreezes += 1;
+  emitToast(`\ud83c\uddf8\ufe0f Streak freeze bought \u2014 ${state.streakFreezes} available`);
+  saveState();
+  emitRender();
+  return { ok: true };
 }
 
 function itemIsUnlockable(item) {
@@ -86,4 +96,4 @@ function rotateItem(itemId) {
   return { ok: true };
 }
 
-export { cellTakenBy, defaultPlaceItem, firstFreeCell, itemIsUnlockable, itemPlacement, placeItem, purchaseItem, rotateItem, shopItemById };
+export { buyStreakFreeze, cellTakenBy, defaultPlaceItem, firstFreeCell, itemIsUnlockable, itemPlacement, placeItem, purchaseItem, rotateItem, shopItemById };
