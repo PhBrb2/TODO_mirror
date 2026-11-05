@@ -2,6 +2,7 @@ import * as Game from "./game.js";
 import { AppUI } from "./app-state.js";
 import { emitRender, state } from "./game-state.js";
 import { setUiSheetHeightVh } from "./game-tasks.js";
+import { clearEditing } from "./app-edit.js";
 
 const SHEET_MIN_VH = 25;
 const SHEET_TOP_GAP_PX = 8;
@@ -75,6 +76,7 @@ function initUiSheet() {
 function initActionsToggle() {
   AppUI.els.toggleActionsBtn.addEventListener("click", () => {
     const hidden = document.body.classList.toggle("actions-hidden");
+    if (hidden) clearEditing();
     AppUI.els.toggleActionsBtn.setAttribute("aria-pressed", String(!hidden));
     AppUI.els.toggleActionsBtn.setAttribute(
       "aria-label",

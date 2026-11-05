@@ -355,7 +355,20 @@ body.actions-hidden .subtask-add { display: none; }
   color: var(--muted);
 }
 
-#deadline-input {
+.deadline-input-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd8f0;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.deadline-input {
   flex: 1;
   border: none;
   background: transparent;
@@ -364,7 +377,7 @@ body.actions-hidden .subtask-add { display: none; }
   min-width: 0;
 }
 
-#deadline-input:focus { outline: none; }
+.deadline-input:focus { outline: none; }
 
 .gems b { color: #00b894; }
 .level b { color: #e17055; }
@@ -1056,7 +1069,6 @@ body.actions-hidden .subtask-add { display: none; }
   align-items: center;
 }
 
-.repeat-schedule .deadline-label { flex: 1 1 100%; }
 .repeat-schedule .repeat-every-label { flex: 1 1 100%; font-size: 0.85rem; color: var(--muted); }
 .repeat-schedule .wheel-select { flex: 1; min-width: 0; }
 .repeat-schedule .due-at-hour,
@@ -1105,7 +1117,6 @@ body.actions-hidden .subtask-add { display: none; }
 #deadline-slot { flex: 2 1 40%; min-width: 190px; }
 
 .edit-schedule { margin-top: 6px; flex: 1 1 100%; }
-.edit-schedule .deadline-label { flex: 1 1 100%; }
 .edit-schedule .wheel-select { flex: 1 1 30%; }
 
 .after-completion-label {

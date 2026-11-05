@@ -1,18 +1,20 @@
 import * as Game from "./game.js";
 import { AppUI } from "./app-state.js";
-import { CUSTOM_DAYS_OPTIONS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, WEEKDAY_CHECKBOXES, createDueAtWheels, createWheel, deadlineInputValue, isRepeatingRepeat, readScheduleValues } from "./app-util.js";
+import { CUSTOM_DAYS_OPTIONS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, WEEKDAY_CHECKBOXES, createDueAtWheels, createWheel, deadlineInputValue, isRepeatingRepeat, labeledField, readScheduleValues } from "./app-util.js";
 
 const W = AppUI.wheels;
 
 function deadlineSchedule(wrap, values, read) {
-  const label = document.createElement("label");
-  label.className = "deadline-label";
-  label.textContent = "\ud83d\udcc5 Deadline ";
   const input = document.createElement("input");
   input.type = "datetime-local";
+  input.className = "deadline-input";
   if (values.deadline) input.value = deadlineInputValue({ deadline: values.deadline });
-  label.appendChild(input);
-  wrap.appendChild(label);
+  const box = document.createElement("div");
+  box.className = "deadline-input-box";
+  box.appendChild(input);
+  const field = labeledField("\ud83d\udcc5 Deadline", [box]);
+  field.classList.add("deadline-field");
+  wrap.appendChild(field);
   read.deadline = () => input.value;
 }
 
@@ -169,10 +171,10 @@ function updateCreateFormMode() {
   AppUI.els.scheduleContainer.innerHTML = "";
   AppUI.scheduleControls = buildScheduleControls(repeat, {}, false);
   AppUI.els.scheduleContainer.appendChild(AppUI.scheduleControls.el);
-  const deadlineLabel = AppUI.scheduleControls.el.querySelector(".deadline-label");
+  const deadlineField = AppUI.scheduleControls.el.querySelector(".deadline-field");
   AppUI.els.deadlineSlot.innerHTML = "";
-  if (deadlineLabel) {
-    AppUI.els.deadlineSlot.appendChild(deadlineLabel);
+  if (deadlineField) {
+    AppUI.els.deadlineSlot.appendChild(deadlineField);
     AppUI.els.deadlineSlot.classList.remove("hidden");
   } else {
     AppUI.els.deadlineSlot.classList.add("hidden");

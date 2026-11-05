@@ -145,7 +145,7 @@ function syncDeadlineSlot(scheduleArea) {
   const slot = scheduleArea.deadlineSlot;
   slot.innerHTML = "";
   const dl = scheduleArea.schedule && scheduleArea.schedule.el
-    ? scheduleArea.schedule.el.querySelector(".deadline-label")
+    ? scheduleArea.schedule.el.querySelector(".deadline-field")
     : null;
   if (dl) {
     slot.appendChild(dl);
