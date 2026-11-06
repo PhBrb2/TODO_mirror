@@ -73,19 +73,23 @@ function initUiSheet() {
   });
 }
 
+function setGlobalEditMode(enabled) {
+  document.body.classList.toggle("actions-hidden", !enabled);
+  AppUI.els.toggleActionsBtn.setAttribute("aria-pressed", String(enabled));
+  AppUI.els.toggleActionsBtn.setAttribute(
+    "aria-label",
+    enabled ? "Hide edit and delete buttons" : "Show edit and delete buttons"
+  );
+  if (!enabled) clearEditing();
+}
+
 function initActionsToggle() {
   AppUI.els.toggleActionsBtn.addEventListener("click", () => {
-    const hidden = document.body.classList.toggle("actions-hidden");
-    if (hidden) clearEditing();
-    AppUI.els.toggleActionsBtn.setAttribute("aria-pressed", String(!hidden));
-    AppUI.els.toggleActionsBtn.setAttribute(
-      "aria-label",
-      hidden ? "Show edit and delete buttons" : "Hide edit and delete buttons"
-    );
+    setGlobalEditMode(document.body.classList.contains("actions-hidden"));
     emitRender();
   });
 }
 
 initActionsToggle = initActionsToggle;
 
-export { SHEET_MIN_VH, SHEET_TOP_GAP_PX, applySheetHeightVh, getSheetMaxVh, getVhPx, initActionsToggle, initUiSheet, vhProbeEl };
+export { SHEET_MIN_VH, SHEET_TOP_GAP_PX, applySheetHeightVh, getSheetMaxVh, getVhPx, initActionsToggle, initUiSheet, setGlobalEditMode, vhProbeEl };

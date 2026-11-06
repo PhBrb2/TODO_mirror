@@ -3,6 +3,7 @@ import { AppUI } from "./app-state.js";
 import { renderBalances } from "./app-ui.js";
 import { showToast } from "./app-ui.js";
 import { render } from "./app-list.js";
+import { buildSelect } from "./app-util.js";
 
 const ACHIEVEMENT_STAT_KEYS = {
   first_step: "totalCompleted",
@@ -97,10 +98,77 @@ function streakFreezeNode(ctx) {
   return card;
 }
 
+function formatIceAgeRemaining(ms) {
+  const hours = Math.ceil(ms / 3600000);
+  if (hours < 1) return "<1h left";
+  if (hours < 48) return `${hours}h left`;
+  return `${Math.floor(hours / 24)}d ${hours % 24}h left`;
+}
+
+function iceAgeNode(ctx) {
+  const card = document.createElement("div");
+  card.className = "shop-item";
+  const emoji = document.createElement("div");
+  emoji.className = "item-emoji";
+  emoji.textContent = "\u2744\ufe0f";
+  const name = document.createElement("div");
+  name.className = "item-name";
+  name.textContent = "Ice age";
+  const cost = document.createElement("div");
+  cost.className = "item-cost";
+  cost.textContent = "\ud83d\udc8e \u2014 protects all streaks while active";
+  card.appendChild(emoji);
+  card.appendChild(name);
+  card.appendChild(cost);
+  const remaining = Game.state.iceAgeUntil - Date.now();
+  if (remaining > 0) {
+    const active = document.createElement("div");
+    active.className = "item-lock";
+    card.appendChild(active);
+    const update = () => {
+      const left = Game.state.iceAgeUntil - Date.now();
+      if (left <= 0) {
+        clearInterval(timer);
+        if (card.isConnected) renderShop(ctx);
+        return;
+      }
+      active.textContent = `\u2744\ufe0f Active \u2014 ${formatIceAgeRemaining(left)}`;
+    };
+    const timer = setInterval(() => {
+      if (!card.isConnected) {
+        clearInterval(timer);
+        return;
+      }
+      update();
+    }, 1000);
+    update();
+    return card;
+  }
+  const duration = buildSelect(
+    Game.ICE_AGE_OPTIONS.map((opt, i) => [String(i), `${opt.hours}h \u2014 ${opt.gems} \ud83d\udc8e`]),
+    "0"
+  );
+  duration.className = "ice-age-duration";
+  const buy = document.createElement("button");
+  buy.type = "button";
+  buy.textContent = "Buy";
+  buy.disabled = Game.state.gems < Game.ICE_AGE_OPTIONS[Number(duration.value)].gems;
+  duration.addEventListener("change", () => {
+    buy.disabled = Game.state.gems < Game.ICE_AGE_OPTIONS[Number(duration.value)].gems;
+  });
+  buy.addEventListener("click", () => ctx.onBuyIceAge(Number(duration.value)));
+  card.appendChild(duration);
+  card.appendChild(buy);
+  return card;
+}
+
 function renderShop(ctx) {
   const { shopContent } = AppUI.els;
   shopContent.innerHTML = "";
-  if (ctx.shopTab === "shop") shopContent.appendChild(streakFreezeNode(ctx));
+  if (ctx.shopTab === "shop") {
+    shopContent.appendChild(streakFreezeNode(ctx));
+    shopContent.appendChild(iceAgeNode(ctx));
+  }
   const items = ctx.shopTab === "shop"
     ? Game.SHOP_ITEMS
     : Game.SHOP_ITEMS.filter((it) => Game.itemIsOwned(it.id));
@@ -188,6 +256,11 @@ function initOverlays() {
     onBuyFreeze() {
       const result = Game.buyStreakFreeze();
       if (!result.ok) showToast("Not enough gems \ud83d\udc94");
+      renderShop(ctx);
+    },
+    onBuyIceAge(optionIndex) {
+      const result = Game.buyIceAge(optionIndex);
+      if (!result.ok && result.reason === "gems") showToast("Not enough gems \ud83d\udc94");
       renderShop(ctx);
     },
   };

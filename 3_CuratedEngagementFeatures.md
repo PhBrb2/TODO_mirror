@@ -46,6 +46,7 @@ Curated from 2_EngagemetFeatures.md
   - MWE test mode: repeat every 5 minutes
   - Completed repeating tasks become available again after their interval elapses
   - ~~F14: Repetitive tasks display a streak, how many times in a row the task was completed before deadline or repetition~~
+  - ~~F91: Ice age shop item (gems): protects all streaks for a selectable duration starting at purchase; remaining time is shown in the shop; cannot be bought while one is active~~
   - Streaks get removed the moment they fail, not only when the task is completed again
   - F15: "Certificate of Awesomeness" for completing streak milestones, that can be placed in the room. Longer streaks update the one certificate belonging to the task.
     - More fancy visuals for longer streaks

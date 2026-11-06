@@ -125,7 +125,7 @@ function promptDifficultyRating(task) {
 
 function buildEditSelectors(task, listSel, diff, rep, scheduleArea, timeLimit) {
   const selectors = document.createElement("div");
-  selectors.className = "edit-selectors form-row-labeled";
+  selectors.className = "edit-selectors";
   const mainRow = document.createElement("div");
   mainRow.className = "edit-selectors-row";
   mainRow.appendChild(labeledField("Type", [listSel.el]));

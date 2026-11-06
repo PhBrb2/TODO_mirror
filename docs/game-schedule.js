@@ -151,6 +151,7 @@ function nthWeekdayOfMonth(year, month, weekday, first) {
 }
 
 function streakHasFailed(task, now) {
+  if (state.iceAgeUntil > now) return false;
   if (task.streak === 0 || task.streakDayKeys.length === 0) return false;
   const lastKey = task.streakDayKeys[task.streakDayKeys.length - 1];
   const currentKey = repeatKey(task, now);

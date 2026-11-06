@@ -4,7 +4,7 @@ import { promptDifficultyRating } from "./app-edit.js";
 import { showToast } from "./app-ui.js";
 import { initOverlays } from "./app-overlays.js";
 import { initInfoOverlay } from "./app-info.js";
-import { initActionsToggle, initUiSheet } from "./app-sheet.js";
+import { initActionsToggle, initUiSheet, setGlobalEditMode } from "./app-sheet.js";
 import { AppUI } from "./app-state.js";
 import { DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, mountWheel } from "./app-util.js";
 import { VERSION } from "./game-constants.js";
@@ -40,6 +40,7 @@ AppUI.els.tabsEl.addEventListener("click", (e) => {
   for (const b of AppUI.els.tabsEl.querySelectorAll("button")) {
     b.classList.toggle("active", b === btn);
   }
+  setGlobalEditMode(false);
   render();
 });
 

@@ -521,7 +521,6 @@ const EDIT_UPDATERS = {
   },
   timeLimit(task, v) {
     task.timeLimit = TIME_LIMIT_MINUTES.includes(v) ? v : 0;
-    if (!task.timeLimit) task.startedAt = 0;
   },
   pinned(task, v) {
     task.pinned = v === true;
@@ -539,6 +538,7 @@ function editTask(id, updates) {
   for (const key of Object.keys(EDIT_UPDATERS)) {
     if (updates[key] !== undefined) EDIT_UPDATERS[key](task, updates[key]);
   }
+  task.startedAt = 0;
   if (task.repeat !== "none" && !task.done) {
     const next = nextOccurrence(task, Date.now());
     if (next !== Infinity) task.deadline = next;

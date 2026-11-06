@@ -1,4 +1,4 @@
-import { CHEST_ITEM_ID, CHEST_PURCHASE_OPEN_MS, ITEM_ROTATIONS, ITEM_TYPES, PLACEMENT_VERSION, SHOP_ITEMS, STREAK_FREEZE_GEM_COST } from "./game-constants.js";
+import { CHEST_ITEM_ID, CHEST_PURCHASE_OPEN_MS, ICE_AGE_OPTIONS, ITEM_ROTATIONS, ITEM_TYPES, PLACEMENT_VERSION, SHOP_ITEMS, STREAK_FREEZE_GEM_COST } from "./game-constants.js";
 import { levelFromXp } from "./game-progression.js";
 import { announceAchievements, earnChest, trackAchievement } from "./game-rewards.js";
 import { emitRender, emitToast, itemIsOwned, normalizePlaced, saveState, state } from "./game-state.js";
@@ -12,6 +12,19 @@ function buyStreakFreeze() {
   state.gems -= STREAK_FREEZE_GEM_COST;
   state.streakFreezes += 1;
   emitToast(`\ud83c\uddf8\ufe0f Streak freeze bought \u2014 ${state.streakFreezes} available`);
+  saveState();
+  emitRender();
+  return { ok: true };
+}
+
+function buyIceAge(optionIndex) {
+  const option = ICE_AGE_OPTIONS[optionIndex];
+  if (!option) return { ok: false, reason: "unknown" };
+  if (state.iceAgeUntil > Date.now()) return { ok: false, reason: "active" };
+  if (state.gems < option.gems) return { ok: false, reason: "gems" };
+  state.gems -= option.gems;
+  state.iceAgeUntil = Date.now() + option.hours * 3600000;
+  emitToast(`\u2744\ufe0f Ice age started \u2014 all streaks protected for ${option.hours}h`);
   saveState();
   emitRender();
   return { ok: true };
@@ -96,4 +109,4 @@ function rotateItem(itemId) {
   return { ok: true };
 }
 
-export { buyStreakFreeze, cellTakenBy, defaultPlaceItem, firstFreeCell, itemIsUnlockable, itemPlacement, placeItem, purchaseItem, rotateItem, shopItemById };
+export { buyIceAge, buyStreakFreeze, cellTakenBy, defaultPlaceItem, firstFreeCell, itemIsUnlockable, itemPlacement, placeItem, purchaseItem, rotateItem, shopItemById };

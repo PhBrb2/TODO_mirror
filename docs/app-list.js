@@ -162,6 +162,10 @@ function subtaskRow(task, st, parentLocked, chainInfo = null, chainUi = null) {
     ? E.pending.subKey === task.id + ":" + st.id : false;
   const editingThisSub = restoreSub
     || (editingSubtaskOf(task) === st && E.pending && E.pending.kind === "subtask");
+  const stEdit = document.createElement("button");
+  stEdit.className = "task-edit subtask-edit";
+  stEdit.textContent = "\u270e";
+  stEdit.addEventListener("click", () => openSubtaskEdit(task, st));
   const stTitle = editingThisSub ? buildTitleInput(st.title) : document.createElement("span");
   stTitle.className = editingThisSub ? "subtask-title title-input" : "subtask-title";
   if (!editingThisSub) {
@@ -169,11 +173,8 @@ function subtaskRow(task, st, parentLocked, chainInfo = null, chainUi = null) {
     if (chainInfo && chainInfo.splitDots.has(st.id)) {
       stTitle.appendChild(chainDot("chain-split-dot", chainInfo.splitDots.get(st.id)));
     }
+    stTitle.appendChild(stEdit);
   }
-  const stEdit = document.createElement("button");
-  stEdit.className = "task-edit subtask-edit";
-  stEdit.textContent = "\u270e";
-  stEdit.addEventListener("click", () => openSubtaskEdit(task, st));
   const stDel = document.createElement("button");
   stDel.className = "task-delete subtask-delete";
   stDel.textContent = "\u2715";
@@ -181,7 +182,6 @@ function subtaskRow(task, st, parentLocked, chainInfo = null, chainUi = null) {
   subtaskDraggable(row, task, st);
   row.appendChild(subtaskCheckbox(row, task, st, stLocked, parentLocked));
   row.appendChild(stTitle);
-  row.appendChild(stEdit);
   row.appendChild(stDel);
   return { row, editingThisSub, stTitle };
 }
@@ -240,6 +240,7 @@ function subtaskListNode(task, li, chainInfo = null) {
   const chainVis = chainVisibility(subs, isGlobalEditMode());
   const subInfo = chainInfo && chainInfo.subtasks ? chainInfo.subtasks.get(task.id) : null;
   let prevSub = null;
+  let anyChainSymbol = false;
   for (const st of subs) {
     const v = chainVis.get(st.id);
     if (v.hidden) continue;
@@ -249,7 +250,9 @@ function subtaskListNode(task, li, chainInfo = null) {
       zigzagAbove: v.zigzagAbove,
       zigzagBelow: v.zigzagBelow,
     };
+    anyChainSymbol = anyChainSymbol || chainUi.inlineLink;
     if (!v.zigzagAbove && prevIsPredecessor) {
+      anyChainSymbol = true;
       sublist.appendChild(chainLinkNode("subtask-link-row", () => Game.unchainSubtask(task, st)));
     }
     const { row, editingThisSub, stTitle } = subtaskRow(task, st, parentLocked, subInfo, chainUi);
@@ -260,6 +263,7 @@ function subtaskListNode(task, li, chainInfo = null) {
       sublist.insertBefore(buildEditControlsRow(), row.nextSibling);
     }
   }
+  sublist.classList.toggle("has-chain-link", anyChainSymbol);
   if (!task.done) sublist.appendChild(subtaskAddRow(task));
   return sublist;
 }
