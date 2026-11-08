@@ -40,6 +40,7 @@ function defaultState() {
     achievements: { unlocked: [], stats: defaultAchievementStats() },
     dayStartHour: 0,
     uiSheetHeightVh: 0,
+    roomEnabled: true,
     streakFreezes: 0,
     iceAgeUntil: 0,
   };
@@ -103,6 +104,7 @@ const TASK_FIELD_MIGRATORS = {
       : [],
   bonus: (raw) => raw.bonus === true,
   deadline: (raw) => (typeof raw.deadline === "number" ? raw.deadline : null),
+  deadlineEnabled: (raw) => raw.deadlineEnabled !== false,
   repeatTime: (raw) => num(raw.repeatTime, NaN),
   repeatAfterCompletion: (raw) =>
     raw.repeatAfterCompletion === true || raw.repeatCustomFromCompletion === true,
@@ -236,6 +238,7 @@ function migrateState(raw) {
     achievements: migrateAchievements(raw.achievements),
     dayStartHour: Math.min(23, Math.max(0, Math.floor(num(raw.dayStartHour, 0)))),
     uiSheetHeightVh: Math.min(95, Math.max(0, num(raw.uiSheetHeightVh, 0))),
+    roomEnabled: raw.roomEnabled !== false,
     streakFreezes: num(raw.streakFreezes, 0),
     iceAgeUntil: Math.max(0, num(raw.iceAgeUntil, 0)),
   };
@@ -254,6 +257,19 @@ function loadState() {
   } catch {
     return null;
   }
+}
+
+function exportState() {
+  return JSON.stringify({ schemaVersion: SCHEMA_VERSION, state }, null, 2);
+}
+
+function importState(data) {
+  if (!isRecord(data) || data.schemaVersion > SCHEMA_VERSION) return false;
+  const migrated = migrateState(data.state);
+  if (!migrated) return false;
+  Object.assign(state, migrated);
+  saveState();
+  return true;
 }
 
 function resetState() {
@@ -304,4 +320,4 @@ function itemIsOwned(id) {
   return state.ownedItems.includes(id);
 }
 
-export { clampWeekdays, defaultAchievementStats, defaultState, emitPromptDifficultyRating, emitRender, emitToast, isRecord, itemIsOwned, loadState, migrateAchievements, migratePlacedItems, migrateState, migrateTask, normalizePlaced, normalizeWeekdays, num, ownedItemIds, resetState, saveState, state, str, ui };
+export { clampWeekdays, defaultAchievementStats, exportState, importState, defaultState, emitPromptDifficultyRating, emitRender, emitToast, isRecord, itemIsOwned, loadState, migrateAchievements, migratePlacedItems, migrateState, migrateTask, normalizePlaced, normalizeWeekdays, num, ownedItemIds, resetState, saveState, state, str, ui };

@@ -65,6 +65,7 @@ function addTask(title, difficulty, repeat, deadlineInput, list, timeLimit = 0) 
     streakDayKeys: [],
     bonus: isBonus,
     deadline: isFun ? null : (deadlineInput ? new Date(deadlineInput).getTime() : null),
+    deadlineEnabled: true,
     repeatTime: NaN,
     repeatAfterCompletion: false,
     repeatWeekdays: [1],
@@ -461,6 +462,11 @@ function setUiSheetHeightVh(vh) {
   saveState();
 }
 
+function setRoomEnabled(enabled) {
+  state.roomEnabled = !!enabled;
+  saveState();
+}
+
 function maybeSuggestDifficultyReduction(task) {
   if (task.difficultySuggested) return;
   if (task.streak < DIFFICULTY_SUGGESTION_STREAK) return;
@@ -530,6 +536,9 @@ const EDIT_UPDATERS = {
       ? Math.min(1439, Math.max(0, Math.floor(v)))
       : NaN;
   },
+  deadlineEnabled(task, v) {
+    task.deadlineEnabled = v !== false;
+  },
 };
 
 function editTask(id, updates) {
@@ -547,4 +556,4 @@ function editTask(id, updates) {
   emitRender();
 }
 
-export { EDIT_UPDATERS, addSubtask, addTask, chainHead, chainIn, chainPredecessor, chainPredecessorIn, chainSatisfiedIn, chainSatisfiesDependency, chainSubtask, chainTask, chainWouldCycleIn, clawBackReward, completeFunTask, completeTask, deleteSubtask, deleteTask, deriveDifficulty, editSubtask, editTask, highlightRating, highlightTasks, maybeSuggestDifficultyReduction, setDayStartHour, setUiSheetHeightVh, startTask, subtaskChainSatisfies, subtaskPredecessor, subtasksLockedByChain, toggleSubtask, unchainIn, unchainSubtask, unchainTask, uncompleteFunTask, uncompleteTask };
+export { EDIT_UPDATERS, addSubtask, addTask, chainHead, chainIn, chainPredecessor, chainPredecessorIn, chainSatisfiedIn, chainSatisfiesDependency, chainSubtask, chainTask, chainWouldCycleIn, clawBackReward, completeFunTask, completeTask, deleteSubtask, deleteTask, deriveDifficulty, editSubtask, editTask, highlightRating, highlightTasks, maybeSuggestDifficultyReduction, setDayStartHour, setRoomEnabled, setUiSheetHeightVh, startTask, subtaskChainSatisfies, subtaskPredecessor, subtasksLockedByChain, toggleSubtask, unchainIn, unchainSubtask, unchainTask, uncompleteFunTask, uncompleteTask };

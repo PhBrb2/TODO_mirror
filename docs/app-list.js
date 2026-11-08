@@ -3,7 +3,7 @@ import { subtaskDraggable, taskDraggable } from "./app-drag.js";
 import { activateEdit, buildEditControlsRow, buildTitleInput, clearEditing, editingSubtaskOf, openEditRow, openSubtaskEdit } from "./app-edit.js";
 import { AppUI } from "./app-state.js";
 import { renderBalances, vibrateForReward } from "./app-ui.js";
-import { DELETE_ARM_MS, DIFFICULTY_OPTIONS, armDeleteButton, buildChainColorInfo, buildSelect, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, formatDeadline, formatMinutesSeconds, isGlobalEditMode, sortTasks, timeLimitRemaining, zigzagEdgeNode } from "./app-util.js";
+import { DELETE_ARM_MS, DIFFICULTY_OPTIONS, armDeleteButton, buildChainColorInfo, buildSelect, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, formatDeadline, formatResetIn, formatMinutesSeconds, isGlobalEditMode, sortTasks, timeLimitRemaining, zigzagEdgeNode } from "./app-util.js";
 
 const E = AppUI.edit;
 
@@ -91,9 +91,10 @@ function taskMetaNode(task) {
   }
   if (task.deadline && !task.done) {
     const dl = document.createElement("span");
-    dl.className = "badge deadline" + (task.deadline < Date.now() ? " overdue" : "");
+    const neutral = task.deadlineEnabled === false && task.repeat !== "none";
+    dl.className = "badge deadline" + (neutral ? " reset" : (task.deadline < Date.now() ? " overdue" : ""));
     dl.dataset.taskId = task.id;
-    dl.textContent = formatDeadline(task.deadline);
+    dl.textContent = neutral ? formatResetIn(task.deadline) : formatDeadline(task.deadline);
     meta.appendChild(dl);
   }
   if (task.timeLimit && !task.done) {
@@ -439,8 +440,12 @@ function updateLiveClocks() {
   for (const node of AppUI.els.listEl.querySelectorAll(".badge.deadline")) {
     const task = Game.state.tasks.find((t) => t.id === Number(node.dataset.taskId));
     if (!task || task.done) continue;
-    node.textContent = formatDeadline(task.deadline);
-    node.classList.toggle("overdue", task.deadline < Date.now());
+    if (node.classList.contains("reset")) {
+      node.textContent = formatResetIn(task.deadline);
+    } else {
+      node.textContent = formatDeadline(task.deadline);
+      node.classList.toggle("overdue", task.deadline < Date.now());
+    }
   }
 
   for (const node of AppUI.els.listEl.querySelectorAll(".badge.timer.running")) {

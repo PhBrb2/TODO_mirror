@@ -20,7 +20,8 @@ function getVhPx() {
 
 function getSheetMaxVh() {
   const topUiBottom = AppUI.els.topProgressEl ? AppUI.els.topProgressEl.getBoundingClientRect().bottom : 0;
-  const availablePx = Math.max(0, window.innerHeight - topUiBottom - SHEET_TOP_GAP_PX);
+  const gap = roomHidden() ? 0 : SHEET_TOP_GAP_PX;
+  const availablePx = Math.max(0, window.innerHeight - topUiBottom - gap);
   const maxVh = (availablePx / getVhPx()) * 100;
   return Math.max(SHEET_MIN_VH, maxVh);
 }
@@ -32,14 +33,24 @@ function applySheetHeightVh(vh) {
   if (roomApi) roomApi.setVisibleHeightRatio(Math.max(0, 1 - clamped / 100));
 }
 
+function roomHidden() {
+  return Game.state.roomEnabled === false;
+}
+
+function currentSheetVh() {
+  if (roomHidden()) return getSheetMaxVh();
+  return parseFloat(AppUI.els.uiSheetEl.style.height) || SHEET_MIN_VH;
+}
+
 function initUiSheet() {
-  applySheetHeightVh(Game.state.uiSheetHeightVh || SHEET_MIN_VH);
+  applySheetHeightVh(roomHidden() ? getSheetMaxVh() : (Game.state.uiSheetHeightVh || SHEET_MIN_VH));
   window.addEventListener("room-ready", () => {
-    applySheetHeightVh(parseFloat(AppUI.els.uiSheetEl.style.height) || SHEET_MIN_VH);
+    applySheetHeightVh(currentSheetVh());
   });
   window.addEventListener("resize", () => {
-    applySheetHeightVh(parseFloat(AppUI.els.uiSheetEl.style.height) || SHEET_MIN_VH);
+    applySheetHeightVh(currentSheetVh());
   });
+  if (roomHidden()) return;
 
   let dragging = false;
   let startY = 0;

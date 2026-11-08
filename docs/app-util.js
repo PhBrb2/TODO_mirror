@@ -83,6 +83,31 @@ function createDueAtWheels(minutes, compact = false) {
   return { els: [hour.el, minute.el], read, endOfDayBtn };
 }
 
+function createFieldToggle(enabled, onChange, label, title) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "field-toggle-btn" + (enabled ? " on" : "");
+  btn.textContent = label;
+  btn.title = title;
+  btn.setAttribute("aria-pressed", String(enabled));
+  btn.addEventListener("click", () => {
+    const on = !btn.classList.contains("on");
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", String(on));
+    onChange(on);
+  });
+  return btn;
+}
+
+function formatResetIn(ts) {
+  const mins = Math.max(0, Math.round((ts - Date.now()) / 60000));
+  let tstr;
+  if (mins < 60) tstr = `${mins}m`;
+  else if (mins < 1440) tstr = `${Math.round(mins / 60)}h`;
+  else tstr = `${Math.round(mins / 1440)}d`;
+  return `🔄 reset in ${tstr}`;
+}
+
 function readScheduleValues(read) {
   const out = {};
   for (const key of Object.keys(read)) out[key] = read[key]();
@@ -409,4 +434,4 @@ function labeledField(labelText, els, hidden = false, labelExtra = null) {
   return field;
 }
 
-export { CHAIN_PALETTE, CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildChainColorInfo, buildSelect, chainColorInfo, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createWheel, deadlineInputValue, formatDeadline, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagEdgeNode, zigzagSvg };
+export { CHAIN_PALETTE, CHAIN_VISIBLE_UNCHECKED, CUSTOM_DAYS_OPTIONS, DELETE_ARM_MS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, TIME_OF_DAY_HOURS_OPTIONS, TIME_OF_DAY_MINUTES_OPTIONS, WEEKDAY_CHECKBOXES, armDeleteButton, buildChainColorInfo, buildSelect, chainColorInfo, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, createDueAtWheels, createFieldToggle, createWheel, deadlineInputValue, formatDeadline, formatResetIn, formatMinutesSeconds, isGlobalEditMode, isRepeatingRepeat, labeledField, mountWheel, readScheduleValues, scheduleValuesFromTask, sortTasks, timeLimitRemaining, zigzagEdgeNode, zigzagSvg };

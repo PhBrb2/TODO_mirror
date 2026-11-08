@@ -1,7 +1,7 @@
 import * as Game from "./game.js";
 import { buildScheduleControls, scheduleShowsTimeOfDay } from "./app-form.js";
 import { AppUI } from "./app-state.js";
-import { DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, buildSelect, createDueAtWheels, createWheel, labeledField, readScheduleValues, scheduleValuesFromTask } from "./app-util.js";
+import { DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, buildSelect, createDueAtWheels, createFieldToggle, createWheel, labeledField, readScheduleValues, scheduleValuesFromTask } from "./app-util.js";
 import { showToast } from "./app-ui.js";
 import { render } from "./app-list.js";
 
@@ -137,6 +137,7 @@ function buildEditSelectors(task, listSel, diff, rep, scheduleArea, timeLimit) {
   timeRow.appendChild(scheduleArea.deadlineSlot);
   timeRow.appendChild(labeledField("⏱️ Time limit", [timeLimit.el]));
   selectors.appendChild(mainRow);
+  selectors.appendChild(scheduleArea.scheduleWrap);
   selectors.appendChild(timeRow);
   return selectors;
 }
@@ -161,7 +162,7 @@ function buildEditScheduleArea(task) {
   scheduleWrap.className = "repeat-schedule edit-schedule";
   const deadlineSlot = document.createElement("div");
   deadlineSlot.className = "labeled-field deadline-slot hidden";
-  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, deadlineSlot, endOfDayBtn: document.createElement("button") };
+  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, deadlineSlot, deadlineEnabled: task.deadlineEnabled !== false, endOfDayBtn: document.createElement("button") };
   state.schedule = buildScheduleControls(task.repeat, scheduleValues, true);
   scheduleWrap.appendChild(state.schedule.el);
   syncDeadlineSlot(state);
@@ -186,12 +187,27 @@ function refreshEditSchedule(task, edit) {
   if (showDueAt) {
     scheduleArea.dueAt = createDueAtWheels(scheduleArea.scheduleValues.repeatTime, true);
     for (const el of scheduleArea.dueAt.els) scheduleArea.dueAtWheelsWrap.appendChild(el);
+    const labelRow = scheduleArea.dueAtField.querySelector(".field-label-row");
+    labelRow.querySelectorAll(".field-toggle-btn").forEach((b) => b.remove());
+    const toggle = createFieldToggle(scheduleArea.deadlineEnabled, (on) => {
+      scheduleArea.deadlineEnabled = on;
+      syncEditDueAtLabel(scheduleArea);
+    }, "Deadline", "Toggle deadline urgency");
+    labelRow.insertBefore(toggle, scheduleArea.endOfDayBtn);
     scheduleArea.endOfDayBtn.replaceWith(scheduleArea.dueAt.endOfDayBtn);
     scheduleArea.endOfDayBtn = scheduleArea.dueAt.endOfDayBtn;
   } else {
     scheduleArea.dueAt = null;
   }
   scheduleArea.dueAtField.classList.toggle("hidden", !showDueAt);
+  syncEditDueAtLabel(scheduleArea);
+}
+
+function syncEditDueAtLabel(scheduleArea) {
+  const label = scheduleArea.dueAtField.querySelector(".field-label");
+  if (label) {
+    label.textContent = scheduleArea.deadlineEnabled ? "🕔 Due at" : "🕔 Resets at";
+  }
 }
 
 function updateEditWheelsEnabled(task, edit) {
@@ -215,7 +231,10 @@ function saveEditRow(task, edit) {
     timeLimit: Number(timeLimit.value),
     ...readScheduleValues(scheduleArea.schedule.read),
   };
-  if (scheduleArea.dueAt) updates.repeatTime = scheduleArea.dueAt.read();
+  if (scheduleArea.dueAt) {
+    updates.repeatTime = scheduleArea.dueAt.read();
+    updates.deadlineEnabled = scheduleArea.deadlineEnabled;
+  }
   if (!isFun) updates.difficulty = diff.value;
   clearEditing();
   Game.editTask(task.id, updates);
@@ -249,7 +268,7 @@ function openEditRow(task) {
 
   E.pending = {
     kind: "task",
-    controls: [selectors, edit.scheduleArea.scheduleWrap],
+    controls: [selectors],
     onSave: (title) => {
       edit.titleInput = { value: title };
       saveEditRow(task, edit);

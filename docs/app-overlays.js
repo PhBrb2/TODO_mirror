@@ -309,6 +309,38 @@ function initOverlays() {
     Game.setDayStartHour(Number(els.dayStartSelect.value));
     showToast(`\ud83c\udf05 Your day now starts at ${els.dayStartSelect.value.padStart(2, "0")}:00`);
   });
+
+  els.roomEnabledCheck.checked = Game.state.roomEnabled !== false;
+  els.roomEnabledCheck.addEventListener("change", () => {
+    Game.setRoomEnabled(els.roomEnabledCheck.checked);
+    window.location.reload();
+  });
+
+  els.exportBtn.addEventListener("click", () => {
+    const blob = new Blob([Game.exportState()], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast("💾 Backup exported");
+  });
+
+  els.importBtn.addEventListener("click", () => els.importFile.click());
+  els.importFile.addEventListener("change", async () => {
+    const file = els.importFile.files && els.importFile.files[0];
+    els.importFile.value = "";
+    if (!file) return;
+    if (!confirm("Import will replace all current data. Continue?")) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!Game.importState(data)) throw new Error("invalid backup");
+      render();
+      showToast("📂 Backup imported");
+    } catch {
+      showToast("⚠️ Invalid backup file");
+    }
+  });
 }
 
 export { ACHIEVEMENT_STAT_KEYS, achievementNode, achievementProgressValue, initOverlays, itemCostLabel, renderAchievements, renderShop, setShopTab, shopItemNode, streakFreezeNode };

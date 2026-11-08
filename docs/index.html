@@ -75,7 +75,7 @@
             <div class="labeled-field hidden" id="deadline-slot"></div>
             <div class="labeled-field hidden" id="due-at-field">
               <div class="field-label-row" id="due-at-label-row">
-                <span class="field-label">🕔 Due at</span>
+                <span class="field-label" id="due-at-label">🕔 Due at</span>
               </div>
               <div id="due-at-wheels"></div>
             </div>
@@ -86,8 +86,6 @@
           </div>
         </form>
       </main>
-
-      <button id="reset-btn" type="button">Reset all data</button>
 
     </div>
   </section>
@@ -140,6 +138,15 @@
             <option value="6">06:00</option>
           </select>
         </label>
+        <label class="deadline-label" id="settings-room-wrap">🛋️ Show room
+          <input type="checkbox" id="room-enabled-check" aria-label="Show 3D room">
+        </label>
+        <div class="settings-backup" id="settings-backup-wrap">
+          <button id="export-btn" type="button">💾 Export backup</button>
+          <button id="import-btn" type="button">📂 Import backup</button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+        </div>
+        <button id="reset-btn" type="button">Reset all data</button>
       </div>
     </div>
   </div>
@@ -159,7 +166,7 @@
   <script src="reward-flight.js"></script>
   <script src="wheel-select.js"></script>
   <script src="confirm-dialog.js"></script>
-  <script type="module" src="room.js"></script>
+  <script type="module" src="room-boot.js"></script>
   <script type="module" src="game.js"></script>
   <script type="module" src="app.js"></script>
 </body>
