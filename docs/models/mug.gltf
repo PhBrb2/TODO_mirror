@@ -1,0 +1,159 @@
+{
+ "asset": {
+  "generator": "glTF-Transform v4.5.1",
+  "version": "2.0"
+ },
+ "accessors": [
+  {
+   "type": "SCALAR",
+   "componentType": 5123,
+   "count": 2346,
+   "bufferView": 0,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 472,
+   "max": [
+    0.16570404171943665,
+    0.3348633050918579,
+    0.1653837263584137
+   ],
+   "min": [
+    -0.16571378707885742,
+    0,
+    -0.27908405661582947
+   ],
+   "bufferView": 1,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 472,
+   "bufferView": 1,
+   "byteOffset": 12
+  },
+  {
+   "type": "VEC2",
+   "componentType": 5126,
+   "count": 472,
+   "bufferView": 1,
+   "byteOffset": 24
+  },
+  {
+   "type": "VEC4",
+   "componentType": 5123,
+   "count": 472,
+   "normalized": true,
+   "bufferView": 1,
+   "byteOffset": 32
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 4692,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 4692,
+   "byteLength": 18880,
+   "byteStride": 40,
+   "target": 34962
+  }
+ ],
+ "samplers": [
+  {
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "name": "room_atlas_day",
+   "mimeType": "image/webp",
+   "uri": "textures/room_atlas_day.webp"
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "mug.bin",
+   "byteLength": 23572
+  }
+ ],
+ "materials": [
+  {
+   "name": "mat_mug.gltf",
+   "doubleSided": true,
+   "pbrMetallicRoughness": {
+    "roughnessFactor": 0.9,
+    "metallicFactor": 0,
+    "baseColorTexture": {
+     "index": 0
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Plane.008",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 1,
+      "NORMAL": 2,
+      "TEXCOORD_0": 3,
+      "COLOR_0": 4
+     },
+     "mode": 4,
+     "material": 0,
+     "indices": 0
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "Coffee_Mug_Fourth_Raycaster_Hover",
+   "translation": [
+    -1.592550277709961,
+    3.090867757797241,
+    -0.2670802175998688
+   ],
+   "mesh": 0
+  },
+  {
+   "name": "mug.gltf",
+   "translation": [
+    1.5925551503896713,
+    -3.090867757797241,
+    0.32393038272857666
+   ],
+   "children": [
+    0
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    1
+   ]
+  }
+ ],
+ "scene": 0,
+ "extensionsUsed": [
+  "EXT_texture_webp"
+ ]
+}

@@ -1,0 +1,159 @@
+{
+ "asset": {
+  "generator": "glTF-Transform v4.5.1",
+  "version": "2.0"
+ },
+ "accessors": [
+  {
+   "type": "SCALAR",
+   "componentType": 5123,
+   "count": 9318,
+   "bufferView": 0,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 1978,
+   "max": [
+    0.19958198070526123,
+    0.6017874479293823,
+    0.22492238879203796
+   ],
+   "min": [
+    -0.19958925247192383,
+    1.7881393432617188e-7,
+    -0.22493958473205566
+   ],
+   "bufferView": 1,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 1978,
+   "bufferView": 1,
+   "byteOffset": 12
+  },
+  {
+   "type": "VEC2",
+   "componentType": 5126,
+   "count": 1978,
+   "bufferView": 1,
+   "byteOffset": 24
+  },
+  {
+   "type": "VEC4",
+   "componentType": 5123,
+   "count": 1978,
+   "normalized": true,
+   "bufferView": 1,
+   "byteOffset": 32
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 18636,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 18636,
+   "byteLength": 79120,
+   "byteStride": 40,
+   "target": 34962
+  }
+ ],
+ "samplers": [
+  {
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "name": "room_atlas_day",
+   "mimeType": "image/webp",
+   "uri": "textures/room_atlas_day.webp"
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "cactus.bin",
+   "byteLength": 97756
+  }
+ ],
+ "materials": [
+  {
+   "name": "mat_cactus.gltf",
+   "doubleSided": true,
+   "pbrMetallicRoughness": {
+    "roughnessFactor": 0.9,
+    "metallicFactor": 0,
+    "baseColorTexture": {
+     "index": 0
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Plane.068",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 1,
+      "NORMAL": 2,
+      "TEXCOORD_0": 3,
+      "COLOR_0": 4
+     },
+     "mode": 4,
+     "material": 0,
+     "indices": 0
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "Cactus_Raycaster_Fourth_Hover",
+   "translation": [
+    -2.913743734359741,
+    4.847076892852783,
+    0.20144271850585938
+   ],
+   "mesh": 0
+  },
+  {
+   "name": "cactus.gltf",
+   "translation": [
+    2.9137473702430725,
+    -4.8470770716667175,
+    -0.20143412053585052
+   ],
+   "children": [
+    0
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    1
+   ]
+  }
+ ],
+ "scene": 0,
+ "extensionsUsed": [
+  "EXT_texture_webp"
+ ]
+}

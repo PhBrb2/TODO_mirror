@@ -1,0 +1,317 @@
+{
+ "asset": {
+  "generator": "glTF-Transform v4.5.1",
+  "version": "2.0"
+ },
+ "accessors": [
+  {
+   "type": "SCALAR",
+   "componentType": 5123,
+   "count": 7284,
+   "bufferView": 0,
+   "byteOffset": 0
+  },
+  {
+   "type": "SCALAR",
+   "componentType": 5123,
+   "count": 7284,
+   "bufferView": 0,
+   "byteOffset": 14568
+  },
+  {
+   "type": "SCALAR",
+   "componentType": 5123,
+   "count": 906,
+   "bufferView": 0,
+   "byteOffset": 29136
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 1570,
+   "max": [
+    0.1666879653930664,
+    -1.8085253238677979,
+    5.583189010620117
+   ],
+   "min": [
+    -0.7274045944213867,
+    -2.0819716453552246,
+    4.667808532714844
+   ],
+   "bufferView": 1,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 1570,
+   "bufferView": 1,
+   "byteOffset": 12
+  },
+  {
+   "type": "VEC2",
+   "componentType": 5126,
+   "count": 1570,
+   "bufferView": 1,
+   "byteOffset": 24
+  },
+  {
+   "type": "VEC4",
+   "componentType": 5123,
+   "count": 1570,
+   "normalized": true,
+   "bufferView": 1,
+   "byteOffset": 32
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 1570,
+   "max": [
+    0.07371509075164795,
+    -1.6093904972076416,
+    5.525715351104736
+   ],
+   "min": [
+    -0.5092234015464783,
+    -1.8187832832336426,
+    4.857396125793457
+   ],
+   "bufferView": 2,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 1570,
+   "bufferView": 2,
+   "byteOffset": 12
+  },
+  {
+   "type": "VEC2",
+   "componentType": 5126,
+   "count": 1570,
+   "bufferView": 2,
+   "byteOffset": 24
+  },
+  {
+   "type": "VEC4",
+   "componentType": 5123,
+   "count": 1570,
+   "normalized": true,
+   "bufferView": 2,
+   "byteOffset": 32
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 334,
+   "max": [
+    -0.02951192855834961,
+    -1.3371756076812744,
+    5.367947578430176
+   ],
+   "min": [
+    -0.36150598526000977,
+    -1.6088826656341553,
+    5.035953521728516
+   ],
+   "bufferView": 3,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 334,
+   "bufferView": 3,
+   "byteOffset": 12
+  },
+  {
+   "type": "VEC2",
+   "componentType": 5126,
+   "count": 334,
+   "bufferView": 3,
+   "byteOffset": 24
+  },
+  {
+   "type": "VEC4",
+   "componentType": 5123,
+   "count": 334,
+   "normalized": true,
+   "bufferView": 3,
+   "byteOffset": 32
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 30948,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 30948,
+   "byteLength": 62800,
+   "byteStride": 40,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 93748,
+   "byteLength": 62800,
+   "byteStride": 40,
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 156548,
+   "byteLength": 13360,
+   "byteStride": 40,
+   "target": 34962
+  }
+ ],
+ "samplers": [
+  {
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "name": "room_atlas_day",
+   "mimeType": "image/webp",
+   "uri": "textures/room_atlas_day.webp"
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "books.bin",
+   "byteLength": 169908
+  }
+ ],
+ "materials": [
+  {
+   "name": "mat_books.gltf",
+   "doubleSided": true,
+   "pbrMetallicRoughness": {
+    "roughnessFactor": 0.9,
+    "metallicFactor": 0,
+    "baseColorTexture": {
+     "index": 0
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Plane.060",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 3,
+      "NORMAL": 4,
+      "TEXCOORD_0": 5,
+      "COLOR_0": 6
+     },
+     "mode": 4,
+     "material": 0,
+     "indices": 0
+    }
+   ]
+  },
+  {
+   "name": "Plane.160",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 7,
+      "NORMAL": 8,
+      "TEXCOORD_0": 9,
+      "COLOR_0": 10
+     },
+     "mode": 4,
+     "material": 0,
+     "indices": 1
+    }
+   ]
+  },
+  {
+   "name": "Plane.161",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 11,
+      "NORMAL": 12,
+      "TEXCOORD_0": 13,
+      "COLOR_0": 14
+     },
+     "mode": 4,
+     "material": 0,
+     "indices": 2
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "Book_1_Fourth",
+   "translation": [
+    -2.4485487937927246,
+    4.3687615394592285,
+    -3.6137354373931885
+   ],
+   "mesh": 0
+  },
+  {
+   "name": "Book_2_Fourth",
+   "translation": [
+    -2.4485487937927246,
+    4.3687615394592285,
+    -3.6137354373931885
+   ],
+   "mesh": 1
+  },
+  {
+   "name": "Pencil_Holder_Fourth",
+   "translation": [
+    -2.4485487937927246,
+    4.3687615394592285,
+    -3.6137354373931885
+   ],
+   "mesh": 2
+  },
+  {
+   "name": "books.gltf",
+   "translation": [
+    2.7289071083068848,
+    -2.286789894104004,
+    -1.511763334274292
+   ],
+   "children": [
+    0,
+    1,
+    2
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    3
+   ]
+  }
+ ],
+ "scene": 0,
+ "extensionsUsed": [
+  "EXT_texture_webp"
+ ]
+}

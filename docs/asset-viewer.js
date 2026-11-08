@@ -7,7 +7,7 @@ import { VERSION } from "./game-constants.js";
   "use strict";
 
   const STORAGE_KEY = "todo-asset-viewer-exclusions";
-  const MANIFEST_VERSION = 9;
+  const MANIFEST_VERSION = 11;
   const BG_COLOR = 0xf2e2cf;
   const GRID_COLOR = 0xd9c3a5;
 
@@ -17,11 +17,17 @@ import { VERSION } from "./game-constants.js";
     localStorage.setItem(STORAGE_KEY + "-mv", String(MANIFEST_VERSION));
   }
   const classes = window.ASSET_CLASSES || {};
+  const sources = [
+    { manifest: window.KENNEY_MANIFEST || {}, base: "models/kenney" },
+    { manifest: window.SOOAHS_MANIFEST || {}, base: "models" },
+  ];
   const entries = [];
-  for (const kit of Object.keys(manifest).sort()) {
-    for (const file of manifest[kit]) {
-      const label = `${kit}/${file}`;
-      entries.push({ kit, file, path: `models/kenney/${kit}/${file}`, label, cls: classes[label] || "not-todo" });
+  for (const { manifest, base } of sources) {
+    for (const kit of Object.keys(manifest).sort()) {
+      for (const file of manifest[kit]) {
+        const label = `${kit}/${file}`;
+        entries.push({ kit, file, path: `${base}/${kit}/${file}`, label, cls: classes[label] || "not-todo" });
+      }
     }
   }
 
@@ -155,7 +161,7 @@ import { VERSION } from "./game-constants.js";
     });
   }
 
-  let groupMode = document.getElementById("group-by").value || "kenney";
+  let groupMode = document.getElementById("group-by").value || "kit";
   const collapsedKits = new Set();
   for (const entry of visibleEntries(groupMode)) collapsedKits.add(groupKey(entry, groupMode));
 

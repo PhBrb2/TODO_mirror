@@ -1,6 +1,5 @@
 
-const VERSION = "0.68.15";
-
+const VERSION = "0.71.2";
 const STORAGE_KEY = "todo-mwe-state";
 
 const SCHEMA_VERSION = 3;
@@ -95,8 +94,13 @@ const SHOP_ITEMS = [
   { id: "table",       name: "Table",        emoji: "🛋", costCoins: 150, costGems: 0, minLevel: 1 },
   { id: "lamp",        name: "Lamp",         emoji: "💡", costCoins: 100, costGems: 0, minLevel: 2 },
   { id: "pedestal",    name: "Chest Pedestal", emoji: "📦", costCoins: 75,  costGems: 0, minLevel: 1 },
+  { id: "mug",         name: "Coffee Mug",    emoji: "☕", costCoins: 60,  costGems: 0, minLevel: 1 },
+  { id: "cactus",      name: "Cactus",        emoji: "🌵", costCoins: 80,  costGems: 0, minLevel: 1 },
+  { id: "books",       name: "Book Stack",    emoji: "📚", costCoins: 90,  costGems: 0, minLevel: 2 },
+  { id: "boba",        name: "Boba Plushie",  emoji: "🧋", costCoins: 120, costGems: 0, minLevel: 2 },
+  { id: "headphones",  name: "Headphones",   emoji: "🎧", costCoins: 200, costGems: 0, minLevel: 3 },
 ];
-const ITEM_TYPES = { plant: "top", table: "slab", lamp: "top", pedestal: "slab" };
+const ITEM_TYPES = { plant: "top", table: "slab", lamp: "top", pedestal: "slab", mug: "top", cactus: "top", books: "top", boba: "top", headphones: "top" };
 
 const CHEST_ITEM_ID = "pedestal";
 
@@ -132,7 +136,7 @@ const ACHIEVEMENTS = [
   { id: "streak_3",    name: "On Fire",         emoji: "🔥", hint: "Reach a 3-day streak on a task",      goal: 3 },
   { id: "early_bird",  name: "Early Bird",      emoji: "📅", hint: "Complete 5 tasks before noon",         goal: 5 },
   { id: "night_owl",   name: "Night Owl",       emoji: "🌙", hint: "Complete 5 tasks after 8 PM",          goal: 5 },
-  { id: "collector",   name: "Collector",       emoji: "🏰", hint: "Own all 4 room items",                goal: 4 },
+  { id: "collector",   name: "Collector",       emoji: "🏰", hint: "Own all 9 room items",                goal: 9 },
   { id: "redecorator", name: "Redecorator",     emoji: "🧱", hint: "Move or rotate room items 10 times",  goal: 10 },
   { id: "fun_lover",   name: "Fun Lover",       emoji: "🎉", hint: "Complete 10 fun tasks",               goal: 10 },
   { id: "weekend_warrior", name: "Weekend Warrior", emoji: "⛱️", hint: "Complete 5 tasks on weekends",     goal: 5 },

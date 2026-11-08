@@ -1,0 +1,156 @@
+{
+ "asset": {
+  "generator": "glTF-Transform v4.5.1",
+  "version": "2.0"
+ },
+ "accessors": [
+  {
+   "type": "SCALAR",
+   "componentType": 5123,
+   "count": 8448,
+   "bufferView": 0,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 2054,
+   "max": [
+    0.23509961366653442,
+    0.6600457429885864,
+    0.21653901040554047
+   ],
+   "min": [
+    -0.2016734778881073,
+    -0.006526529788970947,
+    -0.21990858018398285
+   ],
+   "bufferView": 1,
+   "byteOffset": 0
+  },
+  {
+   "type": "VEC3",
+   "componentType": 5126,
+   "count": 2054,
+   "bufferView": 1,
+   "byteOffset": 12
+  },
+  {
+   "type": "VEC2",
+   "componentType": 5126,
+   "count": 2054,
+   "bufferView": 1,
+   "byteOffset": 24
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 16896,
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 16896,
+   "byteLength": 65728,
+   "byteStride": 32,
+   "target": 34962
+  }
+ ],
+ "samplers": [
+  {
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "textures": [
+  {
+   "source": 0,
+   "sampler": 0
+  }
+ ],
+ "images": [
+  {
+   "name": "room_atlas_day",
+   "mimeType": "image/webp",
+   "uri": "textures/room_atlas_day.webp"
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "boba.bin",
+   "byteLength": 82624
+  }
+ ],
+ "materials": [
+  {
+   "name": "mat_boba.gltf",
+   "doubleSided": true,
+   "pbrMetallicRoughness": {
+    "roughnessFactor": 0.9,
+    "metallicFactor": 0,
+    "baseColorTexture": {
+     "index": 0
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Plane.073",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 1,
+      "NORMAL": 2,
+      "TEXCOORD_0": 3
+     },
+     "mode": 4,
+     "material": 0,
+     "indices": 0
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "Boba_Plushie_Fourth_Raycaster_Hover",
+   "translation": [
+    -2.9210867881774902,
+    5.5917558670043945,
+    -3.9784111976623535
+   ],
+   "rotation": [
+    0.004491850733757019,
+    0.17743493616580963,
+    0.015814492478966713,
+    0.9839951992034912
+   ],
+   "mesh": 0
+  },
+  {
+   "name": "boba.gltf",
+   "translation": [
+    2.9210972752574182,
+    -5.58922659861664,
+    3.978424302965237
+   ],
+   "children": [
+    0
+   ]
+  }
+ ],
+ "scenes": [
+  {
+   "name": "Scene",
+   "nodes": [
+    1
+   ]
+  }
+ ],
+ "scene": 0,
+ "extensionsUsed": [
+  "EXT_texture_webp"
+ ]
+}
