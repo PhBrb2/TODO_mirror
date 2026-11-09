@@ -1,5 +1,6 @@
 import * as Game from "./game.js";
 import { subtaskDraggable, taskDraggable } from "./app-drag.js";
+import { celebrateGoal } from "./goal-celebration.js";
 import { activateEdit, buildEditControlsRow, buildTitleInput, clearEditing, editingSubtaskOf, openEditRow, openSubtaskEdit } from "./app-edit.js";
 import { AppUI } from "./app-state.js";
 import { renderBalances, vibrateForReward } from "./app-ui.js";
@@ -347,6 +348,66 @@ function tasksForTab() {
   return Game.state.tasks.filter((t) => (t.list || "todo") === AppUI.activeTab);
 }
 
+let prevDailyReached = null;
+let prevWeeklyReached = null;
+let dailyHoldGoal = null;
+let weeklyHoldGoal = null;
+
+function renderBarFill(barEl, pct) {
+  barEl.innerHTML = "";
+  const fill = document.createElement("div");
+  fill.className = "daily-bar-fill";
+  fill.style.width = Math.min(100, pct) + "%";
+  barEl.appendChild(fill);
+}
+
+function renderDailyProgress() {
+  const goals = Game.DAILY_GOALS;
+  const reached = Game.reachedGoalCount(Game.state.dailyCompleted);
+  if (prevDailyReached !== null && reached > prevDailyReached && dailyHoldGoal === null) {
+    dailyHoldGoal = goals[reached - 1] || goals[goals.length - 1];
+    celebrateGoal(AppUI.els.dailyBar, () => {
+      dailyHoldGoal = null;
+      renderDailyProgress();
+    });
+  }
+  prevDailyReached = reached;
+  const holdGoal = dailyHoldGoal;
+  const nextGoal = holdGoal ?? (goals[reached] || goals[goals.length - 1]);
+  const completed = holdGoal ? Math.min(Game.state.dailyCompleted, holdGoal) : Game.state.dailyCompleted;
+  AppUI.els.dailyProgressEl.textContent =
+    !holdGoal && reached >= goals.length
+      ? `${Game.state.dailyCompleted} ✅ all goals done`
+      : `${completed}/${nextGoal}`;
+  renderBarFill(AppUI.els.dailyBar, (completed / nextGoal) * 100);
+}
+
+function renderWeeklyProgress() {
+  const goals = Game.WEEKLY_GOALS;
+  const reached = Game.reachedWeeklyGoalCount(Game.state.weeklyCompleted);
+  if (prevWeeklyReached !== null && reached > prevWeeklyReached && weeklyHoldGoal === null) {
+    weeklyHoldGoal = goals[reached - 1] || goals[goals.length - 1];
+    celebrateGoal(AppUI.els.weeklyBar, () => {
+      weeklyHoldGoal = null;
+      renderWeeklyProgress();
+    });
+  }
+  prevWeeklyReached = reached;
+  const holdGoal = weeklyHoldGoal;
+  const nextGoal = holdGoal ?? (goals[reached] || goals[goals.length - 1]);
+  const completed = holdGoal ? Math.min(Game.state.weeklyCompleted, holdGoal) : Game.state.weeklyCompleted;
+  AppUI.els.weeklyProgressEl.textContent =
+    !holdGoal && reached >= goals.length
+      ? `${Game.state.weeklyCompleted} ✅`
+      : `${completed}/${nextGoal}`;
+  renderBarFill(AppUI.els.weeklyBar, (completed / nextGoal) * 100);
+}
+
+function renderProgress() {
+  renderDailyProgress();
+  renderWeeklyProgress();
+}
+
 let render = function () {
   const visible = tasksForTab();
   const sorted = chainOrdered(visible, sortTasks(visible));
@@ -386,35 +447,7 @@ let render = function () {
     : "Nothing to do yet — add a task! 🎉";
   renderBalances();
 
-  const lastGoal = Game.DAILY_GOALS[Game.DAILY_GOALS.length - 1];
-  const reached = Game.reachedGoalCount(Game.state.dailyCompleted);
-  const nextGoal = Game.DAILY_GOALS[reached] || lastGoal;
-  const label =
-    reached >= Game.DAILY_GOALS.length
-      ? `${Game.state.dailyCompleted} ✅ all goals done`
-      : `${Game.state.dailyCompleted}/${nextGoal}`;
-  AppUI.els.dailyProgressEl.textContent = label;
-
-  const pct = Math.min(100, (Game.state.dailyCompleted / nextGoal) * 100);
-
-  AppUI.els.dailyBar.innerHTML = "";
-  const fill = document.createElement("div");
-  fill.className = "daily-bar-fill";
-  fill.style.width = pct + "%";
-  AppUI.els.dailyBar.appendChild(fill);
-
-  const lastWeekly = Game.WEEKLY_GOALS[Game.WEEKLY_GOALS.length - 1];
-  const weekReached = Game.reachedWeeklyGoalCount(Game.state.weeklyCompleted);
-  const nextWeekly = Game.WEEKLY_GOALS[weekReached] || lastWeekly;
-  AppUI.els.weeklyProgressEl.textContent =
-    weekReached >= Game.WEEKLY_GOALS.length
-      ? `${Game.state.weeklyCompleted} ✅`
-      : `${Game.state.weeklyCompleted}/${nextWeekly}`;
-  AppUI.els.weeklyBar.innerHTML = "";
-  const wFill = document.createElement("div");
-  wFill.className = "daily-bar-fill";
-  wFill.style.width = Math.min(100, (Game.state.weeklyCompleted / nextWeekly) * 100) + "%";
-  AppUI.els.weeklyBar.appendChild(wFill);
+  renderProgress();
 
   AppUI.els.levelDisplayEl.textContent = Game.levelFromXp(Game.state.xp);
 

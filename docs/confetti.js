@@ -26,20 +26,25 @@
     return layer;
   }
 
-  function spawnPiece(parent, origin, spreadFraction) {
+  function spawnPiece(parent, origin, spreadFraction, opts = {}) {
+    const vyMin = opts.vyMin ?? LAUNCH_VY_MIN;
+    const vyMax = opts.vyMax ?? LAUNCH_VY_MAX;
     const piece = document.createElement("div");
     piece.className = "confetti-piece";
     piece.style.backgroundColor = COLORS[(Math.random() * COLORS.length) | 0];
-    piece.style.width = SIZE_PX + "px";
-    piece.style.height = (SIZE_PX * (0.4 + Math.random() * 0.8)) + "px";
+    const size = opts.sizePx ?? SIZE_PX;
+    piece.style.width = size + "px";
+    piece.style.height = (size * (0.4 + Math.random() * 0.8)) + "px";
     const state = {
       el: piece,
       x: origin.x + spreadFraction * origin.width,
       y: origin.y + (Math.random() - 0.5) * origin.height,
-      vx: (Math.random() - 0.5) * 2 * LAUNCH_VX,
-      vy: LAUNCH_VY_MIN - Math.random() * (LAUNCH_VY_MAX - LAUNCH_VY_MIN),
+      vx: (Math.random() - 0.5) * 2 * (opts.vx ?? LAUNCH_VX),
+      vy: vyMin - Math.random() * (vyMax - vyMin),
       rot: Math.random() * 360,
-      vr: (Math.random() - 0.5) * 2 * SPIN_MAX_DEG_S,
+      vr: (Math.random() - 0.5) * 2 * (opts.spin ?? SPIN_MAX_DEG_S),
+      gravity: opts.gravity ?? GRAVITY,
+      lifetime: opts.lifetimeMs ?? LIFETIME_MS,
       born: performance.now(),
     };
     parent.appendChild(piece);
@@ -61,11 +66,11 @@
       const speed = Math.hypot(s.vx, s.vy);
       const drag = DRAG_COEFFICIENT * speed;
       s.vx -= s.vx * drag * dt;
-      s.vy += (GRAVITY - s.vy * drag) * dt;
+      s.vy += (s.gravity - s.vy * drag) * dt;
       s.x += s.vx * dt;
       s.y += s.vy * dt;
       s.rot += s.vr * dt;
-      const progress = (now - s.born) / LIFETIME_MS;
+      const progress = (now - s.born) / s.lifetime;
       if (progress >= 1) {
         s.el.remove();
       } else {
@@ -76,7 +81,7 @@
     return alive;
   }
 
-  function burstAt(origin, count) {
+  function burstAt(origin, count, opts) {
     if (
       !origin ||
       !Number.isFinite(origin.x) ||
@@ -89,7 +94,7 @@
     const states = [];
     for (let i = 0; i < count; i++) {
       const spreadFraction = count === 1 ? 0 : (i / (count - 1)) * 2 - 1;
-      states.push(spawnPiece(parent, origin, spreadFraction));
+      states.push(spawnPiece(parent, origin, spreadFraction, opts));
     }
 
     let last = performance.now();
