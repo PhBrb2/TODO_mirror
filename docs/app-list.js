@@ -157,8 +157,8 @@ function subtaskRow(task, st, parentLocked, chainInfo = null, chainUi = null) {
     row.appendChild(chainDot("chain-corner-dot", rowColor));
   }
   if (chainUi && chainUi.inlineLink) row.appendChild(chainInlineSymbol(() => Game.unchainSubtask(task, st)));
-  if (chainUi && chainUi.zigzagAbove) row.appendChild(zigzagEdgeNode(true));
-  if (chainUi && chainUi.zigzagBelow) row.appendChild(zigzagEdgeNode(false));
+  if (chainUi && chainUi.zigzagAbove) row.appendChild(zigzagEdgeNode(true, () => expandSubtaskChain(task, st)));
+  if (chainUi && chainUi.zigzagBelow) row.appendChild(zigzagEdgeNode(false, () => expandSubtaskChain(task, st)));
   const stLocked = parentLocked || (!Game.subtaskChainSatisfies(task, st) && !st.done);
   const restoreSub = E.pending && E.pending.kind === "restore" && E.pending.subKey
     ? E.pending.subKey === task.id + ":" + st.id : false;
@@ -239,7 +239,7 @@ function subtaskListNode(task, li, chainInfo = null) {
   const sublist = document.createElement("div");
   sublist.className = "subtask-list" + (parentLocked ? " chain-locked" : "");
   const subs = chainOrdered(task.subtasks);
-  const chainVis = chainVisibility(subs, isGlobalEditMode());
+  const chainVis = chainVisibility(subs, isGlobalEditMode(), (h) => AppUI.expandedChains.has("s:" + task.id + ":" + h));
   const subInfo = chainInfo && chainInfo.subtasks ? chainInfo.subtasks.get(task.id) : null;
   let prevSub = null;
   let anyChainSymbol = false;
@@ -307,6 +307,41 @@ function taskActionsNode(task) {
   return actions;
 }
 
+function expandTaskChain(task) {
+  const head = Game.chainHead(Game.state.tasks, task);
+  AppUI.expandedChains.add("t:" + head.id);
+  render();
+}
+
+function expandSubtaskChain(task, st) {
+  const head = Game.chainHead(task.subtasks, st);
+  AppUI.expandedChains.add("s:" + task.id + ":" + head.id);
+  render();
+}
+
+document.addEventListener("click", (ev) => {
+  if (AppUI.expandedChains.size === 0) return;
+  const taskEl = ev.target && ev.target.closest ? ev.target.closest(".task") : null;
+  const keep = new Set();
+  if (taskEl) {
+    const task = Game.state.tasks.find((t) => t.id === Number(taskEl.dataset.id));
+    if (task) {
+      keep.add("t:" + Game.chainHead(Game.state.tasks, task).id);
+      for (const k of AppUI.expandedChains) {
+        if (k.startsWith("s:" + task.id + ":")) keep.add(k);
+      }
+    }
+  }
+  let changed = false;
+  for (const k of AppUI.expandedChains) {
+    if (!keep.has(k)) {
+      AppUI.expandedChains.delete(k);
+      changed = true;
+    }
+  }
+  if (changed) render();
+});
+
 function taskNode(task, chainInfo = null, chainUi = null) {
   const li = document.createElement("li");
   li.className = "task diff-" + (task.difficulty || "fun") + (task.done ? " done" : "");
@@ -317,8 +352,8 @@ function taskNode(task, chainInfo = null, chainUi = null) {
     li.appendChild(chainDot("chain-corner-dot", liColor));
   }
   if (chainUi && chainUi.inlineLink) li.appendChild(chainInlineSymbol(() => Game.unchainTask(task)));
-  if (chainUi && chainUi.zigzagAbove) li.appendChild(zigzagEdgeNode(true));
-  if (chainUi && chainUi.zigzagBelow) li.appendChild(zigzagEdgeNode(false));
+  if (chainUi && chainUi.zigzagAbove) li.appendChild(zigzagEdgeNode(true, () => expandTaskChain(task)));
+  if (chainUi && chainUi.zigzagBelow) li.appendChild(zigzagEdgeNode(false, () => expandTaskChain(task)));
 
   const editingThisTask = E.taskId === task.id && E.pending && E.pending.kind === "task"
     || (E.pending && E.pending.kind === "restore" && E.pending.taskId === task.id);
@@ -411,7 +446,7 @@ function renderProgress() {
 let render = function () {
   const visible = tasksForTab();
   const sorted = chainOrdered(visible, sortTasks(visible));
-  const chainVis = chainVisibility(Game.state.tasks, isGlobalEditMode() || AppUI.activeTab === "highlight");
+  const chainVis = chainVisibility(Game.state.tasks, isGlobalEditMode() || AppUI.activeTab === "highlight", (h) => AppUI.expandedChains.has("t:" + h));
   const chainInfo = buildChainColorInfo(Game.state.tasks);
   const shown = sorted.filter((t) => !chainVis.get(t.id).hidden);
   const openEdit = E.active && E.active.scope.isConnected ? E.active : null;
@@ -450,6 +485,7 @@ let render = function () {
   renderProgress();
 
   AppUI.els.levelDisplayEl.textContent = Game.levelFromXp(Game.state.xp);
+  AppUI.els.streakSumEl.textContent = Game.state.tasks.reduce((sum, t) => sum + (t.streak > 0 ? t.streak : 0), 0);
 
   if (Game.isBoostActive()) {
     AppUI.els.boostBannerEl.classList.remove("hidden");

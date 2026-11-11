@@ -1,0 +1,5 @@
+node_modules/
+/android/
+docs/vendor/capacitor/
+*.log
+.DS_Store

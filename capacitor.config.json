@@ -1,0 +1,6 @@
+{
+  "appId": "dev.phbrb.todo",
+  "appName": "TODO",
+  "webDir": "docs",
+  "bundledWebRuntime": false
+}

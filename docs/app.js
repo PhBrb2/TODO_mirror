@@ -7,10 +7,12 @@ import { initInfoOverlay } from "./app-info.js";
 import { initActionsToggle, initUiSheet, setGlobalEditMode } from "./app-sheet.js";
 import { AppUI } from "./app-state.js";
 import { DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, mountWheel } from "./app-util.js";
-import { VERSION } from "./game-constants.js";
+import { DAILY_GOALS, VERSION } from "./game-constants.js";
 import { rolloverCheckpoints } from "./game-progression.js";
+import { reachedGoalCount } from "./game-rewards.js";
 import { checkRecurringTasks } from "./game-schedule.js";
 import { loadState, resetState, saveState, state, ui } from "./game-state.js";
+import { syncDailyReminder } from "./native-bridge.js";
 
 ui.render = () => render();
 ui.showToast = (message) => showToast(message);
@@ -22,6 +24,9 @@ const saved = loadState();
 if (saved) Object.assign(state, saved);
 rolloverCheckpoints();
 checkRecurringTasks();
+
+const dailyGoal = DAILY_GOALS[reachedGoalCount(state.dailyCompleted)] ?? DAILY_GOALS[DAILY_GOALS.length - 1];
+syncDailyReminder({ streak: state.firstTaskStreak, dailyCompleted: state.dailyCompleted, dailyGoal });
 setInterval(checkRecurringTasks, 15000);
 setInterval(rolloverCheckpoints, 60000);
 setInterval(updateLiveClocks, 1000);

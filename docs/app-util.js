@@ -210,7 +210,7 @@ function isGlobalEditMode() {
   return !document.body.classList.contains("actions-hidden");
 }
 
-function chainVisibility(items, showAll) {
+function chainVisibility(items, showAll, isExpanded = null) {
   const vis = new Map();
   for (const it of items) vis.set(it.id, { hidden: false, zigzagAbove: false, zigzagBelow: false });
   if (showAll) return vis;
@@ -232,6 +232,7 @@ function chainVisibility(items, showAll) {
   const heads = new Set();
   for (const it of items) if (inChain(it)) heads.add(headOf(it).id);
   for (const headId of heads) {
+    if (isExpanded && isExpanded(headId)) continue;
     const component = [];
     const stack = [byId.get(headId)];
     const seen = new Set();
@@ -363,10 +364,11 @@ function zigzagSvg() {
   return svg;
 }
 
-function zigzagEdgeNode(above) {
+function zigzagEdgeNode(above, onExpand = null) {
   const el = document.createElement("div");
-  el.className = "chain-zigzag-edge " + (above ? "chain-zigzag-above" : "chain-zigzag-below");
+  el.className = "chain-zigzag-edge " + (above ? "chain-zigzag-above" : "chain-zigzag-below") + (onExpand ? " expandable" : "");
   el.appendChild(zigzagSvg());
+  if (onExpand) el.addEventListener("click", () => onExpand());
   return el;
 }
 

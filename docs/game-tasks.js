@@ -3,6 +3,7 @@ import { applyFirstTaskBonus, maybeStartBoost } from "./game-progression.js";
 import { achievementProgressFromCompletion, announceAchievements, announceLevelUp, awardSubtask, buildRewardMessage, clawBackMilestone, computeReward, earnChest, grantMilestones, grantXpAndCoins, reachedGoalCount, reachedWeeklyGoalCount, trackAchievement, trackDailyGoal, updateStreak } from "./game-rewards.js";
 import { nextOccurrence, repeatKey } from "./game-schedule.js";
 import { clampWeekdays, itemIsOwned, emitPromptDifficultyRating, emitRender, saveState, emitToast, state } from "./game-state.js";
+import { hapticImpact, hapticNotification } from "./native-bridge.js";
 
 function highlightRating(task, now) {
   let score = 0;
@@ -311,6 +312,7 @@ function completeFunTask(task) {
     totalCompleted: state.achievements.stats.totalCompleted + 1,
     funCompleted: state.achievements.stats.funCompleted + 1,
   }));
+  hapticNotification("Success");
   saveState();
   emitRender();
 }
@@ -365,6 +367,8 @@ function completeTask(task) {
   maybeStartBoost();
   emitPromptDifficultyRating(task);
   maybeSuggestDifficultyReduction(task);
+  hapticNotification("Success");
+  if (leveledUp) hapticImpact("Heavy");
   saveState();
   emitRender();
 }

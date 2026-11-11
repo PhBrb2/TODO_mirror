@@ -24,6 +24,15 @@ body {
   max-width: 480px;
   margin: 0 auto;
   min-height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #room-view {
@@ -120,9 +129,19 @@ body.actions-hidden .subtask-add { display: none; }
   margin-top: 2px;
 }
 
-.top-stats .version { order: 2; margin-left: auto; font-size: 0.65rem; }
+.streak-sum { font-size: 0.8rem; }
 
-.top-stats-actions { display: flex; gap: 2px; order: 3; }
+.sheet-handle .version {
+  position: absolute;
+  right: 46px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.top-stats-actions { display: flex; gap: 2px; order: 3; margin-left: auto; }
 
 .top-stats-actions button {
   border: none;
@@ -307,6 +326,7 @@ body.actions-hidden .subtask-add { display: none; }
 }
 .chain-zigzag-above { top: -3px; }
 .chain-zigzag-below { bottom: -3px; }
+.chain-zigzag-edge.expandable { pointer-events: auto; cursor: pointer; }
 .subtask .chain-zigzag-edge { left: 16px; height: 5px; }
 .subtask .chain-zigzag-above { top: -2px; }
 .subtask .chain-zigzag-below { bottom: -2px; }
@@ -822,6 +842,7 @@ body.actions-hidden .subtask-add { display: none; }
 }
 
 .wheel-select {
+  -webkit-tap-highlight-color: transparent;
   --wheel-item-height: 28px;
   --wheel-peek: 32px;
   border: 1px solid #ddd8f0;
@@ -838,7 +859,7 @@ body.actions-hidden .subtask-add { display: none; }
   border-radius: 8px;
 }
 
-.wheel-select:focus { border-color: var(--accent); }
+.wheel-select:focus { outline: none; }
 .wheel-select.disabled { opacity: 0.5; pointer-events: none; }
 
 .wheel-select::before,
@@ -859,7 +880,8 @@ body.actions-hidden .subtask-add { display: none; }
 .wheel-select-track {
   height: calc(var(--wheel-item-height) + 2 * var(--wheel-peek));
   overflow-y: auto;
-  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  touch-action: none;
   scrollbar-width: none;
   padding: var(--wheel-peek) 8px;
 }
@@ -871,7 +893,6 @@ body.actions-hidden .subtask-add { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  scroll-snap-align: center;
   font-size: 0.85rem;
   color: var(--muted);
   white-space: nowrap;

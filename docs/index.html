@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#6c5ce7">
+  <link rel="manifest" href="./manifest.webmanifest">
   <title>TODO — MWE</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -23,13 +24,13 @@
       <span class="coins">🪙 <b id="coin-balance">0</b></span>
       <span class="gems">💎 <b id="gem-balance">0</b></span>
       <span class="level">✨ Lv <b id="level-display">1</b></span>
+      <span class="streak-sum">🔥 <b id="streak-sum">0</b></span>
       <span class="top-stats-actions">
         <button id="shop-btn" type="button" aria-label="Open shop">🛒</button>
         <button id="achievements-btn" type="button" aria-label="Achievements">🏆</button>
         <button id="settings-btn" type="button" aria-label="Settings">⚙️</button>
         <button id="info-btn" type="button" aria-label="Info: how to use the app">ℹ️</button>
       </span>
-      <span class="version" id="app-version"></span>
     </div>
   </div>
 
@@ -37,6 +38,7 @@
     <div id="sheet-handle" class="sheet-handle">
       <div id="boost-banner" class="boost-banner hidden">⚡ x1.5 <span id="boost-timer"></span></div>
       <span class="sheet-handle-bar"></span>
+      <span class="version" id="app-version"></span>
       <button id="toggle-actions-btn" type="button" aria-label="Show edit and delete buttons" aria-pressed="false">✎</button>
     </div>
     <div class="sheet-content">
@@ -157,7 +159,10 @@
     {
       "imports": {
         "three": "./vendor/three.module.js",
-        "three/addons/": "./vendor/addons/"
+        "three/addons/": "./vendor/addons/",
+        "@capacitor/core": "./vendor/capacitor/core.js",
+        "@capacitor/haptics": "./vendor/capacitor/haptics/index.js",
+        "@capacitor/local-notifications": "./vendor/capacitor/local-notifications/index.js"
       }
     }
   </script>
@@ -167,6 +172,7 @@
   <script src="wheel-select.js"></script>
   <script src="confirm-dialog.js"></script>
   <script type="module" src="room-boot.js"></script>
+  <script type="module" src="pwa-register.js"></script>
   <script type="module" src="game.js"></script>
   <script type="module" src="app.js"></script>
 </body>
