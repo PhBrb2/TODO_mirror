@@ -16,6 +16,13 @@ if (![major, minor, patch].every(Number.isFinite)) {
 const versionName = match[1];
 const versionCode = major * 10000 + minor * 100 + patch;
 
+const gradlePropsPath = path.join(root, "android", "gradle.properties");
+const gradleProps = await readFile(gradlePropsPath, "utf8");
+const kspProp = "android.disallowKotlinSourceSets=false";
+if (!gradleProps.includes(kspProp)) {
+  await writeFile(gradlePropsPath, gradleProps.replace(/\n*$/, "\n") + kspProp + "\n");
+}
+
 const gradlePath = path.join(root, "android", "app", "build.gradle");
 const gradle = await readFile(gradlePath, "utf8");
 const updated = gradle
@@ -24,4 +31,4 @@ const updated = gradle
 if (updated === gradle) throw new Error(`versionName/versionCode not found in ${gradlePath}`);
 await writeFile(gradlePath, updated);
 
-console.log(`Android versionName=${versionName} versionCode=${versionCode}`);
+console.log(`Android versionName=${versionName} versionCode=${versionCode}, gradle.properties patched`);

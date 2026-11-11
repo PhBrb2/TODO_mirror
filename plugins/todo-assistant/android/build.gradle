@@ -1,0 +1,44 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:9.4.1'
+        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:2.3.3'
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'com.google.devtools.ksp'
+
+android {
+    namespace = "dev.phbrb.todo.assistant"
+    compileSdk = project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 37
+    defaultConfig {
+        minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 26
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+    }
+}
+
+ksp {
+    arg("appfunctions:aggregateAppFunctions", "true")
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+    implementation 'androidx.appfunctions:appfunctions:1.0.0-beta01'
+    ksp 'androidx.appfunctions:appfunctions-compiler:1.0.0-beta01'
+}

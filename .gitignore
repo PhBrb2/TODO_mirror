@@ -3,3 +3,5 @@ node_modules/
 docs/vendor/capacitor/
 *.log
 .DS_Store
+build/
+.gradle/

@@ -1,7 +1,7 @@
 {
   "name": "todo-mwe",
   "private": true,
-  "version": "0.78.0",
+  "version": "0.79.1",
   "description": "Gamified todo app. Static web app in docs/ (GitHub Pages) wrapped as an Android app via Capacitor.",
   "type": "module",
   "scripts": {
@@ -11,12 +11,13 @@
     "cap:open": "cap open android"
   },
   "dependencies": {
-    "@capacitor/android": "^8.6.0",
-    "@capacitor/core": "^8.6.0",
-    "@capacitor/haptics": "^8.0.2",
-    "@capacitor/local-notifications": "^8.3.1"
+    "@capacitor/android": "^9.0.0-beta.0",
+    "@capacitor/core": "^9.0.0-beta.0",
+    "@capacitor/haptics": "^9.0.0-next.2",
+    "@capacitor/local-notifications": "^9.0.0-alpha.2",
+    "@todo/assistant": "file:plugins/todo-assistant"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.6.0"
+    "@capacitor/cli": "^9.0.0-beta.0"
   }
 }

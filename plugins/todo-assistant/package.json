@@ -1,0 +1,11 @@
+{
+  "name": "@todo/assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Capacitor plugin exposing TODO app functions (AppFunctions) to on-device AI assistants.",
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  }
+}
