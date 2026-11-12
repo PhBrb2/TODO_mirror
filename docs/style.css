@@ -671,6 +671,49 @@ body.actions-hidden .subtask-add { display: none; }
   cursor: pointer;
 }
 
+.rating-close {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--card);
+  box-shadow: 0 2px 8px rgba(45, 42, 61, 0.3);
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.rating-close-x {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.rating-ring {
+  position: absolute;
+  inset: 0;
+  width: 32px;
+  height: 32px;
+  transform: rotate(-90deg);
+}
+
+.rating-ring circle {
+  fill: none;
+  stroke-width: 3;
+}
+
+.rating-ring-bar {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
 .task-delete {
   border: none;
   background: none;

@@ -1,5 +1,5 @@
 
-const VERSION = "0.79.4";
+const VERSION = "0.79.7";
 const STORAGE_KEY = "todo-mwe-state";
 
 const REMINDER_HOUR = 20;
@@ -44,7 +44,7 @@ const FIRST_TASK_COINS_MULT = { day1_2: 1, day3_6: 2.5, day7: 3 };
 
 const FIRST_TASK_GEM_CHANCE = { day1_2: 0, day3_6: 0.5, day7: 0.5 };
 
-const RATE_PROMPT_TIMEOUT = 10000;
+const RATE_PROMPT_TIMEOUT = 6000;
 
 const DIFFICULTY_SUGGESTION_STREAK = 5;
 

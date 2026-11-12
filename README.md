@@ -38,7 +38,7 @@ Note: assistant-side (Gemini) access to AppFunctions is in limited preview; the 
 
 ## Install from the web (PWA)
 
-The GitHub Pages site is also installable as a PWA: open it in Chrome on Android and use the menu → "Install app" / "Add to Home screen". `docs/manifest.webmanifest` (icons in `docs/icons/`) plus `docs/sw.js` make it run standalone; the service worker is network-first, caches the app shell (not the 3D models in `docs/models/`) and is versioned with the app `VERSION` via `docs/pwa-register.js`. The service worker is not registered inside the Capacitor Android app.
+The GitHub Pages site is also installable as a PWA: open it in Chrome on Android and use the menu → "Install app" / "Add to Home screen"; on iPhone use Safari's share sheet → "Add to Home Screen" (the `apple-touch-icon` and `apple-mobile-web-app-*` tags in `docs/index.html` cover iOS). Note: iOS may evict an installed PWA's storage after ~7 days of no use — keep a backup export in the app's settings. `docs/manifest.webmanifest` (icons in `docs/icons/`) plus `docs/sw.js` make it run standalone; the service worker is network-first, caches the app shell (not the 3D models in `docs/models/`) and is versioned with the app `VERSION` via `docs/pwa-register.js`. The service worker is not registered inside the Capacitor Android app.
 
 ## Credits
 

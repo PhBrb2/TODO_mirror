@@ -94,11 +94,46 @@ const RATING_OPTIONS = [
   { label: "👌 As expected", value: "ok" },
   { label: "😊 Easier", value: "easier" },
 ];
+const RATING_RING_RADIUS = 13;
+const RATING_RING_CIRC = 2 * Math.PI * RATING_RING_RADIUS;
+
+function buildRatingCloseButton(onClose) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "rating-close";
+  btn.setAttribute("aria-label", "Close");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 32 32");
+  svg.classList.add("rating-ring");
+  const bar = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  bar.setAttribute("cx", "16");
+  bar.setAttribute("cy", "16");
+  bar.setAttribute("r", String(RATING_RING_RADIUS));
+  bar.classList.add("rating-ring-bar");
+  bar.style.strokeDasharray = String(RATING_RING_CIRC);
+  svg.append(bar);
+  const x = document.createElement("span");
+  x.className = "rating-close-x";
+  x.textContent = "×";
+  btn.append(svg, x);
+  btn.addEventListener("click", onClose);
+  return { btn, bar };
+}
+
 function promptDifficultyRating(task) {
   if (task.repeat === "none") return;
   if (task.ratedDifficulty != null) return;
+  const timeoutMs = Game.RATE_PROMPT_TIMEOUT;
   const panel = document.createElement("div");
   panel.className = "rating-panel";
+  let dismissed = false;
+  let timer = 0;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    clearTimeout(timer);
+    panel.remove();
+  };
   const q = document.createElement("span");
   q.textContent = `"${task.title}" — how was it?`;
   panel.appendChild(q);
@@ -108,7 +143,7 @@ function promptDifficultyRating(task) {
     btn.textContent = opt.label;
     btn.addEventListener("click", () => {
       task.ratedDifficulty = opt.value;
-      panel.remove();
+      dismiss();
       if (opt.value === "easier") {
         showToast("😄 Noted! You can edit the task's difficulty.");
       } else {
@@ -119,8 +154,14 @@ function promptDifficultyRating(task) {
     });
     panel.appendChild(btn);
   }
+  const { btn: closeBtn, bar } = buildRatingCloseButton(dismiss);
+  panel.appendChild(closeBtn);
   document.body.appendChild(panel);
-  setTimeout(() => panel.remove(), Game.RATE_PROMPT_TIMEOUT);
+  timer = setTimeout(dismiss, timeoutMs);
+  bar.style.transition = `stroke-dashoffset ${timeoutMs}ms linear`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.strokeDashoffset = String(RATING_RING_CIRC);
+  }));
 }
 
 function buildEditSelectors(task, listSel, diff, rep, scheduleArea, timeLimit) {
