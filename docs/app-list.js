@@ -52,6 +52,46 @@ function taskCheckbox(li, task) {
   return cb;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function buildSubtaskRing(task) {
+  const n = task.subtasks.length;
+  if (n <= 2) return null;
+  const done = task.subtasks.filter((s) => s.done).length;
+  const size = 34;
+  const c = size / 2;
+  const r = 14;
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.classList.add("task-check-ring");
+  // Segmented background ring: n dash segments with gaps, so the page
+  // background shows between segments (one segment per subtask).
+  const GAP = 0.14;
+  const seg = (100 / n) * (1 - GAP);
+  const gap = (100 / n) * GAP;
+  const track = document.createElementNS(SVG_NS, "circle");
+  track.setAttribute("cx", String(c));
+  track.setAttribute("cy", String(c));
+  track.setAttribute("r", String(r));
+  track.setAttribute("pathLength", "100");
+  track.classList.add("task-ring-track");
+  track.style.strokeDasharray = `${seg} ${gap}`;
+  svg.appendChild(track);
+  // Progress fills whole segments only, so gaps stay visible: repeat the
+  // segment pattern `done` times, then an empty dash for the rest.
+  const bar = document.createElementNS(SVG_NS, "circle");
+  bar.setAttribute("cx", String(c));
+  bar.setAttribute("cy", String(c));
+  bar.setAttribute("r", String(r));
+  bar.setAttribute("pathLength", "100");
+  bar.classList.add("task-ring-bar");
+  bar.style.strokeDasharray = done === 0
+    ? "0 100"
+    : `${Array.from({ length: done }, () => `${seg} ${gap}`).join(" ")} 0 100`;
+  svg.appendChild(bar);
+  return svg;
+}
+
 function taskTitleNode(task, editingThisTask, chainInfo = null) {
   if (!editingThisTask) {
     const title = document.createElement("div");
@@ -372,7 +412,17 @@ function taskNode(task, chainInfo = null, chainUi = null) {
 
   taskDraggable(li, task);
 
-  li.appendChild(taskCheckbox(li, task));
+  const cb = taskCheckbox(li, task);
+  const ring = buildSubtaskRing(task);
+  if (ring) {
+    const wrap = document.createElement("span");
+    wrap.className = "task-check-wrap";
+    wrap.appendChild(cb);
+    wrap.appendChild(ring);
+    li.appendChild(wrap);
+  } else {
+    li.appendChild(cb);
+  }
   li.appendChild(body);
   li.appendChild(taskActionsNode(task));
   return li;
@@ -485,7 +535,9 @@ let render = function () {
   renderProgress();
 
   AppUI.els.levelDisplayEl.textContent = Game.levelFromXp(Game.state.xp);
-  AppUI.els.streakSumEl.textContent = Game.state.tasks.reduce((sum, t) => sum + (t.streak > 0 ? t.streak : 0), 0);
+  const streakSum = Game.totalStreakSum();
+  AppUI.els.streakSumEl.textContent = streakSum;
+  AppUI.els.streakSumEl.closest(".streak-sum").classList.toggle("off", streakSum < Game.state.maxStreakSum);
 
   if (Game.isBoostActive()) {
     AppUI.els.boostBannerEl.classList.remove("hidden");

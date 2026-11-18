@@ -266,7 +266,7 @@ function toggleSubtask(parent, subtask) {
   } else {
     uncompleteSubtaskCascade(parent, subtask);
     if (parent.done && parent.completedViaSubtasks) {
-      uncompleteTask(parent);
+      uncompleteTask(parent, false);
       parent.completedViaSubtasks = false;
     }
   }
@@ -435,8 +435,17 @@ function chainedSuccessorsOf(task) {
   return out;
 }
 
-function uncompleteTask(task) {
+function uncompleteTask(task, cascadeSubtasks = true) {
   if (task.list === "fun") return uncompleteFunTask(task);
+  if (cascadeSubtasks && task.subtasks && task.subtasks.length > 0) {
+    for (const st of task.subtasks) {
+      if (!st.done) continue;
+      clawBackReward(st.reward);
+      st.reward = null;
+      st.done = false;
+    }
+    task.completedViaSubtasks = false;
+  }
   for (const t of [task, ...chainedSuccessorsOf(task)]) uncompleteOneTask(t);
   clawBackMilestone(
     reachedGoalCount(state.dailyCompleted), "lastDailyMilestone", GOAL_REWARD);

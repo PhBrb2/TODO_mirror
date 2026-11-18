@@ -43,6 +43,7 @@ function defaultState() {
     roomEnabled: true,
     streakFreezes: 0,
     iceAgeUntil: 0,
+    maxStreakSum: 0,
   };
 }
 
@@ -241,6 +242,7 @@ function migrateState(raw) {
     roomEnabled: raw.roomEnabled !== false,
     streakFreezes: num(raw.streakFreezes, 0),
     iceAgeUntil: Math.max(0, num(raw.iceAgeUntil, 0)),
+    maxStreakSum: Math.max(0, Math.floor(num(raw.maxStreakSum, 0))),
   };
 }
 
@@ -277,7 +279,12 @@ function resetState() {
   try { localStorage.removeItem(STORAGE_KEY); } catch {}
 }
 
+function totalStreakSum() {
+  return state.tasks.reduce((sum, t) => sum + (t.streak > 0 ? t.streak : 0), 0);
+}
+
 function saveState() {
+  state.maxStreakSum = Math.max(state.maxStreakSum, totalStreakSum());
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -320,4 +327,4 @@ function itemIsOwned(id) {
   return state.ownedItems.includes(id);
 }
 
-export { clampWeekdays, defaultAchievementStats, exportState, importState, defaultState, emitPromptDifficultyRating, emitRender, emitToast, isRecord, itemIsOwned, loadState, migrateAchievements, migratePlacedItems, migrateState, migrateTask, normalizePlaced, normalizeWeekdays, num, ownedItemIds, resetState, saveState, state, str, ui };
+export { clampWeekdays, defaultAchievementStats, exportState, importState, defaultState, emitPromptDifficultyRating, emitRender, emitToast, isRecord, itemIsOwned, loadState, migrateAchievements, migratePlacedItems, migrateState, migrateTask, normalizePlaced, normalizeWeekdays, num, ownedItemIds, resetState, saveState, state, str, totalStreakSum, ui };

@@ -131,6 +131,11 @@ body.actions-hidden .subtask-add { display: none; }
 
 .streak-sum { font-size: 0.8rem; }
 
+.streak-sum.off {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
 .sheet-handle .version {
   position: absolute;
   right: 46px;
@@ -471,7 +476,44 @@ body.actions-hidden .subtask-add { display: none; }
 .task-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 
 #task-list.editing > .task > input[type="checkbox"],
+#task-list.editing > .task > .task-check-wrap,
 #task-list.editing .subtask > input[type="checkbox"] { display: none; }
+
+.task-check-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+
+.task-check-wrap input[type="checkbox"] {
+  position: relative;
+  z-index: 1;
+}
+
+.task-check-ring {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: rotate(-90deg);
+}
+
+.task-check-ring circle {
+  fill: none;
+}
+
+.task-ring-track {
+  stroke: var(--accent-soft);
+  stroke-width: 2.5;
+  opacity: 0.55;
+}
+
+.task-ring-bar {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
 
 .subtask-list.chain-locked .subtask { opacity: 0.45; }
 
@@ -661,7 +703,7 @@ body.actions-hidden .subtask-add { display: none; }
   animation: pop 0.3s ease;
 }
 
-.rating-panel button {
+.rating-panel button:not(.rating-close) {
   border: 1px solid var(--accent-soft);
   background: #fff;
   color: var(--accent);
@@ -677,6 +719,7 @@ body.actions-hidden .subtask-add { display: none; }
   right: -10px;
   width: 32px;
   height: 32px;
+  box-sizing: border-box;
   border-radius: 50%;
   border: none;
   background: var(--card);
