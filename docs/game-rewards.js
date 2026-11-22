@@ -2,6 +2,7 @@ import { ACHIEVEMENTS, BONUS_TASK_COINS, BONUS_TASK_GEMS, BOOST_MULT, CHEST_COIN
 import { chestReady, isBoostActive, levelFromXp } from "./game-progression.js";
 import { prevRepeatKey, randomMultiplier, repeatKey, streakBonus } from "./game-schedule.js";
 import { emitRender, saveState, emitToast, state } from "./game-state.js";
+import { ICONS } from "./game-icons.js";
 
 function openChest(chest) {
   if (!chestReady(chest)) return;
@@ -15,7 +16,7 @@ function openChest(chest) {
   const xp = CHEST_XP[Math.floor(Math.random() * CHEST_XP.length)];
   const leveledUp = grantXpAndCoins(coins, gems, xp);
   emitToast(
-    `📦 +${coins} 🪙 +${gems} 💎 +${xp} ✨` + (leveledUp ? ` — Level up!` : "")
+    `${ICONS.chest} +${coins} ${ICONS.coin} +${gems} ${ICONS.gem} +${xp} ${ICONS.sparkles}` + (leveledUp ? ` ${ICONS.emDash} Level up!` : "")
   );
   saveState();
   emitRender();
@@ -30,7 +31,7 @@ function grantXpAndCoins(coins, gems, xp) {
 }
 
 function announceLevelUp() {
-  emitToast(`🎉 Level up! You are now level ${levelFromXp(state.xp)}`);
+  emitToast(`${ICONS.party} Level up! You are now level ${levelFromXp(state.xp)}`);
 }
 
 function awardSubtask(subtask) {
@@ -40,7 +41,7 @@ function awardSubtask(subtask) {
   if (leveledUp) {
     announceLevelUp();
   } else if (coins > 0) {
-    emitToast(`+${coins} 🪙 +${xp} ✨`);
+    emitToast(`+${coins} ${ICONS.coin} +${xp} ${ICONS.sparkles}`);
   }
 }
 
@@ -141,17 +142,17 @@ function grantMilestones() {
 
 function buildRewardMessage(task, reward, firstBonus) {
   const parts = [];
-  if (reward.coins > 0) parts.push(`${reward.coins} 🪙`);
-  if (reward.gems > 0) parts.push(`${reward.gems} 💎`);
-  if (parts.length === 0) parts.push("0 🪙");
+  if (reward.coins > 0) parts.push(`${reward.coins} ${ICONS.coin}`);
+  if (reward.gems > 0) parts.push(`${reward.gems} ${ICONS.gem}`);
+  if (parts.length === 0) parts.push("0 " + ICONS.coin);
   let msg = "+" + parts.join(" + ");
   if (reward.mult > 1.05) msg += ` (x${reward.mult.toFixed(2)})`;
-  if (task.streak > 1) msg += ` 🔥 ${task.streak}`;
-  if (reward.timeBonus > 0) msg += ` ⏱️ +${reward.timeBonus} on time`;
+  if (task.streak > 1) msg += ` ${ICONS.fire} ${task.streak}`;
+  if (reward.timeBonus > 0) msg += ` ${ICONS.timeLimit} +${reward.timeBonus} on time`;
   if (firstBonus && firstBonus.streak >= 3) {
-    msg += ` 🌅 first task x${state.firstTaskStreak}`;
+    msg += ` ${ICONS.sunrise} first task x${state.firstTaskStreak}`;
   }
-  msg += ` +${reward.xp} ✨`;
+  msg += ` +${reward.xp} ${ICONS.sparkles}`;
   return msg;
 }
 
@@ -200,7 +201,7 @@ function trackAchievement(progress) {
 function announceAchievements(ids) {
   for (const id of ids) {
     const a = achievementById(id);
-    if (a) emitToast(`\ud83c\udfc6 Achievement unlocked: ${a.name}!`);
+    if (a) emitToast(`${ICONS.trophy} Achievement unlocked: ${a.name}!`);
   }
 }
 

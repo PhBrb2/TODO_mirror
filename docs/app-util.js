@@ -1,4 +1,5 @@
 import { chainHead } from "./game-tasks.js";
+import { ICONS } from "./game-icons.js";
 
 const DIFFICULTY_OPTIONS = [
   ["too_easy", "Too easy"],
@@ -12,8 +13,8 @@ const REPEAT_OPTIONS = [
   ["daily", "Daily"],
   ["weekly", "Weekly"],
   ["monthly", "Monthly"],
-  ["every_5min", "Every 5 min (test)"],
   ["custom", "Custom"],
+  ["manual", "Manual"],
 ];
 
 const WEEKDAY_CHECKBOXES = [
@@ -43,6 +44,7 @@ const LIST_OPTIONS = [
   ["todo", "Todo"],
   ["backlog", "Backlog"],
   ["fun", "Fun"],
+  ["group", ICONS.chest + " Group"],
 ];
 
 function createWheel(options, selected, label, onChange, compact = false) {
@@ -56,7 +58,7 @@ function mountWheel(containerId, options, selected, label, onChange) {
 }
 
 function isRepeatingRepeat(repeat) {
-  return repeat !== "none" && repeat !== "every_5min";
+  return repeat !== "none";
 }
 
 const END_OF_DAY_MINUTES = 23 * 60 + 59;
@@ -105,7 +107,7 @@ function formatResetIn(ts) {
   if (mins < 60) tstr = `${mins}m`;
   else if (mins < 1440) tstr = `${Math.round(mins / 60)}h`;
   else tstr = `${Math.round(mins / 1440)}d`;
-  return `🔄 reset in ${tstr}`;
+  return `${ICONS.resetIn} reset in ${tstr}`;
 }
 
 function readScheduleValues(read) {
@@ -143,16 +145,16 @@ function formatDeadline(ts) {
   if (diff < 0) {
     const hours = Math.floor(abs / 3600000);
     const days = Math.floor(abs / 86400000);
-    if (days >= 1) return `⏰ ${days}d overdue`;
-    if (hours >= 1) return `⏰ ${hours}h overdue`;
-    return `⏰ overdue`;
+    if (days >= 1) return `${ICONS.alarm} ${days}d overdue`;
+    if (hours >= 1) return `${ICONS.alarm} ${hours}h overdue`;
+    return `${ICONS.alarm} overdue`;
   }
   const mins = Math.round(diff / 60000);
   let tstr;
   if (mins < 60) tstr = `${mins}m`;
   else if (mins < 1440) tstr = `${Math.round(mins / 60)}h`;
   else tstr = `${Math.round(mins / 1440)}d`;
-  return `⏰ ${tstr} left`;
+  return `${ICONS.alarm} ${tstr} left`;
 }
 
 function sortTasks(tasks) {
@@ -197,8 +199,8 @@ function chainLinkNode(className, onUnlink) {
   const unlink = document.createElement("button");
   unlink.type = "button";
   unlink.className = "chain-unlink";
-  unlink.textContent = "🔗";
-  unlink.title = "Chained \u2014 click to remove the link";
+  unlink.textContent = ICONS.link;
+  unlink.title = "Chained " + ICONS.emDash + " click to remove the link";
   unlink.addEventListener("click", onUnlink);
   row.appendChild(unlink);
   return row;
@@ -340,8 +342,8 @@ function chainInlineSymbol(onUnlink) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "chain-unlink chain-inline-symbol";
-  btn.textContent = "\ud83d\udd17";
-  btn.title = "Chained \u2014 click to remove the link";
+  btn.textContent = ICONS.link;
+  btn.title = "Chained " + ICONS.emDash + " click to remove the link";
   btn.addEventListener("click", onUnlink);
   return btn;
 }

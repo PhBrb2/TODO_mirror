@@ -1,3 +1,4 @@
+import { ICONS } from "./game-icons.js";
 (() => {
   "use strict";
 
@@ -130,10 +131,10 @@
     const coinCount = Math.min(MAX_SIMULTANEOUS, Math.floor(coins / COIN_DIVISOR));
     const gemCount = Math.min(MAX_SIMULTANEOUS, gems);
     for (let c = 0; c < coinCount; c++) {
-      spawnFlyer(parent, "🪙", from, coinTarget, Math.random() * Math.PI * 2);
+      spawnFlyer(parent, ICONS.coin, from, coinTarget, Math.random() * Math.PI * 2);
     }
     for (let g = 0; g < gemCount; g++) {
-      spawnFlyer(parent, "💎", from, gemTarget, Math.random() * Math.PI * 2);
+      spawnFlyer(parent, ICONS.gem, from, gemTarget, Math.random() * Math.PI * 2);
     }
   }
 

@@ -1,9 +1,11 @@
 import { BONUS_TASK_RATE, CHEST_ITEM_ID, COIN_REWARD, CUSTOM_REPEAT_DEFAULT_MS, DIFFICULTY_ORDER, DIFFICULTY_SUGGESTION_STREAK, FUN_TASK_COINS, FUN_TASK_XP, GOAL_REWARD, HIGHLIGHT_COUNT, REPEAT_VALUES, TASK_LISTS, TIME_LIMIT_MINUTES, WEEKLY_GOAL_REWARD } from "./game-constants.js";
+import { normalizeRule } from "./game-rules.js";
 import { applyFirstTaskBonus, maybeStartBoost } from "./game-progression.js";
 import { achievementProgressFromCompletion, announceAchievements, announceLevelUp, awardSubtask, buildRewardMessage, clawBackMilestone, computeReward, earnChest, grantMilestones, grantXpAndCoins, reachedGoalCount, reachedWeeklyGoalCount, trackAchievement, trackDailyGoal, updateStreak } from "./game-rewards.js";
 import { nextOccurrence, repeatKey } from "./game-schedule.js";
 import { clampWeekdays, itemIsOwned, emitPromptDifficultyRating, emitRender, saveState, emitToast, state } from "./game-state.js";
 import { hapticImpact, hapticNotification } from "./native-bridge.js";
+import { ICONS } from "./game-icons.js";
 
 function highlightRating(task, now) {
   let score = 0;
@@ -52,20 +54,21 @@ function highlightTasks() {
 function addTask(title, difficulty, repeat, deadlineInput, list, timeLimit = 0) {
   const taskList = TASK_LISTS.includes(list) ? list : "todo";
   const isFun = taskList === "fun";
-  const isBonus = !isFun && Math.random() < BONUS_TASK_RATE;
+  const isNonTask = isFun || taskList === "group";
+  const isBonus = !isNonTask && Math.random() < BONUS_TASK_RATE;
   const task = {
     id: state.nextId++,
     title,
     list: taskList,
-    difficulty: isFun ? null : difficulty,
-    repeat: isFun ? "none" : repeat,
+    difficulty: isNonTask ? null : difficulty,
+    repeat: isNonTask ? "none" : repeat,
     done: false,
     createdAt: Date.now(),
     completedAt: null,
     streak: 0,
     streakDayKeys: [],
     bonus: isBonus,
-    deadline: isFun ? null : (deadlineInput ? new Date(deadlineInput).getTime() : null),
+    deadline: isNonTask ? null : (deadlineInput ? new Date(deadlineInput).getTime() : null),
     deadlineEnabled: true,
     repeatTime: NaN,
     repeatAfterCompletion: false,
@@ -74,16 +77,20 @@ function addTask(title, difficulty, repeat, deadlineInput, list, timeLimit = 0) 
     repeatMonthlyFirst: false,
     repeatCustomMs: CUSTOM_REPEAT_DEFAULT_MS,
     chainedAfter: 0,
+    groupId: null,
+    deadlineRule: null,
+    resetRule: null,
+    ignoreRule: null,
     pinned: false,
     streakFreezeKey: null,
-    timeLimit: isFun ? 0 : (TIME_LIMIT_MINUTES.includes(timeLimit) ? timeLimit : 0),
+    timeLimit: isNonTask ? 0 : (TIME_LIMIT_MINUTES.includes(timeLimit) ? timeLimit : 0),
     startedAt: 0,
     ratedDifficulty: null,
     difficultySuggested: false,
     completedViaSubtasks: false,
     subtasks: [],
   };
-  if (isBonus) emitToast("⭐ New bonus task! Extra rewards");
+  if (isBonus) emitToast(ICONS.star + " New bonus task! Extra rewards");
   state.tasks.push(task);
   saveState();
   emitRender();
@@ -164,11 +171,8 @@ function chainIn(siblings, item, targetId, linkEmoji) {
   }
   if (target.chainedAfter === item.id) return { ok: false, reason: "would swap" };
   if (chainWouldCycleIn(siblings, item, target)) return { ok: false, reason: "cycle" };
-  for (const other of siblings) {
-    if (other.chainedAfter === item.id && other.id !== target.id) {
-      other.chainedAfter = target.id;
-    }
-  }
+  // Re-chaining only moves the item itself; tasks chained after it stay
+  // attached to it instead of being re-linked to the new target.
   item.chainedAfter = target.id;
   const headList = chainHead(siblings, item).list;
   for (const other of siblings) {
@@ -183,11 +187,8 @@ function chainIn(siblings, item, targetId, linkEmoji) {
 
 function unchainIn(siblings, item) {
   if (!item.chainedAfter) return;
-  const oldId = item.chainedAfter;
+  // Successors stay chained to this item (it simply becomes the new head).
   item.chainedAfter = 0;
-  for (const other of siblings) {
-    if (other.chainedAfter === item.id) other.chainedAfter = oldId;
-  }
   saveState();
   emitRender();
 }
@@ -201,7 +202,7 @@ function subtaskChainSatisfies(parent, subtask) {
 }
 
 function chainSubtask(parent, subtask, targetId) {
-  return chainIn(parent.subtasks, subtask, targetId, "\ud83d\udd17");
+  return chainIn(parent.subtasks, subtask, targetId, ICONS.link);
 }
 
 function unchainSubtask(parent, subtask) {
@@ -245,7 +246,7 @@ function toggleSubtask(parent, subtask) {
   if (subtask.done) {
     if (subtasksLockedByChain(parent)) {
       subtask.done = false;
-      emitToast("🔗 Finish the chained predecessor task first");
+      emitToast(ICONS.link + " Finish the chained predecessor task first");
       saveState();
       emitRender();
       return;
@@ -253,7 +254,7 @@ function toggleSubtask(parent, subtask) {
     if (!subtaskChainSatisfies(parent, subtask)) {
       subtask.done = false;
       const predecessor = subtaskPredecessor(parent, subtask);
-      emitToast(`\ud83d\udd17 "${subtask.title}" is chained \u2014 complete "${predecessor.title}" first`);
+      emitToast(`${ICONS.link} "${subtask.title}" is chained ${ICONS.emDash} complete "${predecessor.title}" first`);
       saveState();
       emitRender();
       return;
@@ -295,11 +296,31 @@ function subtasksLockedByChain(task) {
 }
 
 function chainTask(task, targetId) {
-  return chainIn(state.tasks, task, targetId, "\ud83e\uddf1");
+  return chainIn(state.tasks, task, targetId, ICONS.brick);
 }
 
 function unchainTask(task) {
   return unchainIn(state.tasks, task);
+}
+
+// Manual re-enable (the card's manual label button): just marks the task
+// active again - no reward clawback, no streak/milestone changes.
+function enableTask(task) {
+  if (!task.done) return;
+  task.done = false;
+  task.completedAt = null;
+  saveState();
+  emitRender();
+}
+
+function moveTaskIntoGroup(taskId, groupId) {
+  const task = state.tasks.find((t) => t.id === taskId);
+  const group = state.tasks.find((t) => t.id === groupId);
+  if (!task || !group || group.list !== "group") return;
+  if (task.list === "group" || task.id === groupId || task.groupId === groupId) return;
+  task.groupId = groupId;
+  saveState();
+  emitRender();
 }
 
 function completeFunTask(task) {
@@ -307,7 +328,7 @@ function completeFunTask(task) {
   task.completedAt = Date.now();
   task.reward = { coins: FUN_TASK_COINS, gems: 0, xp: FUN_TASK_XP };
   grantXpAndCoins(FUN_TASK_COINS, 0, FUN_TASK_XP);
-  emitToast(`\ud83c\udf89 +${FUN_TASK_COINS} \ud83e\ude99 +${FUN_TASK_XP} \u2728`);
+  emitToast(`${ICONS.party} +${FUN_TASK_COINS} ${ICONS.coin} +${FUN_TASK_XP} ${ICONS.sparkles}`);
   announceAchievements(trackAchievement({
     totalCompleted: state.achievements.stats.totalCompleted + 1,
     funCompleted: state.achievements.stats.funCompleted + 1,
@@ -320,14 +341,25 @@ function completeFunTask(task) {
 function completeTask(task) {
   if (task.list === "fun") return completeFunTask(task);
   if (!chainSatisfiesDependency(task)) {
-    emitToast(`\ud83e\uddf1 "${task.title}" is chained \u2014 complete "${chainPredecessor(task).title}" first`);
+    emitToast(`${ICONS.brick} "${task.title}" is chained ${ICONS.emDash} complete "${chainPredecessor(task).title}" first`);
     return;
   }
   const reward = computeReward(task);
   task.done = true;
   task.startedAt = 0;
   task.completedAt = Date.now();
-  updateStreak(task, task.completedAt);
+  if (task.repeat !== "manual") updateStreak(task, task.completedAt);
+
+  // Checking off a parent also checks off all its subtasks (the user did
+  // them all at once). Subtasks already done are left untouched, so the
+  // all-subtasks-done path in toggleSubtask does not double-award.
+  if (task.subtasks && task.subtasks.length > 0) {
+    for (const st of task.subtasks) {
+      if (st.done) continue;
+      st.done = true;
+      awardSubtask(st);
+    }
+  }
 
   const firstBonus = applyFirstTaskBonus();
   if (firstBonus) {
@@ -357,13 +389,13 @@ function completeTask(task) {
   announceAchievements(trackAchievement(achievementProgressFromCompletion(task, task.completedAt)));
   if (leveledUp) announceLevelUp();
   if (milestones.weeklyReward > 0) {
-    emitToast(`🏆 Weekly goal reached! +${WEEKLY_GOAL_REWARD} 🪙`);
+    emitToast(`${ICONS.trophy} Weekly goal reached! +${WEEKLY_GOAL_REWARD} ${ICONS.coin}`);
   } else if (milestones.dailyReward > 0) {
-    emitToast(`🎉 Daily goal reached! +${GOAL_REWARD} 🪙`);
+    emitToast(`${ICONS.party} Daily goal reached! +${GOAL_REWARD} ${ICONS.coin}`);
   }
   emitToast(buildRewardMessage(task, reward, firstBonus));
 
-  if (chestEarned) emitToast("📦 Chest earned! Opens in 12h");
+  if (chestEarned) emitToast(ICONS.chest + " Chest earned! Opens in 12h");
   maybeStartBoost();
   emitPromptDifficultyRating(task);
   maybeSuggestDifficultyReduction(task);
@@ -455,11 +487,19 @@ function uncompleteTask(task, cascadeSubtasks = true) {
   emitRender();
 }
 
-function deleteTask(id) {
-  for (const other of state.tasks) {
-    if (other.chainedAfter === id) other.chainedAfter = 0;
+function deleteTask(id, opts = {}) {
+  const deleted = state.tasks.find((t) => t.id === id);
+  const isGroup = Boolean(deleted && deleted.list === "group");
+  const deleteMembers = isGroup && opts.deleteMembers === true;
+  const removedIds = new Set([id]);
+  if (deleteMembers) {
+    for (const t of state.tasks) if (t.groupId === id) removedIds.add(t.id);
   }
-  state.tasks = state.tasks.filter((t) => t.id !== id);
+  for (const other of state.tasks) {
+    if (removedIds.has(other.chainedAfter)) other.chainedAfter = 0;
+    if (isGroup && !deleteMembers && other.groupId === id) other.groupId = null;
+  }
+  state.tasks = state.tasks.filter((t) => !removedIds.has(t.id));
   saveState();
   emitRender();
 }
@@ -480,6 +520,33 @@ function setRoomEnabled(enabled) {
   saveState();
 }
 
+function setAutoRemoveCompletedDays(days) {
+  state.autoRemoveCompletedDays = Math.max(0, Math.floor(Number(days) || 0));
+  saveState();
+  purgeOldCompletedTasks();
+}
+
+// Remove completed non-repeating tasks older than the configured retention
+// (settings option: 30 days). Off when autoRemoveCompletedDays is 0.
+function purgeOldCompletedTasks() {
+  const days = state.autoRemoveCompletedDays | 0;
+  if (days <= 0) return;
+  const cutoff = Date.now() - days * 86400000;
+  const removed = state.tasks.filter(
+    (t) => t.done && t.completedAt && t.repeat === "none" && t.list !== "fun" && t.list !== "group" && t.completedAt <= cutoff
+  );
+  if (!removed.length) return;
+  const removedIds = new Set(removed.map((t) => t.id));
+  for (const other of state.tasks) {
+    if (removedIds.has(other.chainedAfter)) other.chainedAfter = 0;
+    if (other.groupId && removedIds.has(other.groupId)) other.groupId = null;
+  }
+  state.tasks = state.tasks.filter((t) => !removedIds.has(t.id));
+  emitToast(`${ICONS.trash} Removed ${removed.length} completed task${removed.length === 1 ? "" : "s"} older than ${days} days`);
+  saveState();
+  emitRender();
+}
+
 function maybeSuggestDifficultyReduction(task) {
   if (task.difficultySuggested) return;
   if (task.streak < DIFFICULTY_SUGGESTION_STREAK) return;
@@ -489,7 +556,7 @@ function maybeSuggestDifficultyReduction(task) {
   const idx = order.indexOf(task.difficulty);
   if (idx <= 0) return;
   emitToast(
-    `💡 "${task.title}" is going strong (🔥 ${task.streak}). Consider lowering its difficulty.`
+    `${ICONS.bulb} "${task.title}" is going strong (${ICONS.fire} ${task.streak}). Consider lowering its difficulty.`
   );
 }
 
@@ -513,13 +580,29 @@ const EDIT_UPDATERS = {
   repeat(task, v) {
     if (!REPEAT_VALUES.includes(v)) return;
     task.repeat = v;
-    if (v === "none") {
+    if (v === "none" || v === "manual") {
       task.streak = 0;
       task.streakDayKeys = [];
+    }
+    if (v === "manual") {
+      // manual tasks have no deadline / reset / ignore settings
+      task.deadline = null;
+      task.deadlineRule = null;
+      task.resetRule = null;
+      task.ignoreRule = null;
     }
   },
   deadline(task, v) {
     task.deadline = v ? new Date(v).getTime() : null;
+  },
+  deadlineRule(task, v) {
+    task.deadlineRule = normalizeRule(v, { allowOffset: true });
+  },
+  resetRule(task, v) {
+    task.resetRule = normalizeRule(v, { allowOffset: true });
+  },
+  ignoreRule(task, v) {
+    task.ignoreRule = normalizeRule(v, { allowOffset: false });
   },
   repeatAfterCompletion(task, v) {
     task.repeatAfterCompletion = v === true;
@@ -569,4 +652,4 @@ function editTask(id, updates) {
   emitRender();
 }
 
-export { EDIT_UPDATERS, addSubtask, addTask, chainHead, chainIn, chainPredecessor, chainPredecessorIn, chainSatisfiedIn, chainSatisfiesDependency, chainSubtask, chainTask, chainWouldCycleIn, clawBackReward, completeFunTask, completeTask, deleteSubtask, deleteTask, deriveDifficulty, editSubtask, editTask, highlightRating, highlightTasks, maybeSuggestDifficultyReduction, setDayStartHour, setRoomEnabled, setUiSheetHeightVh, startTask, subtaskChainSatisfies, subtaskPredecessor, subtasksLockedByChain, toggleSubtask, unchainIn, unchainSubtask, unchainTask, uncompleteFunTask, uncompleteTask };
+export { EDIT_UPDATERS, addSubtask, addTask, chainHead, purgeOldCompletedTasks, setAutoRemoveCompletedDays, chainIn, chainPredecessor, chainPredecessorIn, chainSatisfiedIn, chainSatisfiesDependency, chainSubtask, chainTask, chainWouldCycleIn, clawBackReward, completeFunTask, completeTask, deleteSubtask, deleteTask, deriveDifficulty, moveTaskIntoGroup, editSubtask, editTask, enableTask, highlightRating, highlightTasks, maybeSuggestDifficultyReduction, setDayStartHour, setRoomEnabled, setUiSheetHeightVh, startTask, subtaskChainSatisfies, subtaskPredecessor, subtasksLockedByChain, toggleSubtask, unchainIn, unchainSubtask, unchainTask, uncompleteFunTask, uncompleteTask };

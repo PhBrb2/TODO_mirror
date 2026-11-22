@@ -1,9 +1,10 @@
 import * as Game from "./game.js";
-import { buildScheduleControls, scheduleShowsTimeOfDay } from "./app-form.js";
+import { buildRuleSection, buildScheduleControls, scheduleShowsTimeOfDay } from "./app-form.js";
 import { AppUI } from "./app-state.js";
-import { DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, buildSelect, createDueAtWheels, createFieldToggle, createWheel, labeledField, readScheduleValues, scheduleValuesFromTask } from "./app-util.js";
+import { CUSTOM_DAYS_OPTIONS, CUSTOM_HOURS_OPTIONS, CUSTOM_MINUTES_OPTIONS, DIFFICULTY_OPTIONS, LIST_OPTIONS, REPEAT_OPTIONS, TIME_LIMIT_OPTIONS, buildSelect, createDueAtWheels, createFieldToggle, createWheel, labeledField, readScheduleValues, scheduleValuesFromTask } from "./app-util.js";
 import { showToast } from "./app-ui.js";
 import { render } from "./app-list.js";
+import { ICONS } from "./game-icons.js";
 
 const E = AppUI.edit;
 
@@ -90,9 +91,9 @@ function openSubtaskEdit(parent, subtask) {
 let outsideEditDown = null;
 
 const RATING_OPTIONS = [
-  { label: "😫 Harder", value: "harder" },
-  { label: "👌 As expected", value: "ok" },
-  { label: "😊 Easier", value: "easier" },
+  { label: ICONS.weary + " Harder", value: "harder" },
+  { label: ICONS.okHand + " As expected", value: "ok" },
+  { label: ICONS.smile + " Easier", value: "easier" },
 ];
 const RATING_RING_RADIUS = 13;
 const RATING_RING_CIRC = 2 * Math.PI * RATING_RING_RADIUS;
@@ -114,7 +115,7 @@ function buildRatingCloseButton(onClose) {
   svg.append(bar);
   const x = document.createElement("span");
   x.className = "rating-close-x";
-  x.textContent = "×";
+  x.textContent = ICONS.times;
   btn.append(svg, x);
   btn.addEventListener("click", onClose);
   return { btn, bar };
@@ -135,7 +136,7 @@ function promptDifficultyRating(task) {
     panel.remove();
   };
   const q = document.createElement("span");
-  q.textContent = `"${task.title}" — how was it?`;
+  q.textContent = `"${task.title}" ${ICONS.emDash} how was it?`;
   panel.appendChild(q);
   for (const opt of RATING_OPTIONS) {
     const btn = document.createElement("button");
@@ -145,7 +146,7 @@ function promptDifficultyRating(task) {
       task.ratedDifficulty = opt.value;
       dismiss();
       if (opt.value === "easier") {
-        showToast("😄 Noted! You can edit the task's difficulty.");
+        showToast(ICONS.grin + " Noted! You can edit the task's difficulty.");
       } else {
         showToast("Noted, thanks!");
       }
@@ -174,12 +175,16 @@ function buildEditSelectors(task, listSel, diff, rep, scheduleArea, timeLimit) {
   mainRow.appendChild(labeledField("Repeat", [rep.el]));
   const timeRow = document.createElement("div");
   timeRow.className = "edit-selectors-row";
-  timeRow.appendChild(scheduleArea.dueAtField);
   timeRow.appendChild(scheduleArea.deadlineSlot);
-  timeRow.appendChild(labeledField("⏱️ Time limit", [timeLimit.el]));
+  const timeLimitRow = document.createElement("div");
+  timeLimitRow.className = "edit-selectors-row";
+  timeLimitRow.appendChild(labeledField(ICONS.timeLimit + " Time limit", [timeLimit.el]));
   selectors.appendChild(mainRow);
   selectors.appendChild(scheduleArea.scheduleWrap);
   selectors.appendChild(timeRow);
+  if (scheduleArea.resetSection) selectors.appendChild(scheduleArea.resetSection.el);
+  if (scheduleArea.ignoreSection) selectors.appendChild(scheduleArea.ignoreSection.el);
+  selectors.appendChild(timeLimitRow);
   return selectors;
 }
 
@@ -197,30 +202,113 @@ function syncDeadlineSlot(scheduleArea) {
   }
 }
 
+function buildDeadlineOffsetWheels(wrap, rule) {
+  wrap.innerHTML = "";
+  const ms = rule && rule.kind === "offset" ? rule.ms : 86400000;
+  const days = createWheel(CUSTOM_DAYS_OPTIONS, Math.floor(ms / 86400000), "Days", null, true);
+  const hours = createWheel(CUSTOM_HOURS_OPTIONS, Math.floor((ms % 86400000) / 3600000), "Hours", null, true);
+  const mins = createWheel(CUSTOM_MINUTES_OPTIONS, Math.floor((ms % 3600000) / 60000), "Minutes", null, true);
+  wrap.appendChild(days.el);
+  wrap.appendChild(hours.el);
+  wrap.appendChild(mins.el);
+  wrap.readOffsetMs = () =>
+    (Number(days.value) * 86400 + Number(hours.value) * 3600 + Number(mins.value) * 60) * 1000;
+}
+
+// For weekly tasks the deadline toggle hides/shows the deadline wheels;
+// the kind button switches between fixed day/time and after-completion offset.
+function syncWeeklyWheels(scheduleArea) {
+  const repeat = scheduleArea.repeat;
+  const ruleRepeat = repeat === "weekly" || repeat === "monthly";
+  if (scheduleArea.deadlineBtnRow) {
+    scheduleArea.deadlineBtnRow.classList.toggle("hidden", !ruleRepeat);
+  }
+  if (scheduleArea.resetSection) {
+    scheduleArea.resetSection.el.classList.toggle("hidden", !ruleRepeat);
+    scheduleArea.resetSection.setFixedMode(repeat === "monthly" ? "monthly" : "weekly");
+  }
+  if (scheduleArea.ignoreSection) scheduleArea.ignoreSection.el.classList.toggle("hidden", repeat !== "weekly");
+  if (!ruleRepeat) return;
+  const show = scheduleArea.deadlineEnabled;
+  const offset = scheduleArea.deadlineKind === "offset";
+  if (scheduleArea.schedule) scheduleArea.schedule.el.classList.toggle("hidden", !show || offset);
+  if (scheduleArea.dueAtField) scheduleArea.dueAtField.classList.toggle("hidden", !show || offset);
+  if (scheduleArea.deadlineOffsetWrap) scheduleArea.deadlineOffsetWrap.classList.toggle("hidden", !show || !offset);
+}
+
 function buildEditScheduleArea(task) {
   const scheduleValues = scheduleValuesFromTask(task);
   const scheduleWrap = document.createElement("div");
   scheduleWrap.className = "repeat-schedule edit-schedule";
   const deadlineSlot = document.createElement("div");
   deadlineSlot.className = "labeled-field deadline-slot hidden";
-  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, deadlineSlot, deadlineEnabled: task.deadlineEnabled !== false, endOfDayBtn: document.createElement("button") };
+  const state = { scheduleValues, scheduleWrap, schedule: null, dueAt: null, dueAtWheelsWrap: null, dueAtField: null, deadlineSlot, deadlineEnabled: task.deadlineEnabled !== false, endOfDayBtn: document.createElement("button"), deadlineToggle: null, deadlineKindBtn: null, deadlineBtnRow: null, deadlineOffsetWrap: null, deadlineKind: "fixed", repeat: task.repeat, resetSection: null, ignoreSection: null };
   state.schedule = buildScheduleControls(task.repeat, scheduleValues, true);
   scheduleWrap.appendChild(state.schedule.el);
+  state.deadlineKind = task.deadlineRule && task.deadlineRule.kind === "offset" ? "offset" : "fixed";
+  state.deadlineToggle = createFieldToggle(state.deadlineEnabled, (on) => setDeadlineEnabled(on), ICONS.calendar + " Deadline", "Show/hide the deadline wheels");
+  state.deadlineKindBtn = createFieldToggle(state.deadlineKind === "offset", (on) => {
+    state.deadlineKind = on ? "offset" : "fixed";
+    if (state.resetSection) {
+      if (on) state.resetSection.setKind("offset");
+      state.resetSection.setKindEnabled(!on);
+    }
+    state.deadlineKindBtn.textContent = on ? ICONS.hourglass + " After completion" : ICONS.calendar + " Fixed day + time";
+    syncWeeklyWheels(state);
+  }, state.deadlineKind === "offset" ? ICONS.hourglass + " After completion" : ICONS.calendar + " Fixed day + time", "Switch deadline between fixed day/time and time after completion");
+  state.deadlineBtnRow = document.createElement("div");
+  state.deadlineBtnRow.className = "deadline-btn-row";
+  state.deadlineBtnRow.appendChild(state.deadlineToggle);
+  state.deadlineBtnRow.appendChild(state.deadlineKindBtn);
+  scheduleWrap.insertBefore(state.deadlineBtnRow, state.schedule.el);
+  state.deadlineOffsetWrap = document.createElement("div");
+  state.deadlineOffsetWrap.className = "deadline-offset-wheels";
+  scheduleWrap.appendChild(state.deadlineOffsetWrap);
+  buildDeadlineOffsetWheels(state.deadlineOffsetWrap, task.deadlineRule);
+  state.resetSection = buildRuleSection({ label: ICONS.repeat + " Reset", rule: task.resetRule, enabled: task.resetRule != null, compact: true, fixedMode: task.repeat === "monthly" ? "monthly" : "weekly" });
+  state.ignoreSection = buildRuleSection({ label: ICONS.noEntry + " Ignore", rule: task.ignoreRule, enabled: task.ignoreRule != null, compact: true, allowOffset: false });
+  if (state.deadlineKind === "offset") {
+    state.resetSection.setKind("offset");
+    state.resetSection.setKindEnabled(false);
+  }
   syncDeadlineSlot(state);
   state.dueAtWheelsWrap = document.createElement("div");
   state.dueAtWheelsWrap.className = "due-at-wheels";
-  state.dueAtField = labeledField("\ud83d\udd54 Due at", [state.dueAtWheelsWrap], true, state.endOfDayBtn);
+  state.dueAtField = labeledField(ICONS.clock + " Time", [state.dueAtWheelsWrap], true, state.endOfDayBtn);
+  scheduleWrap.appendChild(state.dueAtField);
+
+  function setDeadlineEnabled(on) {
+    state.deadlineEnabled = on;
+    state.deadlineToggle.classList.toggle("on", on);
+    state.deadlineToggle.setAttribute("aria-pressed", String(on));
+    syncWeeklyWheels(state);
+    syncEditDueAtLabel(state);
+  }
+  // Clicking anywhere in the deadline card activates the deadline (never
+  // deactivates); clicks on interactive controls are ignored here.
+  scheduleWrap.addEventListener("click", (ev) => {
+    if (state.deadlineEnabled) return;
+    if (ev.target.closest("button, .wheel-select, input, select, textarea, label, a")) return;
+    setDeadlineEnabled(true);
+  });
   return state;
 }
 
 function refreshEditSchedule(task, edit) {
   const { listSel, rep, scheduleArea } = edit;
   const repeat = listSel.value === "fun" ? "none" : rep.value;
+  scheduleArea.repeat = repeat;
   if (scheduleArea.dueAt) scheduleArea.scheduleValues.repeatTime = scheduleArea.dueAt.read();
   Object.assign(scheduleArea.scheduleValues, readScheduleValues(scheduleArea.schedule.read));
   scheduleArea.scheduleWrap.innerHTML = "";
   scheduleArea.schedule = buildScheduleControls(repeat, scheduleArea.scheduleValues, true);
+  if (scheduleArea.deadlineBtnRow) scheduleArea.scheduleWrap.appendChild(scheduleArea.deadlineBtnRow);
   scheduleArea.scheduleWrap.appendChild(scheduleArea.schedule.el);
+  if (scheduleArea.deadlineOffsetWrap) {
+    scheduleArea.scheduleWrap.appendChild(scheduleArea.deadlineOffsetWrap);
+    buildDeadlineOffsetWheels(scheduleArea.deadlineOffsetWrap, null);
+  }
+  scheduleArea.scheduleWrap.appendChild(scheduleArea.dueAtField);
   syncDeadlineSlot(scheduleArea);
   scheduleArea.scheduleWrap.classList.toggle("hidden", scheduleArea.schedule.el.childElementCount === 0);
   const showDueAt = scheduleShowsTimeOfDay(repeat);
@@ -230,11 +318,13 @@ function refreshEditSchedule(task, edit) {
     for (const el of scheduleArea.dueAt.els) scheduleArea.dueAtWheelsWrap.appendChild(el);
     const labelRow = scheduleArea.dueAtField.querySelector(".field-label-row");
     labelRow.querySelectorAll(".field-toggle-btn").forEach((b) => b.remove());
-    const toggle = createFieldToggle(scheduleArea.deadlineEnabled, (on) => {
-      scheduleArea.deadlineEnabled = on;
-      syncEditDueAtLabel(scheduleArea);
-    }, "Deadline", "Toggle deadline urgency");
-    labelRow.insertBefore(toggle, scheduleArea.endOfDayBtn);
+    if (repeat !== "weekly" && repeat !== "monthly") {
+      const toggle = createFieldToggle(scheduleArea.deadlineEnabled, (on) => {
+        scheduleArea.deadlineEnabled = on;
+        syncEditDueAtLabel(scheduleArea);
+      }, "Deadline", "Toggle deadline urgency");
+      labelRow.insertBefore(toggle, scheduleArea.endOfDayBtn);
+    }
     scheduleArea.endOfDayBtn.replaceWith(scheduleArea.dueAt.endOfDayBtn);
     scheduleArea.endOfDayBtn = scheduleArea.dueAt.endOfDayBtn;
   } else {
@@ -242,28 +332,29 @@ function refreshEditSchedule(task, edit) {
   }
   scheduleArea.dueAtField.classList.toggle("hidden", !showDueAt);
   syncEditDueAtLabel(scheduleArea);
+  syncWeeklyWheels(scheduleArea);
 }
 
 function syncEditDueAtLabel(scheduleArea) {
   const label = scheduleArea.dueAtField.querySelector(".field-label");
   if (label) {
-    label.textContent = scheduleArea.deadlineEnabled ? "🕔 Due at" : "🕔 Resets at";
+    label.textContent = ICONS.clock + " Time";
   }
 }
 
 function updateEditWheelsEnabled(task, edit) {
-  const isFun = edit.listSel.value === "fun";
+  const isFun = edit.listSel.value === "fun" || edit.listSel.value === "group";
   edit.diff.disabled = isFun || task.subtasks.length > 0;
   edit.rep.disabled = isFun;
   edit.diff.el.title = task.subtasks.length > 0
     ? "Difficulty is derived from the most difficult sub-task"
     : "";
-  edit.rep.el.title = isFun ? "Fun tasks never repeat" : "";
+  edit.rep.el.title = isFun ? (edit.listSel.value === "group" ? "Groups never repeat" : "Fun tasks never repeat") : "";
 }
 
 function saveEditRow(task, edit) {
   const { listSel, rep, diff, timeLimit, scheduleArea } = edit;
-  const isFun = listSel.value === "fun";
+  const isFun = listSel.value === "fun" || listSel.value === "group";
   const repeat = isFun ? "none" : rep.value;
   const updates = {
     title: edit.titleInput.value,
@@ -276,6 +367,34 @@ function saveEditRow(task, edit) {
     updates.repeatTime = scheduleArea.dueAt.read();
     updates.deadlineEnabled = scheduleArea.deadlineEnabled;
   }
+  if (repeat === "weekly" || repeat === "monthly") {
+    // Toggle off = no deadline. Otherwise the deadline is either a fixed
+    // day+time (weekdays for weekly, nth weekday of month for monthly) or a
+    // days/hours/minutes offset after completion.
+    if (!scheduleArea.deadlineEnabled) {
+      updates.deadlineRule = null;
+    } else if (scheduleArea.deadlineKind === "offset" && scheduleArea.deadlineOffsetWrap.readOffsetMs) {
+      const ms = scheduleArea.deadlineOffsetWrap.readOffsetMs();
+      updates.deadlineRule = ms > 0 ? { kind: "offset", ms } : null;
+    } else if (scheduleArea.dueAt) {
+      const sched = readScheduleValues(scheduleArea.schedule.read);
+      const minutes = scheduleArea.dueAt.read();
+      const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
+      const mm = String(minutes % 60).padStart(2, "0");
+      if (repeat === "monthly") {
+        if (sched.repeatMonthlyWeekday !== null && sched.repeatMonthlyWeekday !== undefined) {
+          updates.deadlineRule = { kind: "monthly", weekday: sched.repeatMonthlyWeekday, first: sched.repeatMonthlyFirst !== false, time: `${hh}:${mm}` };
+        } else {
+          updates.deadlineRule = null;
+        }
+      } else {
+        const weekdays = sched.repeatWeekdays || [1];
+        updates.deadlineRule = { kind: "fixed", slots: weekdays.map((weekday) => ({ weekday, time: `${hh}:${mm}` })) };
+      }
+    }
+    if (scheduleArea.resetSection) updates.resetRule = scheduleArea.resetSection.read();
+    if (repeat === "weekly" && scheduleArea.ignoreSection) updates.ignoreRule = scheduleArea.ignoreSection.read();
+  }
   if (!isFun) updates.difficulty = diff.value;
   clearEditing();
   Game.editTask(task.id, updates);
@@ -284,6 +403,20 @@ function saveEditRow(task, edit) {
 function openEditRow(task) {
   clearEditing();
   E.taskId = task.id;
+
+  if (task.list === "group") {
+    // Groups only get the name edit; a group always stays a group.
+    E.pending = {
+      kind: "task",
+      controls: [],
+      onSave: (title) => {
+        clearEditing();
+        Game.editTask(task.id, { title });
+      },
+    };
+    render();
+    return;
+  }
 
   const edit = {
     listSel: createWheel(LIST_OPTIONS, task.list || "todo", "List", null, true),

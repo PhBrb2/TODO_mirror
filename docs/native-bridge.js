@@ -1,4 +1,5 @@
 import { REMINDER_HOUR } from "./game-constants.js";
+import { ICONS } from "./game-icons.js";
 
 const REMINDER_NOTIFICATION_ID = 1;
 
@@ -70,7 +71,7 @@ async function syncDailyReminder({ streak = 0, dailyCompleted = 0, dailyGoal = 0
       ? `Today: ${Math.min(dailyCompleted, dailyGoal)}/${dailyGoal} tasks done`
       : "Keep the momentum going";
     const title = streak > 0
-      ? `🔥 ${streak}-day streak — don't break it!`
+      ? `${ICONS.fire} ${streak}-day streak ${ICONS.emDash} don't break it!`
       : "Time to plan your tasks";
     await notifications.schedule({
       notifications: [

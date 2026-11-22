@@ -1,6 +1,7 @@
 import { BOOST_CHANCE_PER_COMPLETION, BOOST_COOLDOWN_MS, BOOST_DURATION_MS, BOOST_MULT, CHEST_OPEN_MS, FIRST_TASK_COINS_MULT, FIRST_TASK_GEM_CHANCE, GEM_BONUS_AMOUNT, XP_BASE_LEVEL } from "./game-constants.js";
 import { dayKey, isoWeekKey } from "./game-schedule.js";
 import { saveState, emitToast, state } from "./game-state.js";
+import { ICONS } from "./game-icons.js";
 
 function firstTaskTier(streak) {
   if (streak >= 7) return "day7";
@@ -38,7 +39,7 @@ function maybeStartBoost() {
   if (Math.random() >= BOOST_CHANCE_PER_COMPLETION) return;
   state.boostUntil = Date.now() + BOOST_DURATION_MS;
   state.boostCooldownUntil = state.boostUntil + BOOST_COOLDOWN_MS;
-  emitToast(`⚡ Reward boost active! x${BOOST_MULT} for 1h`);
+  emitToast(`${ICONS.bolt} Reward boost active! x${BOOST_MULT} for 1h`);
 }
 
 function rolloverCheckpoints() {

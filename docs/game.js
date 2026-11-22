@@ -5,6 +5,7 @@ import * as progression from "./game-progression.js";
 import * as rewards from "./game-rewards.js";
 import * as tasks from "./game-tasks.js";
 import * as shop from "./game-shop.js";
+import * as rules from "./game-rules.js";
 
 const Game = {
   ...constants,
@@ -14,6 +15,7 @@ const Game = {
   ...rewards,
   ...tasks,
   ...shop,
+  ...rules,
 };
 
 window.Game = Game;
@@ -25,4 +27,5 @@ export * from "./game-progression.js";
 export * from "./game-rewards.js";
 export * from "./game-tasks.js";
 export * from "./game-shop.js";
+export * from "./game-rules.js";
 export { Game };

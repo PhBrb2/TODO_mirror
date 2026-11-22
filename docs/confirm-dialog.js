@@ -15,16 +15,6 @@
     msg.className = "confirm-message";
     const actions = document.createElement("div");
     actions.className = "confirm-actions";
-    const cancelBtn = document.createElement("button");
-    cancelBtn.type = "button";
-    cancelBtn.className = "confirm-cancel";
-    cancelBtn.textContent = "Cancel";
-    const confirmBtn = document.createElement("button");
-    confirmBtn.type = "button";
-    confirmBtn.className = "confirm-ok";
-    confirmBtn.textContent = "Delete";
-    actions.appendChild(cancelBtn);
-    actions.appendChild(confirmBtn);
     panel.appendChild(msg);
     panel.appendChild(actions);
     overlay.appendChild(panel);
@@ -32,37 +22,64 @@
     return overlay;
   }
 
-  function confirmDialog(message) {
+  // buttons: [{ label, value, className?, focus? }]; resolves to the chosen
+  // value, or null on cancel / overlay click / Escape. Enter = last button.
+  function showDialog(message, buttons) {
     return new Promise((resolve) => {
       const el = ensureOverlay();
       el.querySelector(".confirm-message").textContent = message;
-      const okBtn = el.querySelector(".confirm-ok");
-      const cancelBtn = el.querySelector(".confirm-cancel");
+      const actions = el.querySelector(".confirm-actions");
+      actions.innerHTML = "";
+      const btns = buttons.map((b) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = b.className || "confirm-btn";
+        btn.textContent = b.label;
+        actions.appendChild(btn);
+        return btn;
+      });
+      let settled = false;
+      const handlers = buttons.map((b, i) => () => done(b.value));
       const done = (result) => {
+        if (settled) return;
+        settled = true;
         el.classList.add("hidden");
         el.removeEventListener("click", onOverlay);
-        okBtn.removeEventListener("click", onOk);
-        cancelBtn.removeEventListener("click", onCancel);
+        btns.forEach((b, i) => b.removeEventListener("click", handlers[i]));
         document.removeEventListener("keydown", onKey);
         resolve(result);
       };
       const onOverlay = (ev) => {
-        if (ev.target === el) done(false);
+        if (ev.target === el) done(null);
       };
-      const onOk = () => done(true);
-      const onCancel = () => done(false);
       const onKey = (ev) => {
-        if (ev.key === "Escape") done(false);
-        else if (ev.key === "Enter") done(true);
+        if (ev.key === "Escape") done(null);
+        else if (ev.key === "Enter") done(buttons[buttons.length - 1].value);
       };
       el.addEventListener("click", onOverlay);
-      okBtn.addEventListener("click", onOk);
-      cancelBtn.addEventListener("click", onCancel);
+      btns.forEach((b, i) => b.addEventListener("click", handlers[i]));
       document.addEventListener("keydown", onKey);
       el.classList.remove("hidden");
-      okBtn.focus();
+      const focusBtn = btns[buttons.findIndex((b) => b.focus)];
+      (focusBtn || btns[btns.length - 1]).focus();
     });
   }
 
-  window.ConfirmDialog = { confirm: confirmDialog };
+  function confirmDialog(message) {
+    return showDialog(message, [
+      { label: "Cancel", value: false, className: "confirm-cancel" },
+      { label: "Delete", value: true, className: "confirm-ok", focus: true },
+    ]);
+  }
+
+  function choicesDialog(message, choices) {
+    return showDialog(message, choices.map((c) => ({
+      label: c.label,
+      value: c.value,
+      className: c.className || "confirm-btn",
+      focus: Boolean(c.focus),
+    })));
+  }
+
+  window.ConfirmDialog = { confirm: confirmDialog, choices: choicesDialog };
 })();

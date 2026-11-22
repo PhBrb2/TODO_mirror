@@ -26,25 +26,24 @@
       <p class="daily-progress-label">Week: <b id="weekly-progress">0/10</b></p>
     </div>
     <div class="stats top-stats">
-      <span class="coins">🪙 <b id="coin-balance">0</b></span>
-      <span class="gems">💎 <b id="gem-balance">0</b></span>
-      <span class="level">✨ Lv <b id="level-display">1</b></span>
-      <span class="streak-sum">🔥 <b id="streak-sum">0</b></span>
+      <span class="coins"><span data-icon="coin"></span> <b id="coin-balance">0</b></span>
+      <span class="gems"><span data-icon="gem"></span> <b id="gem-balance">0</b></span>
+      <span class="level"><span data-icon="sparkles"></span> Lv <b id="level-display">1</b></span>
+      <span class="streak-sum"><span data-icon="fire"></span> <b id="streak-sum">0</b></span>
       <span class="top-stats-actions">
-        <button id="shop-btn" type="button" aria-label="Open shop">🛒</button>
-        <button id="achievements-btn" type="button" aria-label="Achievements">🏆</button>
-        <button id="settings-btn" type="button" aria-label="Settings">⚙️</button>
-        <button id="info-btn" type="button" aria-label="Info: how to use the app">ℹ️</button>
+        <span class="version" id="app-version"></span>
+        <button id="shop-btn" type="button" aria-label="Open shop"><span data-icon="cart"></span></button>
+        <button id="achievements-btn" type="button" aria-label="Achievements"><span data-icon="trophy"></span></button>
+        <button id="settings-btn" type="button" aria-label="Settings"><span data-icon="gear"></span></button>
+        <button id="info-btn" type="button" aria-label="Info: how to use the app"><span data-icon="info"></span></button>
       </span>
     </div>
   </div>
 
   <section id="ui-sheet" class="ui-sheet" aria-label="Task panel">
     <div id="sheet-handle" class="sheet-handle">
-      <div id="boost-banner" class="boost-banner hidden">⚡ x1.5 <span id="boost-timer"></span></div>
+      <div id="boost-banner" class="boost-banner hidden"><span data-icon="bolt"></span> x1.5 <span id="boost-timer"></span></div>
       <span class="sheet-handle-bar"></span>
-      <span class="version" id="app-version"></span>
-      <button id="toggle-actions-btn" type="button" aria-label="Show edit and delete buttons" aria-pressed="false">✎</button>
     </div>
     <div class="sheet-content">
 
@@ -54,9 +53,10 @@
           <button type="button" data-tab="todo">Todo</button>
           <button type="button" data-tab="backlog">Backlog</button>
           <button type="button" data-tab="fun">Fun</button>
+          <button id="toggle-actions-btn" type="button" aria-label="Show edit and delete buttons" aria-pressed="false"><span data-icon="pencil"></span></button>
         </div>
         <ul id="task-list"></ul>
-        <p id="empty-hint" class="empty-hint hidden">Nothing to do yet — add a task! 🎉</p>
+        <p id="empty-hint" class="empty-hint hidden">Nothing to do yet <span data-icon="emDash"></span> add a task! <span data-icon="party"></span></p>
 
         <form id="task-form">
           <div class="task-input-row">
@@ -82,12 +82,14 @@
             <div class="labeled-field hidden" id="deadline-slot"></div>
             <div class="labeled-field hidden" id="due-at-field">
               <div class="field-label-row" id="due-at-label-row">
-                <span class="field-label" id="due-at-label">🕔 Due at</span>
+                <span class="field-label" id="due-at-label"><span data-icon="clock"></span> Time</span>
               </div>
               <div id="due-at-wheels"></div>
             </div>
+          </div>
+          <div class="form-row form-row-labeled" id="time-limit-row">
             <div class="labeled-field">
-              <span class="field-label">⏱️ Time limit</span>
+              <span class="field-label"><span data-icon="timeLimit"></span> Time limit</span>
               <div id="time-limit-wheel"></div>
             </div>
           </div>
@@ -100,8 +102,8 @@
   <div id="shop-overlay" class="shop-overlay hidden">
     <div class="shop-panel">
       <div class="shop-header">
-        <h2>🛒 Shop</h2>
-        <button id="shop-close" type="button" aria-label="Close shop">✕</button>
+        <h2><span data-icon="cart"></span> Shop</h2>
+        <button id="shop-close" type="button" aria-label="Close shop"><span data-icon="x"></span></button>
       </div>
       <div class="shop-tabs">
         <button id="tab-shop" type="button" class="active">Shop</button>
@@ -113,8 +115,8 @@
   <div id="achievements-overlay" class="shop-overlay hidden">
     <div class="shop-panel">
       <div class="shop-header">
-        <h2>🏆 Achievements</h2>
-        <button id="achievements-close" type="button" aria-label="Close achievements">✕</button>
+        <h2><span data-icon="trophy"></span> Achievements</h2>
+        <button id="achievements-close" type="button" aria-label="Close achievements"><span data-icon="x"></span></button>
       </div>
       <div id="achievements-content"></div>
     </div>
@@ -122,8 +124,8 @@
   <div id="info-overlay" class="shop-overlay hidden">
     <div class="shop-panel">
       <div class="shop-header">
-        <h2>ℹ️ How to use &amp; why it works</h2>
-        <button id="info-close" type="button" aria-label="Close info">✕</button>
+        <h2><span data-icon="info"></span> How to use &amp; why it works</h2>
+        <button id="info-close" type="button" aria-label="Close info"><span data-icon="x"></span></button>
       </div>
       <div id="info-content"></div>
     </div>
@@ -132,11 +134,11 @@
   <div id="settings-overlay" class="shop-overlay hidden">
     <div class="shop-panel">
       <div class="shop-header">
-        <h2>⚙️ Settings</h2>
-        <button id="settings-close" type="button" aria-label="Close settings">✕</button>
+        <h2><span data-icon="gear"></span> Settings</h2>
+        <button id="settings-close" type="button" aria-label="Close settings"><span data-icon="x"></span></button>
       </div>
       <div id="settings-content">
-        <label class="deadline-label" id="settings-day-start-wrap">🌅 New day starts at
+        <label class="deadline-label" id="settings-day-start-wrap"><span data-icon="sunrise"></span> New day starts at
           <select id="day-start-select" aria-label="Day start hour">
             <option value="0">00:00 (midnight)</option>
             <option value="2">02:00</option>
@@ -145,12 +147,15 @@
             <option value="6">06:00</option>
           </select>
         </label>
-        <label class="deadline-label" id="settings-room-wrap">🛋️ Show room
+        <label class="deadline-label" id="settings-room-wrap"><span data-icon="couch"></span> Show room
           <input type="checkbox" id="room-enabled-check" aria-label="Show 3D room">
         </label>
+        <label class="deadline-label" id="settings-autoclean-wrap"><span data-icon="trash"></span> Remove completed one-off tasks after 30 days
+          <input type="checkbox" id="auto-clean-check" aria-label="Automatically remove completed non-repeating tasks after 30 days">
+        </label>
         <div class="settings-backup" id="settings-backup-wrap">
-          <button id="export-btn" type="button">💾 Export backup</button>
-          <button id="import-btn" type="button">📂 Import backup</button>
+          <button id="export-btn" type="button"><span data-icon="floppy"></span> Export backup</button>
+          <button id="import-btn" type="button"><span data-icon="folder"></span> Import backup</button>
           <input type="file" id="import-file" accept="application/json,.json" hidden>
         </div>
         <button id="reset-btn" type="button">Reset all data</button>
@@ -173,7 +178,7 @@
   </script>
   <script src="room-config.js"></script>
   <script src="confetti.js"></script>
-  <script src="reward-flight.js"></script>
+  <script type="module" src="reward-flight.js"></script>
   <script src="wheel-select.js"></script>
   <script src="confirm-dialog.js"></script>
   <script type="module" src="room-boot.js"></script>

@@ -4,6 +4,7 @@ import { renderBalances } from "./app-ui.js";
 import { showToast } from "./app-ui.js";
 import { render } from "./app-list.js";
 import { buildSelect } from "./app-util.js";
+import { ICONS } from "./game-icons.js";
 
 const ACHIEVEMENT_STAT_KEYS = {
   first_step: "totalCompleted",
@@ -25,9 +26,9 @@ const ACHIEVEMENT_STAT_KEYS = {
 
 function itemCostLabel(item) {
   if (item.costCoins > 0 && item.costGems > 0) {
-    return `${item.costCoins} \ud83e\ude99 + ${item.costGems} \ud83d\udc8e`;
+    return `${item.costCoins} ${ICONS.coin} + ${item.costGems} ${ICONS.gem}`;
   }
-  return item.costCoins > 0 ? `${item.costCoins} \ud83e\ude99` : `${item.costGems} \ud83d\udc8e`;
+  return item.costCoins > 0 ? `${item.costCoins} ${ICONS.coin}` : `${item.costGems} ${ICONS.gem}`;
 }
 
 function shopItemNode(item, onBuy) {
@@ -53,12 +54,12 @@ function shopItemNode(item, onBuy) {
   if (owned) {
     const tag = document.createElement("div");
     tag.className = "item-lock";
-    tag.textContent = "\u2713 owned";
+    tag.textContent = ICONS.checkMark + " owned";
     card.appendChild(tag);
   } else if (!unlockable) {
     const lock = document.createElement("div");
     lock.className = "item-lock";
-    lock.textContent = `\ud83d\udd12 Level ${item.minLevel}`;
+    lock.textContent = `${ICONS.lock} Level ${item.minLevel}`;
     card.appendChild(lock);
   } else {
     const buy = document.createElement("button");
@@ -75,13 +76,13 @@ function streakFreezeNode(ctx) {
   card.className = "shop-item";
   const emoji = document.createElement("div");
   emoji.className = "item-emoji";
-  emoji.textContent = "\ud83c\uddf8\ufe0f";
+  emoji.textContent = ICONS.flag;
   const name = document.createElement("div");
   name.className = "item-name";
   name.textContent = "Streak freeze";
   const cost = document.createElement("div");
   cost.className = "item-cost";
-  cost.textContent = `${Game.STREAK_FREEZE_GEM_COST} \ud83d\udc8e \u2014 protects one streak for one missed period`;
+  cost.textContent = `${Game.STREAK_FREEZE_GEM_COST} ${ICONS.gem} ${ICONS.emDash} protects one streak for one missed period`;
   const stock = document.createElement("div");
   stock.className = "item-lock";
   stock.textContent = `${Game.state.streakFreezes} in stock`;
@@ -110,13 +111,13 @@ function iceAgeNode(ctx) {
   card.className = "shop-item";
   const emoji = document.createElement("div");
   emoji.className = "item-emoji";
-  emoji.textContent = "\u2744\ufe0f";
+  emoji.textContent = ICONS.snowflake;
   const name = document.createElement("div");
   name.className = "item-name";
   name.textContent = "Ice age";
   const cost = document.createElement("div");
   cost.className = "item-cost";
-  cost.textContent = "\ud83d\udc8e \u2014 protects all streaks while active";
+  cost.textContent = ICONS.gem + " " + ICONS.emDash + " protects all streaks while active";
   card.appendChild(emoji);
   card.appendChild(name);
   card.appendChild(cost);
@@ -132,7 +133,7 @@ function iceAgeNode(ctx) {
         if (card.isConnected) renderShop(ctx);
         return;
       }
-      active.textContent = `\u2744\ufe0f Active \u2014 ${formatIceAgeRemaining(left)}`;
+      active.textContent = `${ICONS.snowflake} Active ${ICONS.emDash} ${formatIceAgeRemaining(left)}`;
     };
     const timer = setInterval(() => {
       if (!card.isConnected) {
@@ -145,7 +146,7 @@ function iceAgeNode(ctx) {
     return card;
   }
   const duration = buildSelect(
-    Game.ICE_AGE_OPTIONS.map((opt, i) => [String(i), `${opt.hours}h \u2014 ${opt.gems} \ud83d\udc8e`]),
+    Game.ICE_AGE_OPTIONS.map((opt, i) => [String(i), `${opt.hours}h ${ICONS.emDash} ${opt.gems} ${ICONS.gem}`]),
     "0"
   );
   duration.className = "ice-age-duration";
@@ -175,7 +176,7 @@ function renderShop(ctx) {
   if (ctx.shopTab === "owned" && items.length === 0) {
     const empty = document.createElement("p");
     empty.className = "shop-empty";
-    empty.textContent = "Nothing owned yet \u2014 complete tasks to earn rewards!";
+    empty.textContent = "Nothing owned yet " + ICONS.emDash + " complete tasks to earn rewards!";
     shopContent.appendChild(empty);
     return;
   }
@@ -197,7 +198,7 @@ function achievementNode(a) {
   card.className = "achievement" + (unlocked ? " unlocked" : "");
   const emoji = document.createElement("div");
   emoji.className = "item-emoji";
-  emoji.textContent = unlocked ? a.emoji : "\ud83d\udd12";
+  emoji.textContent = unlocked ? a.emoji : ICONS.lock;
   const name = document.createElement("div");
   name.className = "item-name";
   name.textContent = a.name;
@@ -246,21 +247,21 @@ function initOverlays() {
     onBuy(item) {
       const result = Game.purchaseItem(item.id);
       if (result.ok) {
-        showToast(`\ud83c\udf89 ${item.emoji} ${item.name} purchased!`);
+        showToast(`${ICONS.party} ${item.emoji} ${item.name} purchased!`);
         Game.saveState();
       } else if (result.reason === "coins" || result.reason === "gems") {
-        showToast("Not enough coins/gems \ud83d\udc94");
+        showToast("Not enough coins/gems " + ICONS.brokenHeart);
       }
       renderShop(ctx);
     },
     onBuyFreeze() {
       const result = Game.buyStreakFreeze();
-      if (!result.ok) showToast("Not enough gems \ud83d\udc94");
+      if (!result.ok) showToast("Not enough gems " + ICONS.brokenHeart);
       renderShop(ctx);
     },
     onBuyIceAge(optionIndex) {
       const result = Game.buyIceAge(optionIndex);
-      if (!result.ok && result.reason === "gems") showToast("Not enough gems \ud83d\udc94");
+      if (!result.ok && result.reason === "gems") showToast("Not enough gems " + ICONS.brokenHeart);
       renderShop(ctx);
     },
   };
@@ -307,13 +308,21 @@ function initOverlays() {
   }
   els.dayStartSelect.addEventListener("change", () => {
     Game.setDayStartHour(Number(els.dayStartSelect.value));
-    showToast(`\ud83c\udf05 Your day now starts at ${els.dayStartSelect.value.padStart(2, "0")}:00`);
+    showToast(`${ICONS.sunrise} Your day now starts at ${els.dayStartSelect.value.padStart(2, "0")}:00`);
   });
 
   els.roomEnabledCheck.checked = Game.state.roomEnabled !== false;
   els.roomEnabledCheck.addEventListener("change", () => {
     Game.setRoomEnabled(els.roomEnabledCheck.checked);
     window.location.reload();
+  });
+
+  els.autoCleanCheck.checked = (Game.state.autoRemoveCompletedDays | 0) > 0;
+  els.autoCleanCheck.addEventListener("change", () => {
+    Game.setAutoRemoveCompletedDays(els.autoCleanCheck.checked ? 30 : 0);
+    showToast(els.autoCleanCheck.checked
+      ? `${ICONS.trash} Completed one-off tasks will be removed after 30 days`
+      : `${ICONS.trash} Automatic removal disabled`);
   });
 
   els.exportBtn.addEventListener("click", () => {
@@ -323,7 +332,7 @@ function initOverlays() {
     link.download = `todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
-    showToast("💾 Backup exported");
+    showToast(ICONS.floppy + " Backup exported");
   });
 
   els.importBtn.addEventListener("click", () => els.importFile.click());
@@ -336,9 +345,9 @@ function initOverlays() {
       const data = JSON.parse(await file.text());
       if (!Game.importState(data)) throw new Error("invalid backup");
       render();
-      showToast("📂 Backup imported");
+      showToast(ICONS.folder + " Backup imported");
     } catch {
-      showToast("⚠️ Invalid backup file");
+      showToast(ICONS.warning + " Invalid backup file");
     }
   });
 }

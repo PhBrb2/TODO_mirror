@@ -1,5 +1,6 @@
+import { ICONS } from "./game-icons.js";
 
-const VERSION = "0.79.15";
+const VERSION = "0.79.71";
 const STORAGE_KEY = "todo-mwe-state";
 
 const REMINDER_HOUR = 20;
@@ -92,15 +93,15 @@ const BOOST_CHANCE_PER_COMPLETION = 0.1;
 const BOOST_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 
 const SHOP_ITEMS = [
-  { id: "plant",       name: "Plant",        emoji: "🪴", costCoins: 50,  costGems: 0, minLevel: 1 },
-  { id: "table",       name: "Table",        emoji: "🛋", costCoins: 150, costGems: 0, minLevel: 1 },
-  { id: "lamp",        name: "Lamp",         emoji: "💡", costCoins: 100, costGems: 0, minLevel: 2 },
-  { id: "pedestal",    name: "Chest Pedestal", emoji: "📦", costCoins: 75,  costGems: 0, minLevel: 1 },
-  { id: "mug",         name: "Coffee Mug",    emoji: "☕", costCoins: 60,  costGems: 0, minLevel: 1 },
-  { id: "cactus",      name: "Cactus",        emoji: "🌵", costCoins: 80,  costGems: 0, minLevel: 1 },
-  { id: "books",       name: "Book Stack",    emoji: "📚", costCoins: 90,  costGems: 0, minLevel: 2 },
-  { id: "boba",        name: "Boba Plushie",  emoji: "🧋", costCoins: 120, costGems: 0, minLevel: 2 },
-  { id: "headphones",  name: "Headphones",   emoji: "🎧", costCoins: 200, costGems: 0, minLevel: 3 },
+  { id: "plant",       name: "Plant",        emoji: ICONS.plant, costCoins: 50,  costGems: 0, minLevel: 1 },
+  { id: "table",       name: "Table",        emoji: ICONS.couch, costCoins: 150, costGems: 0, minLevel: 1 },
+  { id: "lamp",        name: "Lamp",         emoji: ICONS.bulb, costCoins: 100, costGems: 0, minLevel: 2 },
+  { id: "pedestal",    name: "Chest Pedestal", emoji: ICONS.chest, costCoins: 75,  costGems: 0, minLevel: 1 },
+  { id: "mug",         name: "Coffee Mug",    emoji: ICONS.coffee, costCoins: 60,  costGems: 0, minLevel: 1 },
+  { id: "cactus",      name: "Cactus",        emoji: ICONS.cactus, costCoins: 80,  costGems: 0, minLevel: 1 },
+  { id: "books",       name: "Book Stack",    emoji: ICONS.books, costCoins: 90,  costGems: 0, minLevel: 2 },
+  { id: "boba",        name: "Boba Plushie",  emoji: ICONS.boba, costCoins: 120, costGems: 0, minLevel: 2 },
+  { id: "headphones",  name: "Headphones",   emoji: ICONS.headphones, costCoins: 200, costGems: 0, minLevel: 3 },
 ];
 const ITEM_TYPES = { plant: "top", table: "slab", lamp: "top", pedestal: "slab", mug: "top", cactus: "top", books: "top", boba: "top", headphones: "top" };
 
@@ -112,11 +113,11 @@ const PLACEMENT_VERSION = 1;
 
 const DIFFICULTY_ORDER = ["too_easy", "easy", "medium", "hard"];
 
-const REPEAT_VALUES = ["none", "daily", "weekly", "monthly", "every_5min", "custom"];
+const REPEAT_VALUES = ["none", "daily", "weekly", "monthly", "custom", "manual"];
 
 const CUSTOM_REPEAT_DEFAULT_MS = 86400000;
 
-const TASK_LISTS = ["todo", "backlog", "fun"];
+const TASK_LISTS = ["todo", "backlog", "fun", "group"];
 
 const FUN_TASK_COINS = 5;
 
@@ -133,22 +134,22 @@ const ICE_AGE_OPTIONS = [
 ];
 
 const ACHIEVEMENTS = [
-  { id: "first_step",  name: "First Step",      emoji: "🏁", hint: "Complete your first task",           goal: 1 },
-  { id: "task_master", name: "Task Master",     emoji: "📜", hint: "Complete 25 tasks",                   goal: 25 },
-  { id: "streak_3",    name: "On Fire",         emoji: "🔥", hint: "Reach a 3-day streak on a task",      goal: 3 },
-  { id: "early_bird",  name: "Early Bird",      emoji: "📅", hint: "Complete 5 tasks before noon",         goal: 5 },
-  { id: "night_owl",   name: "Night Owl",       emoji: "🌙", hint: "Complete 5 tasks after 8 PM",          goal: 5 },
-  { id: "collector",   name: "Collector",       emoji: "🏰", hint: "Own all 9 room items",                goal: 9 },
-  { id: "redecorator", name: "Redecorator",     emoji: "🧱", hint: "Move or rotate room items 10 times",  goal: 10 },
-  { id: "fun_lover",   name: "Fun Lover",       emoji: "🎉", hint: "Complete 10 fun tasks",               goal: 10 },
-  { id: "weekend_warrior", name: "Weekend Warrior", emoji: "⛱️", hint: "Complete 5 tasks on weekends",     goal: 5 },
-  { id: "marathon",    name: "Marathon",         emoji: "🎽", hint: "Complete 100 tasks",                 goal: 100 },
-  { id: "chain_gang",  name: "Chain Gang",       emoji: "🧱", hint: "Complete 5 chained tasks",           goal: 5 },
-  { id: "bonus_hunter", name: "Bonus Hunter",     emoji: "⭐", hint: "Complete 5 bonus tasks",              goal: 5 },
-  { id: "chests_opened", name: "Treasure Hunter", emoji: "📦", hint: "Open 5 chests",                     goal: 5 },
-  { id: "goal_getter", name: "Goal Getter",      emoji: "🏆", hint: "Reach 5 daily goals",                 goal: 5 },
-  { id: "big_spender", name: "Big Spender",       emoji: "🪙", hint: "Spend 500 coins in the shop",         goal: 500 },
-  { id: "decorator",   name: "Decorator",        emoji: "🌿", hint: "Buy your first room item",            goal: 1 },
+  { id: "first_step",  name: "First Step",      emoji: ICONS.checkeredFlag, hint: "Complete your first task",           goal: 1 },
+  { id: "task_master", name: "Task Master",     emoji: ICONS.scroll, hint: "Complete 25 tasks",                   goal: 25 },
+  { id: "streak_3",    name: "On Fire",         emoji: ICONS.fire, hint: "Reach a 3-day streak on a task",      goal: 3 },
+  { id: "early_bird",  name: "Early Bird",      emoji: ICONS.calendar, hint: "Complete 5 tasks before noon",         goal: 5 },
+  { id: "night_owl",   name: "Night Owl",       emoji: ICONS.moon, hint: "Complete 5 tasks after 8 PM",          goal: 5 },
+  { id: "collector",   name: "Collector",       emoji: ICONS.castle, hint: "Own all 9 room items",                goal: 9 },
+  { id: "redecorator", name: "Redecorator",     emoji: ICONS.brick, hint: "Move or rotate room items 10 times",  goal: 10 },
+  { id: "fun_lover",   name: "Fun Lover",       emoji: ICONS.party, hint: "Complete 10 fun tasks",               goal: 10 },
+  { id: "weekend_warrior", name: "Weekend Warrior", emoji: ICONS.beach, hint: "Complete 5 tasks on weekends",     goal: 5 },
+  { id: "marathon",    name: "Marathon",         emoji: ICONS.running, hint: "Complete 100 tasks",                 goal: 100 },
+  { id: "chain_gang",  name: "Chain Gang",       emoji: ICONS.brick, hint: "Complete 5 chained tasks",           goal: 5 },
+  { id: "bonus_hunter", name: "Bonus Hunter",     emoji: ICONS.star, hint: "Complete 5 bonus tasks",              goal: 5 },
+  { id: "chests_opened", name: "Treasure Hunter", emoji: ICONS.chest, hint: "Open 5 chests",                     goal: 5 },
+  { id: "goal_getter", name: "Goal Getter",      emoji: ICONS.trophy, hint: "Reach 5 daily goals",                 goal: 5 },
+  { id: "big_spender", name: "Big Spender",       emoji: ICONS.coin, hint: "Spend 500 coins in the shop",         goal: 500 },
+  { id: "decorator",   name: "Decorator",        emoji: ICONS.herb, hint: "Buy your first room item",            goal: 1 },
 ];
 const MORNING_END_HOUR = 12;
 

@@ -11,7 +11,9 @@ import { DAILY_GOALS, VERSION } from "./game-constants.js";
 import { rolloverCheckpoints } from "./game-progression.js";
 import { reachedGoalCount } from "./game-rewards.js";
 import { checkRecurringTasks } from "./game-schedule.js";
+import { purgeOldCompletedTasks } from "./game-tasks.js";
 import { loadState, resetState, saveState, state, ui } from "./game-state.js";
+import { hydrateIcons } from "./game-icons.js";
 import { syncDailyReminder } from "./native-bridge.js";
 
 ui.render = () => render();
@@ -24,10 +26,11 @@ const saved = loadState();
 if (saved) Object.assign(state, saved);
 rolloverCheckpoints();
 checkRecurringTasks();
+purgeOldCompletedTasks();
 
 const dailyGoal = DAILY_GOALS[reachedGoalCount(state.dailyCompleted)] ?? DAILY_GOALS[DAILY_GOALS.length - 1];
 syncDailyReminder({ streak: state.firstTaskStreak, dailyCompleted: state.dailyCompleted, dailyGoal });
-setInterval(checkRecurringTasks, 15000);
+setInterval(() => { checkRecurringTasks(); purgeOldCompletedTasks(); }, 15000);
 setInterval(rolloverCheckpoints, 60000);
 setInterval(updateLiveClocks, 1000);
 
@@ -54,6 +57,7 @@ AppUI.wheels.diff = mountWheel("difficulty-wheel", DIFFICULTY_OPTIONS, "easy", "
 AppUI.wheels.repeat = mountWheel("repeat-wheel", REPEAT_OPTIONS, "none", "Repeat", updateCreateFormMode);
 AppUI.wheels.timeLimit = mountWheel("time-limit-wheel", TIME_LIMIT_OPTIONS, 0, "Time limit");
 
+hydrateIcons();
 initForm();
 initOverlays();
 initInfoOverlay();

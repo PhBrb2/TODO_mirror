@@ -2,6 +2,10 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { VERSION } from "./game-constants.js";
+import { hydrateIcons } from "./game-icons.js";
+
+hydrateIcons();
+import { ICONS } from "./game-icons.js";
 
 (() => {
   "use strict";
@@ -181,7 +185,7 @@ import { VERSION } from "./game-constants.js";
       const expanded = Boolean(filter) || !collapsedKits.has(group);
       const header = document.createElement("div");
       header.className = "kit-name" + (expanded ? " expanded" : "");
-      header.textContent = `${expanded ? "▾" : "▸"} ${group} (${visible.length})`;
+      header.textContent = `${expanded ? ICONS.triDown : ICONS.triRight} ${group} (${visible.length})`;
       header.addEventListener("click", () => {
         if (collapsedKits.has(group)) collapsedKits.delete(group);
         else collapsedKits.add(group);
@@ -199,7 +203,7 @@ import { VERSION } from "./game-constants.js";
         btn.className = "exclude-btn";
         btn.type = "button";
         btn.title = excluded.has(entry.label) ? "Include again" : "Exclude model";
-        btn.textContent = excluded.has(entry.label) ? "↩" : "✕";
+        btn.textContent = excluded.has(entry.label) ? ICONS.returnArrow : ICONS.x;
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           toggleExclusion(entry.label);

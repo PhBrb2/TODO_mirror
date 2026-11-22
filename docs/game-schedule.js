@@ -1,5 +1,6 @@
 import { BONUS_TASK_RATE, CUSTOM_REPEAT_DEFAULT_MS, MULTIPLIER_MAX, MULTIPLIER_MIN, STREAK_BONUS_MAX, STREAK_BONUS_PER_DAY, STREAK_BONUS_START_DAY } from "./game-constants.js";
 import { emitRender, saveState, emitToast, state } from "./game-state.js";
+import { ICONS } from "./game-icons.js";
 
 function randomMultiplier() {
   return MULTIPLIER_MIN + Math.random() * (MULTIPLIER_MAX - MULTIPLIER_MIN);
@@ -30,7 +31,6 @@ function fiveMinKey(ts) {
 }
 
 const REPEAT_KEY_BUILDERS = {
-  every_5min: (ts) => fiveMinKey(ts),
   custom: (ts) => fiveMinKey(ts),
   weekly: (ts) => {
     const d = shiftedDate(ts);
@@ -63,7 +63,7 @@ function prevRepeatKey(task, ts) {
     d.setMonth(d.getMonth() - 1);
     return repeatKey(task, d.getTime());
   }
-  if (task.repeat === "every_5min" || task.repeat === "custom") {
+  if (task.repeat === "custom") {
     return fiveMinKey(ts - (task.repeatCustomMs || CUSTOM_REPEAT_DEFAULT_MS));
   }
   if (task.repeat === "weekly") {
@@ -91,7 +91,6 @@ function timeOfDayMs(repeatTime) {
 
 function nextOccurrence(task, completedAt) {
   const repeat = task.repeat;
-  if (repeat === "every_5min") return completedAt + 300000;
   if (repeat === "custom") {
     const interval = task.repeatCustomMs || CUSTOM_REPEAT_DEFAULT_MS;
     if (task.repeatAfterCompletion) return completedAt + interval;
@@ -166,7 +165,7 @@ function checkRecurringTasks() {
   const now = Date.now();
   let changed = false;
   for (const task of state.tasks) {
-    if (task.repeat === "none") continue;
+    if (task.repeat === "none" || task.repeat === "manual") continue;
     if (task.done && task.completedAt !== null) {
       if (nextOccurrence(task, task.completedAt) <= now) {
         task.done = false;
@@ -179,7 +178,7 @@ function checkRecurringTasks() {
         task.deadline = next === Infinity ? task.deadline : next;
         const hadBonus = task.bonus;
         task.bonus = Math.random() < BONUS_TASK_RATE;
-        if (task.bonus && !hadBonus) emitToast(`⭐ "${task.title}" has a bonus reward this time!`);
+        if (task.bonus && !hadBonus) emitToast(`${ICONS.star} "${task.title}" has a bonus reward this time!`);
         if (hadBonus !== task.bonus) changed = true;
         changed = true;
       }
@@ -188,7 +187,7 @@ function checkRecurringTasks() {
       if (state.streakFreezes > 0) {
         state.streakFreezes -= 1;
         task.streakFreezeKey = prevRepeatKey(task, now);
-        emitToast(`\ud83c\uddf8\ufe0f Streak freeze used \u2014 "${task.title}" keeps its \ud83d\udd25 ${task.streak} streak`);
+        emitToast(`${ICONS.flag} Streak freeze used ${ICONS.emDash} "${task.title}" keeps its ${ICONS.fire} ${task.streak} streak`);
       } else {
         task.streak = 0;
         task.streakDayKeys = [];

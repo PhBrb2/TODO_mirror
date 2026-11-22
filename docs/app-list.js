@@ -5,12 +5,28 @@ import { activateEdit, buildEditControlsRow, buildTitleInput, clearEditing, edit
 import { AppUI } from "./app-state.js";
 import { renderBalances, vibrateForReward } from "./app-ui.js";
 import { DELETE_ARM_MS, DIFFICULTY_OPTIONS, armDeleteButton, buildChainColorInfo, buildSelect, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, formatDeadline, formatResetIn, formatMinutesSeconds, isGlobalEditMode, sortTasks, timeLimitRemaining, zigzagEdgeNode } from "./app-util.js";
+import { ICONS } from "./game-icons.js";
 
 const E = AppUI.edit;
 
 async function deleteTaskWithConfirm(task) {
   const hasStreak = task.repeat !== "none" && task.streak > 0;
   const hasSubtasks = task.subtasks.length > 0;
+  const memberCount = Game.state.tasks.filter((t) => t.groupId === task.id).length;
+  const hasMembers = task.list === "group" && memberCount > 0;
+  if (hasMembers) {
+    const choice = await ConfirmDialog.choices(
+      `Delete group "${task.title}"? It has ${memberCount} grouped task${memberCount === 1 ? "" : "s"}.`,
+      [
+        { label: "Cancel", value: null, className: "confirm-cancel", focus: true },
+        { label: "Keep tasks", value: "keep", className: "confirm-btn" },
+        { label: "Delete grouped tasks", value: "deleteAll", className: "confirm-ok" },
+      ]
+    );
+    if (choice === "deleteAll") Game.deleteTask(task.id, { deleteMembers: true });
+    else if (choice === "keep") Game.deleteTask(task.id);
+    return;
+  }
   if (hasStreak || hasSubtasks) {
     const reasons = [];
     if (hasSubtasks) reasons.push(`${task.subtasks.length} subtask${task.subtasks.length === 1 ? "" : "s"}`);
@@ -52,44 +68,16 @@ function taskCheckbox(li, task) {
   return cb;
 }
 
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-function buildSubtaskRing(task) {
+// Green fill that rises from the bottom of the parent checkbox as
+// subtasks are completed (only for tasks with more than 2 subtasks).
+function buildSubtaskFill(task) {
   const n = task.subtasks.length;
-  if (n <= 2) return null;
+  if (n <= 2 || task.done) return null;
   const done = task.subtasks.filter((s) => s.done).length;
-  const size = 34;
-  const c = size / 2;
-  const r = 14;
-  const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
-  svg.classList.add("task-check-ring");
-  // Segmented background ring: n dash segments with gaps, so the page
-  // background shows between segments (one segment per subtask).
-  const GAP = 0.14;
-  const seg = (100 / n) * (1 - GAP);
-  const gap = (100 / n) * GAP;
-  const track = document.createElementNS(SVG_NS, "circle");
-  track.setAttribute("cx", String(c));
-  track.setAttribute("cy", String(c));
-  track.setAttribute("r", String(r));
-  track.setAttribute("pathLength", "100");
-  track.classList.add("task-ring-track");
-  track.style.strokeDasharray = `${seg} ${gap}`;
-  svg.appendChild(track);
-  // Progress fills whole segments only, so gaps stay visible: repeat the
-  // segment pattern `done` times, then an empty dash for the rest.
-  const bar = document.createElementNS(SVG_NS, "circle");
-  bar.setAttribute("cx", String(c));
-  bar.setAttribute("cy", String(c));
-  bar.setAttribute("r", String(r));
-  bar.setAttribute("pathLength", "100");
-  bar.classList.add("task-ring-bar");
-  bar.style.strokeDasharray = done === 0
-    ? "0 100"
-    : `${Array.from({ length: done }, () => `${seg} ${gap}`).join(" ")} 0 100`;
-  svg.appendChild(bar);
-  return svg;
+  const fill = document.createElement("div");
+  fill.className = "task-check-fill";
+  fill.style.height = `${(done / n) * 100}%`;
+  return fill;
 }
 
 function taskTitleNode(task, editingThisTask, chainInfo = null) {
@@ -115,18 +103,28 @@ function taskMetaNode(task) {
   if (task.pinned) {
     const pin = document.createElement("span");
     pin.className = "badge pinned";
-    pin.textContent = "\ud83d\udccc pinned";
+    pin.textContent = ICONS.pin + " pinned";
     meta.appendChild(pin);
   }
   if (task.repeat !== "none") {
     const rep = document.createElement("span");
     rep.className = "badge repeat";
-    rep.textContent = "\ud83d\udd01 " + (task.repeat === "every_5min" ? "5 min" : task.repeat);
+    rep.textContent = ICONS.repeat + " " + task.repeat;
+    if (task.repeat === "manual") {
+      rep.classList.add("task-enable");
+      rep.role = "button";
+      rep.tabIndex = 0;
+      rep.title = "Manually enable this task";
+      rep.addEventListener("click", () => {
+        if (task.done) Game.enableTask(task);
+        else Game.emitToast(ICONS.check + " \"" + task.title + "\" is already enabled");
+      });
+    }
     meta.appendChild(rep);
     if (task.streak > 0) {
       const st = document.createElement("span");
       st.className = "badge streak";
-      st.textContent = "\ud83d\udd25 " + task.streak;
+      st.textContent = ICONS.fire + " " + task.streak;
       meta.appendChild(st);
     }
   }
@@ -149,12 +147,12 @@ function taskTimeBadge(task) {
     const tl = document.createElement("span");
     tl.className = "badge timer running";
     tl.dataset.taskId = task.id;
-    tl.textContent = `\u23f1\ufe0f ${formatMinutesSeconds(Math.max(0, timeLimitRemaining(task, Date.now())))}`;
+    tl.textContent = `${ICONS.timeLimit} ${formatMinutesSeconds(Math.max(0, timeLimitRemaining(task, Date.now())))}`;
     return tl;
   }
   const tl = document.createElement("span");
   tl.className = "badge timer";
-  tl.textContent = `\u23f1\ufe0f ${task.timeLimit}m`;
+  tl.textContent = `${ICONS.timeLimit} ${task.timeLimit}m`;
   return tl;
 }
 
@@ -206,7 +204,7 @@ function subtaskRow(task, st, parentLocked, chainInfo = null, chainUi = null) {
     || (editingSubtaskOf(task) === st && E.pending && E.pending.kind === "subtask");
   const stEdit = document.createElement("button");
   stEdit.className = "task-edit subtask-edit";
-  stEdit.textContent = "\u270e";
+  stEdit.textContent = ICONS.pencil;
   stEdit.addEventListener("click", () => openSubtaskEdit(task, st));
   const stTitle = editingThisSub ? buildTitleInput(st.title) : document.createElement("span");
   stTitle.className = editingThisSub ? "subtask-title title-input" : "subtask-title";
@@ -219,7 +217,7 @@ function subtaskRow(task, st, parentLocked, chainInfo = null, chainUi = null) {
   }
   const stDel = document.createElement("button");
   stDel.className = "task-delete subtask-delete";
-  stDel.textContent = "\u2715";
+  stDel.textContent = ICONS.x;
   armDeleteButton(stDel, () => Game.deleteSubtask(task, st.id));
   subtaskDraggable(row, task, st);
   row.appendChild(subtaskCheckbox(row, task, st, stLocked, parentLocked));
@@ -314,24 +312,24 @@ function taskActionsNode(task) {
   const pin = document.createElement("button");
   pin.type = "button";
   pin.className = "task-pin" + (task.pinned ? " pinned" : "");
-  pin.textContent = "\ud83d\udccc";
-  pin.title = task.pinned ? "Unpin task" : "Pin task \u2014 always in Highlight, first in other lists";
+  pin.textContent = ICONS.pin;
+  pin.title = task.pinned ? "Unpin task" : "Pin task " + ICONS.emDash + " always in Highlight, first in other lists";
   pin.addEventListener("click", () => Game.editTask(task.id, { pinned: !task.pinned }));
 
   const del = document.createElement("button");
   del.className = "task-delete";
-  del.textContent = "\u2715";
+  del.textContent = ICONS.x;
   armDeleteButton(del, () => deleteTaskWithConfirm(task));
 
   const edit = document.createElement("button");
   edit.className = "task-edit";
-  edit.textContent = "\u270e";
+  edit.textContent = ICONS.pencil;
   edit.addEventListener("click", () => openEditRow(task));
 
   const actions = document.createElement("div");
   const editingThis = E.taskId === task.id || editingSubtaskOf(task);
   actions.className = "task-actions" + (editingThis ? " hidden" : "");
-  actions.appendChild(pin);
+  if (task.list !== "group") actions.appendChild(pin);
   actions.appendChild(edit);
   actions.appendChild(del);
 
@@ -339,7 +337,7 @@ function taskActionsNode(task) {
     const start = document.createElement("button");
     start.className = "task-start";
     start.type = "button";
-    start.textContent = "\u25b6 Start";
+    start.textContent = ICONS.play + " Start";
     start.title = `Finish within ${task.timeLimit} min for a bonus`;
     start.addEventListener("click", () => Game.startTask(task));
     actions.appendChild(start);
@@ -382,7 +380,49 @@ document.addEventListener("click", (ev) => {
   if (changed) render();
 });
 
-function taskNode(task, chainInfo = null, chainUi = null) {
+function groupNode(task, chainInfo = null, chainVis = null) {
+  const li = document.createElement("li");
+  li.className = "task group";
+  li.dataset.id = task.id;
+  li.title = "Group";
+  const editingThisTask = E.taskId === task.id && E.pending && E.pending.kind === "task"
+    || (E.pending && E.pending.kind === "restore" && E.pending.taskId === task.id);
+  const body = document.createElement("div");
+  body.className = "task-body";
+  const { node: title, input: titleInput } = taskTitleNode(task, editingThisTask, chainInfo);
+  body.appendChild(title);
+  if (editingThisTask) {
+    activateEdit(li, titleInput, E.pending.controls, E.pending.onSave);
+    body.appendChild(buildEditControlsRow());
+  }
+  const children = document.createElement("div");
+  children.className = "group-children";
+  const members = Game.state.tasks.filter((t) => t.groupId === task.id);
+  const ordered = chainOrdered(members, sortTasks(members));
+  let prevM = null;
+  for (const m of ordered) {
+    const v = chainVis && chainVis.get(m.id) ? chainVis.get(m.id) : { hidden: false, zigzagAbove: false, zigzagBelow: false };
+    if (v.hidden) continue;
+    const prevIsPred = prevM && prevM.id === m.chainedAfter;
+    const mChainUi = {
+      inlineLink: Boolean(m.chainedAfter) && !v.zigzagAbove && !prevIsPred,
+      zigzagAbove: v.zigzagAbove,
+      zigzagBelow: v.zigzagBelow,
+    };
+    if (!v.zigzagAbove && prevIsPred) {
+      children.appendChild(chainLinkNode("chain-link-row", () => Game.unchainTask(m)));
+    }
+    children.appendChild(taskNode(m, chainInfo, mChainUi, chainVis));
+    prevM = m;
+  }
+  body.appendChild(children);
+  li.appendChild(body);
+  li.appendChild(taskActionsNode(task));
+  return li;
+}
+
+function taskNode(task, chainInfo = null, chainUi = null, chainVis = null) {
+  if (task.list === "group") return groupNode(task, chainInfo, chainVis);
   const li = document.createElement("li");
   li.className = "task diff-" + (task.difficulty || "fun") + (task.done ? " done" : "");
   li.dataset.id = task.id;
@@ -413,12 +453,12 @@ function taskNode(task, chainInfo = null, chainUi = null) {
   taskDraggable(li, task);
 
   const cb = taskCheckbox(li, task);
-  const ring = buildSubtaskRing(task);
-  if (ring) {
+  const fill = buildSubtaskFill(task);
+  if (fill) {
     const wrap = document.createElement("span");
     wrap.className = "task-check-wrap";
+    wrap.appendChild(fill);
     wrap.appendChild(cb);
-    wrap.appendChild(ring);
     li.appendChild(wrap);
   } else {
     li.appendChild(cb);
@@ -429,8 +469,8 @@ function taskNode(task, chainInfo = null, chainUi = null) {
 }
 
 function tasksForTab() {
-  if (AppUI.activeTab === "highlight") return Game.highlightTasks();
-  return Game.state.tasks.filter((t) => (t.list || "todo") === AppUI.activeTab);
+  if (AppUI.activeTab === "highlight") return Game.highlightTasks().filter((t) => !t.groupId);
+  return Game.state.tasks.filter((t) => !t.groupId && ((t.list || "todo") === AppUI.activeTab || t.list === "group"));
 }
 
 let prevDailyReached = null;
@@ -462,7 +502,7 @@ function renderDailyProgress() {
   const completed = holdGoal ? Math.min(Game.state.dailyCompleted, holdGoal) : Game.state.dailyCompleted;
   AppUI.els.dailyProgressEl.textContent =
     !holdGoal && reached >= goals.length
-      ? `${Game.state.dailyCompleted} ✅ all goals done`
+      ? `${Game.state.dailyCompleted} ${ICONS.check} all goals done`
       : `${completed}/${nextGoal}`;
   renderBarFill(AppUI.els.dailyBar, (completed / nextGoal) * 100);
 }
@@ -483,7 +523,7 @@ function renderWeeklyProgress() {
   const completed = holdGoal ? Math.min(Game.state.weeklyCompleted, holdGoal) : Game.state.weeklyCompleted;
   AppUI.els.weeklyProgressEl.textContent =
     !holdGoal && reached >= goals.length
-      ? `${Game.state.weeklyCompleted} ✅`
+      ? `${Game.state.weeklyCompleted} ${ICONS.check}`
       : `${completed}/${nextGoal}`;
   renderBarFill(AppUI.els.weeklyBar, (completed / nextGoal) * 100);
 }
@@ -520,7 +560,7 @@ let render = function () {
     if (!v.zigzagAbove && prevIsPredecessor) {
       AppUI.els.listEl.appendChild(chainLinkNode("chain-link-row", () => Game.unchainTask(task)));
     }
-    const node = taskNode(task, chainInfo, chainUi);
+    const node = taskNode(task, chainInfo, chainUi, chainVis);
     AppUI.els.listEl.appendChild(node);
     prevTask = task;
   }
@@ -528,8 +568,8 @@ let render = function () {
   AppUI.els.listEl.classList.toggle("editing", E.taskId !== null || E.subtaskKey !== null);
   AppUI.els.emptyHint.classList.toggle("hidden", shown.length > 0);
   AppUI.els.emptyHint.textContent = AppUI.activeTab === "highlight"
-    ? "Nothing to highlight — complete tasks to earn recommendations! 🎉"
-    : "Nothing to do yet — add a task! 🎉";
+    ? "Nothing to highlight " + ICONS.emDash + " complete tasks to earn recommendations! " + ICONS.party
+    : "Nothing to do yet " + ICONS.emDash + " add a task! " + ICONS.party;
   renderBalances();
 
   renderProgress();
@@ -573,7 +613,7 @@ function updateLiveClocks() {
     const task = Game.state.tasks.find((t) => t.id === Number(node.dataset.taskId));
     if (!task) continue;
     const remaining = timeLimitRemaining(task, now);
-    node.textContent = `⏱️ ${formatMinutesSeconds(Math.max(0, remaining))}`;
+    node.textContent = `${ICONS.timeLimit} ${formatMinutesSeconds(Math.max(0, remaining))}`;
     node.classList.toggle("overdue", remaining <= 0);
   }
 

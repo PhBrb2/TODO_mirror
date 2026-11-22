@@ -45,6 +45,7 @@ export const AppUI = {
     infoContent: $("info-content"),
     dayStartSelect: $("day-start-select"),
     roomEnabledCheck: $("room-enabled-check"),
+    autoCleanCheck: $("auto-clean-check"),
     exportBtn: $("export-btn"),
     importBtn: $("import-btn"),
     importFile: $("import-file"),
