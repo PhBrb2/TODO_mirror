@@ -2,7 +2,7 @@ import { BONUS_TASK_RATE, CHEST_ITEM_ID, COIN_REWARD, CUSTOM_REPEAT_DEFAULT_MS, 
 import { normalizeRule } from "./game-rules.js";
 import { applyFirstTaskBonus, maybeStartBoost } from "./game-progression.js";
 import { achievementProgressFromCompletion, announceAchievements, announceLevelUp, awardSubtask, buildRewardMessage, clawBackMilestone, computeReward, earnChest, grantMilestones, grantXpAndCoins, reachedGoalCount, reachedWeeklyGoalCount, trackAchievement, trackDailyGoal, updateStreak } from "./game-rewards.js";
-import { nextOccurrence, repeatKey } from "./game-schedule.js";
+import { isIgnored, nextDeadlineFor, nextOccurrence, repeatKey } from "./game-schedule.js";
 import { clampWeekdays, itemIsOwned, emitPromptDifficultyRating, emitRender, saveState, emitToast, state } from "./game-state.js";
 import { hapticImpact, hapticNotification } from "./native-bridge.js";
 import { ICONS } from "./game-icons.js";
@@ -21,6 +21,7 @@ function highlightRating(task, now) {
   if (task.difficulty === "hard") score += 10;
   else if (task.difficulty === "medium") score += 5;
   if (task.list === "backlog") score -= 10;
+  if (isIgnored(task, now)) score -= 30;
   return score;
 }
 
@@ -645,8 +646,8 @@ function editTask(id, updates) {
   }
   task.startedAt = 0;
   if (task.repeat !== "none" && !task.done) {
-    const next = nextOccurrence(task, Date.now());
-    if (next !== Infinity) task.deadline = next;
+    const next = nextDeadlineFor(task, Date.now());
+    if (next !== null && next !== Infinity) task.deadline = next;
   }
   saveState();
   emitRender();

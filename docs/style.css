@@ -230,8 +230,9 @@ body.actions-hidden .subtask-add { display: none; }
   position: relative;
 }
 
-.task.done { opacity: 0.55; }
-.task.done .task-title { text-decoration: line-through; }
+.task.done, .task.ignored { opacity: 0.55; }
+.task.done .task-title, .task.ignored .task-title { text-decoration: line-through; }
+.badge.ignored { background: #eee; color: var(--muted); margin-left: 4px; }
 
 .task input[type="checkbox"] {
   width: 22px;
@@ -438,19 +439,29 @@ body:not(.actions-hidden) .task.group > .task-actions { position: absolute; top:
 .gems b { color: #00b894; }
 .level b { color: #e17055; }
 
+/* Reward boost: a thin loading bar at the very top of the sheet (in the
+   handle strip between the top section and the task tabs) that shrinks
+   from left to right with the remaining boost time. Absolutely positioned,
+   so no existing UI moves. */
 .boost-banner {
   position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #fffbe0;
-  border: 1px solid #ffeaa7;
-  color: #b8860b;
-  border-radius: 10px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#boost-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f2a900, #e08e00);
+  transition: width 1s linear;
 }
 
 #reset-btn {

@@ -1,6 +1,7 @@
-// Task schedule rules: the deadline / reset / ignore concepts as data.
-// Pure helpers only — stored on the task and editable in the UI, but not
-// yet wired into rewards/urgency behavior.
+// Task schedule rules: the deadline / reset / ignore concepts.
+// resetRule is wired into the auto-reset (checkRecurringTasks uses
+// nextRuleOccurrence when set); deadlineRule/ignoreRule are stored and
+// editable in the UI but not yet wired into rewards/urgency behavior.
 //
 // Rule shapes:
 //   deadlineRule: null | { kind: "fixed", slots: [{ weekday: 0-6, time: "HH:MM" }] }   (weekly)

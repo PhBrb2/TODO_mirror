@@ -1,5 +1,5 @@
 import { initForm, updateCreateFormMode } from "./app-form.js";
-import { render, updateLiveClocks } from "./app-list.js";
+import { render, spawnBoostSparkle, updateLiveClocks } from "./app-list.js";
 import { promptDifficultyRating } from "./app-edit.js";
 import { showToast } from "./app-ui.js";
 import { initOverlays } from "./app-overlays.js";
@@ -33,6 +33,7 @@ syncDailyReminder({ streak: state.firstTaskStreak, dailyCompleted: state.dailyCo
 setInterval(() => { checkRecurringTasks(); purgeOldCompletedTasks(); }, 15000);
 setInterval(rolloverCheckpoints, 60000);
 setInterval(updateLiveClocks, 1000);
+setInterval(() => { if (state.boostUntil > Date.now()) spawnBoostSparkle(); }, 150);
 
 AppUI.els.resetBtn.addEventListener("click", () => {
   if (!confirm("Reset ALL data? This can not be undone.")) return;

@@ -14,7 +14,7 @@ export const AppUI = {
     levelDisplayEl: $("level-display"),
     streakSumEl: $("streak-sum"),
     boostBannerEl: $("boost-banner"),
-    boostTimerEl: $("boost-timer"),
+    boostBarFillEl: $("boost-bar-fill"),
     resetBtn: $("reset-btn"),
     versionEl: $("app-version"),
     form: $("task-form"),

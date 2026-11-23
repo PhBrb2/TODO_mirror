@@ -31,7 +31,8 @@
     const vyMax = opts.vyMax ?? LAUNCH_VY_MAX;
     const piece = document.createElement("div");
     piece.className = "confetti-piece";
-    piece.style.backgroundColor = COLORS[(Math.random() * COLORS.length) | 0];
+    const palette = opts.colors && opts.colors.length ? opts.colors : COLORS;
+    piece.style.backgroundColor = palette[(Math.random() * palette.length) | 0];
     const size = opts.sizePx ?? SIZE_PX;
     piece.style.width = size + "px";
     piece.style.height = (size * (0.4 + Math.random() * 0.8)) + "px";

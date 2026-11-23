@@ -1,5 +1,6 @@
 import { BONUS_TASK_RATE, CUSTOM_REPEAT_DEFAULT_MS, MULTIPLIER_MAX, MULTIPLIER_MIN, STREAK_BONUS_MAX, STREAK_BONUS_PER_DAY, STREAK_BONUS_START_DAY } from "./game-constants.js";
 import { emitRender, saveState, emitToast, state } from "./game-state.js";
+import { nextRuleOccurrence, timeOfDayToMs } from "./game-rules.js";
 import { ICONS } from "./game-icons.js";
 
 function randomMultiplier() {
@@ -89,16 +90,18 @@ function timeOfDayMs(repeatTime) {
     : 0;
 }
 
-function nextOccurrence(task, completedAt) {
+// Next occurrence strictly after fromMs. Callers pass the completion time
+// for the reset check and "now" for deadline display.
+function nextOccurrence(task, fromMs = Date.now()) {
   const repeat = task.repeat;
   if (repeat === "custom") {
     const interval = task.repeatCustomMs || CUSTOM_REPEAT_DEFAULT_MS;
-    if (task.repeatAfterCompletion) return completedAt + interval;
-    const anchor = task.createdAt || completedAt;
-    const n = Math.floor((completedAt - anchor) / interval) + 1;
+    if (task.repeatAfterCompletion) return fromMs + interval;
+    const anchor = task.createdAt || fromMs;
+    const n = Math.floor((fromMs - anchor) / interval) + 1;
     return anchor + n * interval;
   }
-  const base = Date.now();
+  const base = Number.isFinite(fromMs) ? fromMs : Date.now();
   const d = new Date(base);
   const tod = timeOfDayMs(task.repeatTime);
   if (repeat === "daily") {
@@ -130,6 +133,36 @@ function nextOccurrence(task, completedAt) {
     return Infinity;
   }
   return Infinity;
+}
+
+// Next deadline for the task: the deadline rule when set (offset rules are
+// relative to the last completion), otherwise the repeat schedule.
+function nextDeadlineFor(task, fromMs = Date.now()) {
+  if (task.deadlineRule) {
+    const base = task.deadlineRule.kind === "offset" ? (task.completedAt ?? fromMs) : fromMs;
+    const at = nextRuleOccurrence(task.deadlineRule, base);
+    if (at !== null) return at;
+  }
+  return nextOccurrence(task, fromMs);
+}
+
+// A task is ignored from its ignore-rule slot until the next reset
+// (a reset also ends the ignore). With no upcoming reset, the ignore sticks.
+function isIgnored(task, now = Date.now()) {
+  const rule = task.ignoreRule;
+  if (!rule || rule.kind !== "fixed" || !rule.slots.length) return false;
+  let start = null;
+  for (const slot of rule.slots) {
+    const d = new Date(now);
+    const back = (d.getDay() - slot.weekday + 7) % 7;
+    let cand = new Date(d.getFullYear(), d.getMonth(), d.getDate() - back).getTime() + timeOfDayToMs(slot.time);
+    if (cand > now) cand -= 7 * 86400000;
+    if (start === null || cand > start) start = cand;
+  }
+  if (start === null || now < start) return false;
+  const resetAt = task.resetRule ? nextRuleOccurrence(task.resetRule, start) : nextOccurrence(task, start);
+  if (resetAt === null || !Number.isFinite(resetAt)) return true;
+  return now < resetAt;
 }
 
 function daysInMonth(year, month) {
@@ -167,15 +200,18 @@ function checkRecurringTasks() {
   for (const task of state.tasks) {
     if (task.repeat === "none" || task.repeat === "manual") continue;
     if (task.done && task.completedAt !== null) {
-      if (nextOccurrence(task, task.completedAt) <= now) {
+      const resetAt = task.resetRule
+        ? nextRuleOccurrence(task.resetRule, task.completedAt)
+        : nextOccurrence(task, task.completedAt);
+      if (resetAt !== null && resetAt <= now) {
         task.done = false;
         task.completedAt = null;
         for (const st of task.subtasks) {
           st.done = false;
           st.reward = null;
         }
-        const next = nextOccurrence(task, now);
-        task.deadline = next === Infinity ? task.deadline : next;
+        const next = nextDeadlineFor(task, now);
+        task.deadline = next === null || next === Infinity ? task.deadline : next;
         const hadBonus = task.bonus;
         task.bonus = Math.random() < BONUS_TASK_RATE;
         if (task.bonus && !hadBonus) emitToast(`${ICONS.star} "${task.title}" has a bonus reward this time!`);
@@ -203,4 +239,4 @@ function isoWeekKey(ts) {
   return `${d.getFullYear()}-${isoWeek(d)}`;
 }
 
-export { checkRecurringTasks, dayKey, daysInMonth, fiveMinKey, isoWeek, isoWeekKey, nextOccurrence, nextTimeOfDay, nthWeekdayOfMonth, prevRepeatKey, randomMultiplier, repeatKey, streakBonus, streakHasFailed, timeOfDayMs };
+export { checkRecurringTasks, dayKey, daysInMonth, fiveMinKey, isIgnored, isoWeek, isoWeekKey, nextDeadlineFor, nextOccurrence, nextTimeOfDay, nthWeekdayOfMonth, prevRepeatKey, randomMultiplier, repeatKey, streakBonus, streakHasFailed, timeOfDayMs };
