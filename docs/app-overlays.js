@@ -332,6 +332,7 @@ function initOverlays() {
     link.download = `todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
+    Game.noteExport();
     showToast(ICONS.floppy + " Backup exported");
   });
 

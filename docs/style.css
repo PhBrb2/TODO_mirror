@@ -232,7 +232,6 @@ body.actions-hidden .subtask-add { display: none; }
 
 .task.done, .task.ignored { opacity: 0.55; }
 .task.done .task-title, .task.ignored .task-title { text-decoration: line-through; }
-.badge.ignored { background: #eee; color: var(--muted); margin-left: 4px; }
 
 .task input[type="checkbox"] {
   width: 22px;
@@ -283,6 +282,10 @@ body:not(.actions-hidden) .task.group > .task-actions { position: absolute; top:
 .task.diff-medium   { --diff-color: #e9a470; }
 .task.diff-hard     { --diff-color: #e08e87; }
 .task.diff-fun      { --diff-color: #d63384; }
+/* fun tasks get a rainbow gradient as their difficulty banner */
+.task.fun::after, .task.diff-fun::after {
+  background: linear-gradient(180deg, #ff5f6d 0%, #ffc371 20%, #f9f871 40%, #7bed9f 60%, #70a1ff 80%, #e056fd 100%);
+}
 
 .badge {
   display: inline-block;
@@ -298,6 +301,7 @@ body:not(.actions-hidden) .task.group > .task-actions { position: absolute; top:
 .badge.deadline { background: #e0f2f1; color: #00897b; margin-left: 4px; }
 .badge.deadline.overdue { background: #f8e9ee; color: #9d585e; }
 .badge.deadline.reset { background: #eeeef4; color: var(--muted); }
+.badge.enable-in { background: #eeeef4; color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
 .badge.timer { background: #e8f0ff; color: #3f6ab5; margin-left: 4px; }
 .badge.timer.running { background: #dcebff; color: #23509c; font-variant-numeric: tabular-nums; }
 .badge.timer.overdue { background: #ffe3e3; color: #c0392b; }

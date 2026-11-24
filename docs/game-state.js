@@ -46,6 +46,9 @@ function defaultState() {
     streakFreezes: 0,
     iceAgeUntil: 0,
     maxStreakSum: 0,
+    createdAt: Date.now(),
+    lastExportAt: 0,
+    backupReminderSnoozedAt: 0,
   };
 }
 
@@ -106,6 +109,7 @@ const TASK_FIELD_MIGRATORS = {
       ? raw.streakDayKeys.filter((k) => typeof k === "string")
       : [],
   bonus: (raw) => raw.bonus === true,
+  backupReminder: (raw) => raw.backupReminder === true,
   deadline: (raw) => (typeof raw.deadline === "number" ? raw.deadline : null),
   deadlineEnabled: (raw) => raw.deadlineEnabled !== false,
   deadlineRule: (raw) => normalizeRule(raw.deadlineRule, { allowOffset: true }),
@@ -250,6 +254,9 @@ function migrateState(raw) {
     streakFreezes: num(raw.streakFreezes, 0),
     iceAgeUntil: Math.max(0, num(raw.iceAgeUntil, 0)),
     maxStreakSum: Math.max(0, Math.floor(num(raw.maxStreakSum, 0))),
+    createdAt: num(raw.createdAt, Date.now()),
+    lastExportAt: num(raw.lastExportAt, 0),
+    backupReminderSnoozedAt: num(raw.backupReminderSnoozedAt, 0),
   };
 }
 
@@ -270,6 +277,12 @@ function loadState() {
 
 function exportState() {
   return JSON.stringify({ schemaVersion: SCHEMA_VERSION, state }, null, 2);
+}
+
+// Record that the user exported a backup (called by the export button).
+function noteExport() {
+  state.lastExportAt = Date.now();
+  saveState();
 }
 
 function importState(data) {
@@ -334,4 +347,4 @@ function itemIsOwned(id) {
   return state.ownedItems.includes(id);
 }
 
-export { clampWeekdays, defaultAchievementStats, exportState, importState, defaultState, emitPromptDifficultyRating, emitRender, emitToast, isRecord, itemIsOwned, loadState, migrateAchievements, migratePlacedItems, migrateState, migrateTask, normalizePlaced, normalizeWeekdays, num, ownedItemIds, resetState, saveState, state, str, totalStreakSum, ui };
+export { clampWeekdays, defaultAchievementStats, exportState, importState, defaultState, emitPromptDifficultyRating, emitRender, emitToast, isRecord, itemIsOwned, loadState, migrateAchievements, migratePlacedItems, migrateState, migrateTask, normalizePlaced, normalizeWeekdays, noteExport, num, ownedItemIds, resetState, saveState, state, str, totalStreakSum, ui };

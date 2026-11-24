@@ -4,7 +4,7 @@ import { celebrateGoal } from "./goal-celebration.js";
 import { activateEdit, buildEditControlsRow, buildTitleInput, clearEditing, editingSubtaskOf, openEditRow, openSubtaskEdit } from "./app-edit.js";
 import { AppUI } from "./app-state.js";
 import { renderBalances, vibrateForReward } from "./app-ui.js";
-import { DELETE_ARM_MS, DIFFICULTY_OPTIONS, armDeleteButton, buildChainColorInfo, buildSelect, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, formatDeadline, formatResetIn, formatMinutesSeconds, isGlobalEditMode, sortTasks, timeLimitRemaining, zigzagEdgeNode } from "./app-util.js";
+import { DELETE_ARM_MS, DIFFICULTY_OPTIONS, armDeleteButton, buildChainColorInfo, buildSelect, chainDot, chainInlineSymbol, chainLinkNode, chainOrdered, chainVisibility, formatDeadline, formatEnableIn, formatResetIn, formatMinutesSeconds, isGlobalEditMode, sortTasks, timeLimitRemaining, zigzagEdgeNode } from "./app-util.js";
 import { ICONS } from "./game-icons.js";
 
 const E = AppUI.edit;
@@ -128,7 +128,7 @@ function taskMetaNode(task) {
       meta.appendChild(st);
     }
   }
-  if (task.deadline && !task.done) {
+  if (task.deadline && !task.done && !Game.isIgnored(task)) {
     const dl = document.createElement("span");
     const neutral = task.deadlineEnabled === false && task.repeat !== "none";
     dl.className = "badge deadline" + (neutral ? " reset" : (task.deadline < Date.now() ? " overdue" : ""));
@@ -136,11 +136,13 @@ function taskMetaNode(task) {
     dl.textContent = neutral ? formatResetIn(task.deadline) : formatDeadline(task.deadline);
     meta.appendChild(dl);
   }
-  if (Game.isIgnored(task)) {
-    const ig = document.createElement("span");
-    ig.className = "badge ignored";
-    ig.textContent = ICONS.noEntry + " ignored";
-    meta.appendChild(ig);
+  const enAt = (task.done || Game.isIgnored(task)) ? Game.enabledAtMs(task) : null;
+  if (enAt) {
+    const en = document.createElement("span");
+    en.className = "badge enable-in";
+    en.dataset.taskId = task.id;
+    en.textContent = formatEnableIn(enAt);
+    meta.appendChild(en);
   }
   if (task.timeLimit && !task.done) {
     meta.appendChild(taskTimeBadge(task));
@@ -432,7 +434,7 @@ function groupNode(task, chainInfo = null, chainVis = null) {
 function taskNode(task, chainInfo = null, chainUi = null, chainVis = null) {
   if (task.list === "group") return groupNode(task, chainInfo, chainVis);
   const li = document.createElement("li");
-  li.className = "task diff-" + (task.difficulty || "fun") + (task.done ? " done" : "") + (Game.isIgnored(task) ? " ignored" : "");
+  li.className = "task diff-" + (task.difficulty || "fun") + (task.list === "fun" ? " fun" : "") + (task.done ? " done" : "") + (Game.isIgnored(task) ? " ignored" : "");
   li.dataset.id = task.id;
   li.title = task.list === "fun" ? "Fun task" : "Difficulty: " + task.difficulty.replace("_", " ");
   const liColor = chainInfo ? chainInfo.branchDots.get(task.id) : null;
@@ -618,12 +620,29 @@ function updateLiveClocks() {
 
   for (const li of AppUI.els.listEl.querySelectorAll("li.task")) {
     const t = Game.state.tasks.find((x) => x.id === Number(li.dataset.id));
-    if (t) li.classList.toggle("ignored", Game.isIgnored(t, now));
+    if (!t) continue;
+    const ignored = Game.isIgnored(t, now);
+    li.classList.toggle("ignored", ignored);
+    const meta = li.querySelector(".task-meta");
+    let enNode = meta ? meta.querySelector(".badge.enable-in") : null;
+    const enAt = (t.done || ignored) ? Game.enabledAtMs(t, now) : null;
+    if (enAt && !enNode && meta) {
+      enNode = document.createElement("span");
+      enNode.className = "badge enable-in";
+      enNode.dataset.taskId = t.id;
+      meta.appendChild(enNode);
+    }
+    if (enNode) {
+      enNode.classList.toggle("hidden", !enAt);
+      if (enAt) enNode.textContent = formatEnableIn(enAt);
+    }
   }
 
   for (const node of AppUI.els.listEl.querySelectorAll(".badge.deadline")) {
     const task = Game.state.tasks.find((t) => t.id === Number(node.dataset.taskId));
     if (!task || task.done) continue;
+    node.classList.toggle("hidden", Game.isIgnored(task, now));
+    if (node.classList.contains("hidden")) continue;
     if (node.classList.contains("reset")) {
       node.textContent = formatResetIn(task.deadline);
     } else {

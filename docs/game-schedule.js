@@ -148,9 +148,9 @@ function nextDeadlineFor(task, fromMs = Date.now()) {
 
 // A task is ignored from its ignore-rule slot until the next reset
 // (a reset also ends the ignore). With no upcoming reset, the ignore sticks.
-function isIgnored(task, now = Date.now()) {
+function ignoreWindow(task, now = Date.now()) {
   const rule = task.ignoreRule;
-  if (!rule || rule.kind !== "fixed" || !rule.slots.length) return false;
+  if (!rule || rule.kind !== "fixed" || !rule.slots.length) return null;
   let start = null;
   for (const slot of rule.slots) {
     const d = new Date(now);
@@ -159,10 +159,27 @@ function isIgnored(task, now = Date.now()) {
     if (cand > now) cand -= 7 * 86400000;
     if (start === null || cand > start) start = cand;
   }
-  if (start === null || now < start) return false;
+  if (start === null || now < start) return null;
   const resetAt = task.resetRule ? nextRuleOccurrence(task.resetRule, start) : nextOccurrence(task, start);
-  if (resetAt === null || !Number.isFinite(resetAt)) return true;
-  return now < resetAt;
+  if (resetAt === null || !Number.isFinite(resetAt)) return { start, end: Infinity };
+  if (now >= resetAt) return null;
+  return { start, end: resetAt };
+}
+
+function isIgnored(task, now = Date.now()) {
+  return ignoreWindow(task, now) !== null;
+}
+
+// When a disabled (done recurring) or ignored task becomes actionable again:
+// the next reset. null when that never happens (one-off/manual, no reset).
+function enabledAtMs(task, now = Date.now()) {
+  if (task.done && task.completedAt != null && task.repeat !== "none" && task.repeat !== "manual") {
+    const r = task.resetRule ? nextRuleOccurrence(task.resetRule, task.completedAt) : nextOccurrence(task, task.completedAt);
+    return r !== null && Number.isFinite(r) ? r : null;
+  }
+  const win = ignoreWindow(task, now);
+  if (win && Number.isFinite(win.end)) return win.end;
+  return null;
 }
 
 function daysInMonth(year, month) {
@@ -239,4 +256,4 @@ function isoWeekKey(ts) {
   return `${d.getFullYear()}-${isoWeek(d)}`;
 }
 
-export { checkRecurringTasks, dayKey, daysInMonth, fiveMinKey, isIgnored, isoWeek, isoWeekKey, nextDeadlineFor, nextOccurrence, nextTimeOfDay, nthWeekdayOfMonth, prevRepeatKey, randomMultiplier, repeatKey, streakBonus, streakHasFailed, timeOfDayMs };
+export { checkRecurringTasks, dayKey, daysInMonth, enabledAtMs, fiveMinKey, ignoreWindow, isIgnored, isoWeek, isoWeekKey, nextDeadlineFor, nextOccurrence, nextTimeOfDay, nthWeekdayOfMonth, prevRepeatKey, randomMultiplier, repeatKey, streakBonus, streakHasFailed, timeOfDayMs };
