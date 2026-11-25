@@ -16,7 +16,7 @@ function openChest(chest) {
   const xp = CHEST_XP[Math.floor(Math.random() * CHEST_XP.length)];
   const leveledUp = grantXpAndCoins(coins, gems, xp);
   emitToast(
-    `${ICONS.chest} +${coins} ${ICONS.coin} +${gems} ${ICONS.gem} +${xp} ${ICONS.sparkles}` + (leveledUp ? ` ${ICONS.emDash} Level up!` : "")
+    `${ICONS.chest} +${coins} ${ICONS.coin} +${gems} ${ICONS.gem}` + (leveledUp ? ` ${ICONS.emDash} Level up!` : "")
   );
   saveState();
   emitRender();
@@ -41,7 +41,7 @@ function awardSubtask(subtask) {
   if (leveledUp) {
     announceLevelUp();
   } else if (coins > 0) {
-    emitToast(`+${coins} ${ICONS.coin} +${xp} ${ICONS.sparkles}`);
+    emitToast(`+${coins} ${ICONS.coin}`);
   }
 }
 
@@ -152,7 +152,6 @@ function buildRewardMessage(task, reward, firstBonus) {
   if (firstBonus && firstBonus.streak >= 3) {
     msg += ` ${ICONS.sunrise} first task x${state.firstTaskStreak}`;
   }
-  msg += ` +${reward.xp} ${ICONS.sparkles}`;
   return msg;
 }
 

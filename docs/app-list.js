@@ -57,7 +57,7 @@ function taskCheckbox(li, task) {
           task.reward.coins,
           task.reward.gems,
           AppUI.els.coinBalanceEl,
-          AppUI.els.gemBalanceEl
+          AppUI.els.gemBalanceEl || AppUI.els.coinBalanceEl
         );
         vibrateForReward(task.reward);
       }
@@ -184,7 +184,7 @@ function subtaskCheckbox(row, task, st, stLocked, parentLocked) {
         st.reward ? st.reward.coins : 0,
         st.reward ? st.reward.gems : 0,
         AppUI.els.coinBalanceEl,
-        AppUI.els.gemBalanceEl
+        AppUI.els.gemBalanceEl || AppUI.els.coinBalanceEl
       );
       vibrateForReward(st.reward);
     }

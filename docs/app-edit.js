@@ -144,11 +144,23 @@ function promptDifficultyRating(task) {
     btn.textContent = opt.label;
     btn.addEventListener("click", () => {
       task.ratedDifficulty = opt.value;
+      const origin = Confetti.originOf(btn); // capture before dismiss() removes the panel
       dismiss();
-      if (opt.value === "easier") {
-        showToast(ICONS.grin + " Noted! You can edit the task's difficulty.");
-      } else {
-        showToast("Noted, thanks!");
+      const bonus = Game.awardRatingBonus(task);
+      if (bonus) {
+        Confetti.burstAt(origin, 18, { sizePx: 4, colors: ["#f2a900", "#f7c04a", "#ffe9a8"], vyMin: -70, vyMax: 60, lifetimeMs: 900 });
+        RewardFlight.flyRewards(
+          { x: origin.x + origin.width / 2, y: origin.y },
+          bonus.coins,
+          bonus.gems,
+          AppUI.els.coinBalanceEl,
+          AppUI.els.gemBalanceEl || AppUI.els.coinBalanceEl,
+          { perCoin: true }
+        );
+        const parts = [];
+        if (bonus.coins > 0) parts.push(`+${bonus.coins} ${ICONS.coin}`);
+        if (bonus.gems > 0) parts.push(`+${bonus.gems} ${ICONS.gem}`);
+        showToast(`${ICONS.sparkles} Rating bonus (10%): ${parts.join(" ")}`);
       }
       Game.saveState();
       render();

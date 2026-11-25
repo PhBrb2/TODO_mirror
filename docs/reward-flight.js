@@ -122,14 +122,17 @@ import { ICONS } from "./game-icons.js";
     requestAnimationFrame(tick);
   }
 
-  function flyRewards(from, coins, gems, coinTargetEl, gemTargetEl) {
+  function flyRewards(from, coins, gems, coinTargetEl, gemTargetEl, opts = {}) {
     if (!from) return;
     const coinTarget = clampToViewport(centerOf(coinTargetEl) || from);
     const gemTarget = clampToViewport(centerOf(gemTargetEl) || from);
     const parent = ensureLayer();
 
-    const coinCount = Math.min(MAX_SIMULTANEOUS, Math.floor(coins / COIN_DIVISOR));
-    const gemCount = Math.min(MAX_SIMULTANEOUS, gems);
+    // Always show at least one flyer when there is a reward; opts.perCoin
+    // spawns one flyer per coin (used for small bonuses like the rating one).
+    const divisor = opts.perCoin ? 1 : COIN_DIVISOR;
+    const coinCount = Math.min(MAX_SIMULTANEOUS, Math.max(coins > 0 ? 1 : 0, Math.floor(coins / divisor)));
+    const gemCount = Math.min(MAX_SIMULTANEOUS, Math.max(gems > 0 ? 1 : 0, gems));
     for (let c = 0; c < coinCount; c++) {
       spawnFlyer(parent, ICONS.coin, from, coinTarget, Math.random() * Math.PI * 2);
     }

@@ -17,13 +17,16 @@
   <div id="room-view"></div>
 
   <div class="daily-progress">
-    <div class="progress-line">
-      <div class="daily-bar" id="daily-bar"></div>
-      <p class="daily-progress-label">Today: <b id="daily-progress">0/5</b></p>
-    </div>
-    <div class="progress-line">
-      <div class="daily-bar" id="weekly-bar"></div>
-      <p class="daily-progress-label">Week: <b id="weekly-progress">0/10</b></p>
+    <div class="progress-lines">
+      <div class="progress-line">
+        <div class="daily-bar" id="daily-bar"></div>
+        <p class="daily-progress-label">Today: <b id="daily-progress">0/5</b></p>
+      </div>
+      <div class="progress-line">
+        <div class="daily-bar" id="weekly-bar"></div>
+        <p class="daily-progress-label">Week: <b id="weekly-progress">0/10</b></p>
+      </div>
+      <button id="week-review-btn" type="button" aria-label="Week review" title="Week review">📅</button>
     </div>
     <div class="stats top-stats">
       <span class="coins"><span data-icon="coin"></span> <b id="coin-balance">0</b></span>
@@ -128,6 +131,16 @@
         <button id="info-close" type="button" aria-label="Close info"><span data-icon="x"></span></button>
       </div>
       <div id="info-content"></div>
+    </div>
+  </div>
+
+  <div id="week-review-overlay" class="shop-overlay hidden">
+    <div class="shop-panel">
+      <div class="shop-header">
+        <h2>📅 Week review</h2>
+        <button id="week-review-close" type="button" aria-label="Close week review">✕</button>
+      </div>
+      <div id="week-review-content"></div>
     </div>
   </div>
 

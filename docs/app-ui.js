@@ -5,6 +5,7 @@ import { state } from "./game-state.js";
 const balanceAnim = new Map();
 
 function animateBalance(el, target) {
+  if (!el) return;
   const from = Number(el.textContent) || 0;
   if (from === target) return;
   if (balanceAnim.has(el)) cancelAnimationFrame(balanceAnim.get(el));

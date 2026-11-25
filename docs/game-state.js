@@ -49,6 +49,8 @@ function defaultState() {
     createdAt: Date.now(),
     lastExportAt: 0,
     backupReminderSnoozedAt: 0,
+    completionLog: [],
+    lastWeekReviewKey: null,
   };
 }
 
@@ -257,6 +259,22 @@ function migrateState(raw) {
     createdAt: num(raw.createdAt, Date.now()),
     lastExportAt: num(raw.lastExportAt, 0),
     backupReminderSnoozedAt: num(raw.backupReminderSnoozedAt, 0),
+    completionLog: Array.isArray(raw.completionLog)
+      ? raw.completionLog
+          .filter(isRecord)
+          .map((e) => ({
+            title: str(e.title, ""),
+            list: TASK_LISTS.includes(e.list) ? e.list : "todo",
+            difficulty: e.difficulty ?? null,
+            coins: num(e.coins, 0),
+            gems: num(e.gems, 0),
+            xp: num(e.xp, 0),
+            completedAt: num(e.completedAt, 0),
+            weekKey: str(e.weekKey, null),
+          }))
+          .slice(-500)
+      : [],
+    lastWeekReviewKey: str(raw.lastWeekReviewKey, null),
   };
 }
 

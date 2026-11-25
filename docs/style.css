@@ -171,8 +171,18 @@ body.actions-hidden .subtask-add { display: none; }
   gap: 4px;
 }
 
-.progress-line {
+.progress-lines {
+  position: relative;
   flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 30px;
+  box-sizing: border-box;
+}
+
+.progress-line {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1466,3 +1476,44 @@ body:not(.actions-hidden) .task.group > .task-actions { position: absolute; top:
    the due-at field into the schedule card), so no empty double gap remains. */
 .form-row:not(:has(> .labeled-field:not(.hidden))),
 .edit-selectors-row:not(:has(> .labeled-field:not(.hidden))) { display: none; }
+
+/* Week review button (right of the daily/weekly progress bars) and overlay */
+#week-review-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 2px;
+}
+
+#week-review-overlay .shop-panel { max-height: 50vh; }
+#week-review-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+.week-review-praise { margin: 4px 0 2px; font-weight: 600; }
+.week-review-total { margin: 0 0 8px; font-size: 0.8rem; color: var(--muted); }
+.week-review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.week-review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-soft, #f6f5fb);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+.week-review-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.week-review-reward { font-size: 0.75rem; color: var(--muted); }

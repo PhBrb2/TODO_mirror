@@ -240,6 +240,144 @@ function setShopTab(ctx, tab) {
   renderShop(ctx);
 }
 
+function renderWeekReview() {
+  const els = AppUI.els;
+  const entries = Game.weekCompletions();
+  const n = entries.length;
+  const coins = entries.reduce((s, e) => s + (e.coins || 0), 0);
+  const gems = entries.reduce((s, e) => s + (e.gems || 0), 0);
+  const praise =
+    n === 0 ? ICONS.smile + " No tasks completed yet this week — a fresh start!"
+    : n < 3 ? ICONS.star + " Nice start to your week!"
+    : n < 7 ? ICONS.party + " Great week so far — keep it up!"
+    : ICONS.fire + " Amazing week — you are on fire!";
+  els.weekReviewContent.innerHTML = "";
+  const p = document.createElement("p");
+  p.className = "week-review-praise";
+  p.textContent = praise;
+  els.weekReviewContent.appendChild(p);
+  const total = document.createElement("p");
+  total.className = "week-review-total";
+  total.textContent = `${n} task${n === 1 ? "" : "s"} completed this week · +${coins} ${ICONS.coin}${gems > 0 ? ` +${gems} ${ICONS.gem}` : ""}`;
+  els.weekReviewContent.appendChild(total);
+  if (n > 0) {
+    const ul = document.createElement("ul");
+    ul.className = "week-review-list";
+    for (const e of entries) {
+      const li = document.createElement("li");
+      li.className = "week-review-item";
+      const check = document.createElement("span");
+      check.className = "week-review-check";
+      check.textContent = ICONS.check;
+      const title = document.createElement("span");
+      title.className = "week-review-title";
+      title.textContent = e.title;
+      const rw = document.createElement("span");
+      rw.className = "week-review-reward";
+      rw.textContent = `+${e.coins || 0} ${ICONS.coin}${(e.gems || 0) > 0 ? ` +${e.gems} ${ICONS.gem}` : ""}`;
+      li.append(check, title, rw);
+      ul.appendChild(li);
+    }
+    els.weekReviewContent.appendChild(ul);
+  }
+  startWeekReviewAutoScroll();
+}
+
+// Slow automatic ping-pong scrolling of the review list while the overlay is
+// open; stops when the user scrolls manually or the overlay is closed.
+function stopWeekReviewAutoScroll() {
+  const c = AppUI.els.weekReviewContent;
+  if (c._reviewRaf) {
+    cancelAnimationFrame(c._reviewRaf);
+    c._reviewRaf = null;
+  }
+}
+
+function startWeekReviewAutoScroll() {
+  const c = AppUI.els.weekReviewContent;
+  stopWeekReviewAutoScroll();
+  const list = c.querySelector(".week-review-list");
+  if (!list || list.scrollHeight <= list.clientHeight + 4) return;
+  const SPEED = 16; // px/s
+  let dir = 1;
+  let pauseUntil = 0;
+  let last = performance.now();
+  let acc = 0; // fractional px accumulate here; scrollTop snaps to integers
+  const step = (t) => {
+    if (AppUI.els.weekReviewOverlay.classList.contains("hidden")) {
+      c._reviewRaf = null;
+      return;
+    }
+    const dt = Math.min(0.05, (t - last) / 1000);
+    last = t;
+    if (t >= pauseUntil) {
+      acc += dir * SPEED * dt;
+      const whole = Math.trunc(acc);
+      if (whole !== 0) {
+        list.scrollTop += whole;
+        acc -= whole;
+      }
+      if (list.scrollTop + list.clientHeight >= list.scrollHeight - 1) {
+        list.scrollTop = list.scrollHeight - list.clientHeight;
+        dir = -1;
+        pauseUntil = t + 2000;
+      } else if (dir < 0 && list.scrollTop <= 0) {
+        list.scrollTop = 0;
+        dir = 1;
+        pauseUntil = t + 2000;
+      }
+    }
+    c._reviewRaf = requestAnimationFrame(step);
+  };
+  c._reviewRaf = requestAnimationFrame(step);
+}
+
+function openWeekReview() {
+  AppUI.els.weekReviewOverlay.classList.remove("hidden");
+  renderWeekReview(); // after unhiding, so scroll measurements are valid
+  startWeekReviewSparkles();
+}
+
+function closeWeekReview() {
+  AppUI.els.weekReviewOverlay.classList.add("hidden");
+  stopWeekReviewSparkles();
+}
+
+// New-year-sparkler particles dripping down from the top-left and top-right
+// corners of the review scroll view while the overlay is open.
+const REVIEW_SPARKLER_COLORS = ["#f7c04a", "#ffe9a8", "#ffffff", "#f2a900", "#ffd166", "#74b9ff"];
+
+function stopWeekReviewSparkles() {
+  const c = AppUI.els.weekReviewContent;
+  if (c._sparklerTimer) {
+    clearInterval(c._sparklerTimer);
+    c._sparklerTimer = null;
+  }
+}
+
+function startWeekReviewSparkles() {
+  const c = AppUI.els.weekReviewContent;
+  stopWeekReviewSparkles();
+  const spawn = () => {
+    if (AppUI.els.weekReviewOverlay.classList.contains("hidden")) {
+      stopWeekReviewSparkles();
+      return;
+    }
+    const host = c.querySelector(".week-review-list") || c;
+    const r = host.getBoundingClientRect();
+    if (r.width < 10) return;
+    for (const x of [r.left + 3, r.right - 3]) {
+      Confetti.burstAt(
+        { x, y: r.top + 3, width: 0, height: 0 },
+        1,
+        { colors: REVIEW_SPARKLER_COLORS, sizePx: 3, vyMin: 12, vyMax: 42, vx: 10, spin: 300, gravity: 650, lifetimeMs: 700 }
+      );
+    }
+  };
+  spawn();
+  c._sparklerTimer = setInterval(spawn, 150);
+}
+
 function initOverlays() {
   const els = AppUI.els;
   const ctx = {
@@ -292,6 +430,15 @@ function initOverlays() {
   });
 
   const openSettings = () => els.settingsOverlay.classList.remove("hidden");
+  els.weekReviewBtn.addEventListener("click", openWeekReview);
+  els.weekReviewClose.addEventListener("click", closeWeekReview);
+  for (const ev of ["wheel", "touchstart", "pointerdown"]) {
+    els.weekReviewContent.addEventListener(ev, stopWeekReviewAutoScroll, { passive: true });
+  }
+  els.weekReviewOverlay.addEventListener("click", (e) => {
+    if (e.target === els.weekReviewOverlay) closeWeekReview();
+  });
+
   const closeSettings = () => els.settingsOverlay.classList.add("hidden");
   els.settingsBtn.addEventListener("click", openSettings);
   els.settingsClose.addEventListener("click", closeSettings);
@@ -353,4 +500,4 @@ function initOverlays() {
   });
 }
 
-export { ACHIEVEMENT_STAT_KEYS, achievementNode, achievementProgressValue, initOverlays, itemCostLabel, renderAchievements, renderShop, setShopTab, shopItemNode, streakFreezeNode };
+export { ACHIEVEMENT_STAT_KEYS, achievementNode, achievementProgressValue, initOverlays, itemCostLabel, openWeekReview, renderAchievements, renderShop, renderWeekReview, setShopTab, shopItemNode, streakFreezeNode };
