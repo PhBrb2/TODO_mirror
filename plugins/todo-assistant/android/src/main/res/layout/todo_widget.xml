@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:background="@drawable/todo_widget_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/todo_widget_star"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:text="@string/todo_widget_title"
+            android:textColor="#2D2A3D"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- stripe is an ImageView (plain View is not a RemoteViews-supported class) -->
+    <FrameLayout android:id="@+id/rowwrap0" style="@style/TodoWidgetRowWrap">
+        <TextView android:id="@+id/row0" style="@style/TodoWidgetRowText" />
+        <ImageView android:id="@+id/stripe0" style="@style/TodoWidgetStripe" android:src="@drawable/todo_widget_stripe" android:scaleType="fitXY" android:contentDescription="@null" />
+    </FrameLayout>
+    <FrameLayout android:id="@+id/rowwrap1" style="@style/TodoWidgetRowWrap">
+        <TextView android:id="@+id/row1" style="@style/TodoWidgetRowText" />
+        <ImageView android:id="@+id/stripe1" style="@style/TodoWidgetStripe" android:src="@drawable/todo_widget_stripe" android:scaleType="fitXY" android:contentDescription="@null" />
+    </FrameLayout>
+    <FrameLayout android:id="@+id/rowwrap2" style="@style/TodoWidgetRowWrap">
+        <TextView android:id="@+id/row2" style="@style/TodoWidgetRowText" />
+        <ImageView android:id="@+id/stripe2" style="@style/TodoWidgetStripe" android:src="@drawable/todo_widget_stripe" android:scaleType="fitXY" android:contentDescription="@null" />
+    </FrameLayout>
+    <FrameLayout android:id="@+id/rowwrap3" style="@style/TodoWidgetRowWrap">
+        <TextView android:id="@+id/row3" style="@style/TodoWidgetRowText" />
+        <ImageView android:id="@+id/stripe3" style="@style/TodoWidgetStripe" android:src="@drawable/todo_widget_stripe" android:scaleType="fitXY" android:contentDescription="@null" />
+    </FrameLayout>
+    <FrameLayout android:id="@+id/rowwrap4" style="@style/TodoWidgetRowWrap">
+        <TextView android:id="@+id/row4" style="@style/TodoWidgetRowText" />
+        <ImageView android:id="@+id/stripe4" style="@style/TodoWidgetStripe" android:src="@drawable/todo_widget_stripe" android:scaleType="fitXY" android:contentDescription="@null" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/todo_widget_empty"
+        android:textColor="#8A86A3"
+        android:textSize="12sp"
+        android:visibility="gone" />
+</LinearLayout>

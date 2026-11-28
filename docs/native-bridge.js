@@ -86,4 +86,18 @@ async function syncDailyReminder({ streak = 0, dailyCompleted = 0, dailyGoal = 0
   } catch {}
 }
 
-export { hapticImpact, hapticNotification, isNative, syncDailyReminder };
+// Writes a backup file via the native plugin (Downloads folder on Android).
+// Returns the file path, or null when not on native / plugin missing.
+async function exportBackupFile(json, filename) {
+  if (!isNative()) return null;
+  try {
+    const plugin = window.Capacitor?.Plugins?.TodoAssistant;
+    if (!plugin || typeof plugin.exportBackup !== "function") return null;
+    const res = await plugin.exportBackup({ json, filename });
+    return res?.path || null;
+  } catch {
+    return null;
+  }
+}
+
+export { exportBackupFile, hapticImpact, hapticNotification, isNative, syncDailyReminder };

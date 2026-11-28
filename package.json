@@ -7,7 +7,8 @@
   "scripts": {
     "cap:prepare": "node scripts/prepare-capacitor.mjs",
     "cap:add-android": "node scripts/prepare-capacitor.mjs && cap add android",
-    "cap:sync": "node scripts/prepare-capacitor.mjs && cap sync android && node scripts/set-android-version.mjs",
+    "cap:sync": "node scripts/prepare-capacitor.mjs && cap sync android && node scripts/set-android-version.mjs && node scripts/build-game-bundle.mjs",
+    "build:game-bundle": "node scripts/build-game-bundle.mjs",
     "cap:open": "cap open android"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
     "@todo/assistant": "file:plugins/todo-assistant"
   },
   "devDependencies": {
-    "@capacitor/cli": "^9.0.0-beta.0"
+    "@capacitor/cli": "^9.0.0-beta.0",
+    "esbuild": "^0.28.2"
   }
 }

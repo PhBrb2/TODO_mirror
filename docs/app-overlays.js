@@ -4,6 +4,7 @@ import { renderBalances } from "./app-ui.js";
 import { showToast } from "./app-ui.js";
 import { render } from "./app-list.js";
 import { buildSelect } from "./app-util.js";
+import { exportBackupFile } from "./native-bridge.js";
 import { ICONS } from "./game-icons.js";
 
 const ACHIEVEMENT_STAT_KEYS = {
@@ -471,15 +472,22 @@ function initOverlays() {
       : `${ICONS.trash} Automatic removal disabled`);
   });
 
-  els.exportBtn.addEventListener("click", () => {
-    const blob = new Blob([Game.exportState()], { type: "application/json" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+  els.exportBtn.addEventListener("click", async () => {
+    const filename = `todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const json = Game.exportState();
+    const path = await exportBackupFile(json, filename);
+    if (path) {
+      showToast(ICONS.floppy + " Saved to " + path);
+    } else {
+      const blob = new Blob([json], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      showToast(ICONS.floppy + " Backup exported");
+    }
     Game.noteExport();
-    showToast(ICONS.floppy + " Backup exported");
   });
 
   els.importBtn.addEventListener("click", () => els.importFile.click());

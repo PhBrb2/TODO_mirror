@@ -323,14 +323,16 @@ function totalStreakSum() {
 
 function saveState() {
   state.maxStreakSum = Math.max(state.maxStreakSum, totalStreakSum());
+  const payload = JSON.stringify({ schemaVersion: SCHEMA_VERSION, state });
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ schemaVersion: SCHEMA_VERSION, state })
-    );
+    localStorage.setItem(STORAGE_KEY, payload);
   } catch {
     // storage full or unavailable: keep running in-memory
   }
+  // One-way mirror to native DataStore (Android app); hook is set by assistant-bridge.js.
+  try {
+    if (typeof window.__mirrorStateHook === "function") window.__mirrorStateHook(payload);
+  } catch {}
   window.dispatchEvent(new CustomEvent("game-state-changed"));
 }
 
